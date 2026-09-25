@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tim Kreatif | SKAWAN TV</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            brand: ['Montserrat', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            skawan: {
+              red: '#E50914',
+              redHover: '#C70812',
+              lightBg: '#F8FAFC',
+              cardBg: '#FFFFFF',
+              borderLight: '#E2E8F0',
+              accentBlue: '#2563EB',
+              warningAmber: '#D97706'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Firebase SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-sm">
+            SK
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-brand font-black tracking-wide text-slate-900 text-lg leading-none">SKAWAN</span>
+              <span class="font-brand font-black text-red-600 text-lg leading-none">TV</span>
+            </div>
+            <span class="text-[10px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Creative & Script Department</span>
+          </div>
+        </a>
+        <span class="hidden sm:inline-block h-5 w-px bg-slate-200 mx-2"></span>
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
+          <span class="w-2 h-2 rounded-full bg-violet-600 animate-pulse"></span>
+          Tim Kreatif / Rundown
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg">
+          <span class="text-xs text-slate-500 font-medium">Ruangan:</span>
+          <span id="navDisplayToken" class="font-mono font-bold text-xs text-red-600">STUDIO-1</span>
+        </div>
+        <button onclick="keluarSesi()" class="text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+          <span>Keluar</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Container Konten Utama -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 space-y-6">
+
+    <!-- Header Program & Durasi Total -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 via-rose-500 to-red-600"></div>
+
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200" id="badgeEpisode">
+            Episode 01
+          </span>
+          <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Sync Aktif
+          </span>
+        </div>
+        <h1 id="displayProgramTitle" class="text-2xl sm:text-3xl font-brand font-black text-slate-900">
+          Bincang Sore SKAWAN
+        </h1>
+        <p id="displayEpisodeDesc" class="text-xs sm:text-sm text-slate-500">
+          Pengenalan Studio Broadcast & Praktik Simulasi Produksi Siaran
+        </p>
+      </div>
+
+      <!-- Quick Metrics: Total Durasi & Jumlah Segmen -->
+      <div class="flex items-center gap-3">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center min-w-[110px]">
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Segmen</span>
+          <span id="statTotalSegments" class="text-xl font-brand font-black text-slate-800">0</span>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-center min-w-[130px]">
+          <span class="block text-[11px] font-bold uppercase tracking-wider text-red-600">Total Durasi</span>
+          <span id="statTotalDuration" class="text-xl font-mono font-black text-red-600">00:00</span>
+        </div>
+        <button onclick="bukaModalEditInfo()" class="p-3 text-slate-600 hover:text-violet-600 bg-slate-50 hover:bg-violet-50 border border-slate-200 hover:border-violet-200 rounded-xl transition" title="Edit Info Program">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Rundown Table Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 sm:p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <div>
+          <h2 class="text-lg font-brand font-bold text-slate-900">Susunan Mata Acara (Rundown Sheet)</h2>
+          <p class="text-xs text-slate-500">Seluruh perubahan segmen disinkronkan secara langsung ke layar PD dan Floor Director.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="bukaModalTambahSegmen()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition shadow-md shadow-violet-600/20 flex items-center gap-1.5 active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>Tambah Segmen</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabel Segmen Rundown -->
+      <div class="overflow-x-auto rounded-xl border border-slate-200">
+        <table class="w-full text-left text-xs sm:text-sm">
+          <thead class="bg-slate-50 text-slate-600 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
+            <tr>
+              <th class="py-3 px-4 w-12 text-center">Seg</th>
+              <th class="py-3 px-4 min-w-[180px]">Nama Segmen</th>
+              <th class="py-3 px-4 w-28 text-center">Durasi</th>
+              <th class="py-3 px-4 min-w-[220px]">Deskripsi Aksi Talent</th>
+              <th class="py-3 px-4 min-w-[200px]">Catatan Teknis (Cues)</th>
+              <th class="py-3 px-4 w-28 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="rundownTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+            <!-- Render otomatis via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panduan Tim Kreatif Banner -->
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-slate-600">
+      <div class="flex items-start gap-3">
+        <div class="p-2 rounded-xl bg-violet-100 text-violet-700 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div>
+          <span class="font-bold text-slate-900 block mb-0.5">Pedoman Penyusunan Rundown SKAWAN TV:</span>
+          Pastikan setiap segmen memiliki catatan teknis yang spesifik (misal: <em>"Roll VT Profil di Drive"</em> atau <em>"Lower Third Host On"</em>) agar Program Director dan Audio Operator dapat mengeksekusi instruksi tepat waktu.
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: Tambah / Edit Segmen -->
+  <div id="segmentModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 id="modalSegmentTitle" class="text-base font-brand font-bold text-slate-900">Tambah Segmen Baru</h3>
+        <button onclick="tutupModalSegmen()" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <input type="hidden" id="editSegmentIndex" value="-1">
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Judul Segmen</label>
+          <input type="text" id="inputSegTitle" placeholder="Contoh: Sapa Host & Bumper Pembuka" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Durasi (Menit)</label>
+            <input type="number" id="inputSegMinutes" min="0" max="60" value="2" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Durasi (Detik)</label>
+            <input type="number" id="inputSegSeconds" min="0" max="59" value="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Aksi Talent / Presenter</label>
+          <textarea id="inputSegTalent" rows="2" placeholder="Contoh: Host menyapa pemirsa di Cam 1, membuka tema bincang santai" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Catatan Teknis (Audio / CG / VT)</label>
+          <input type="text" id="inputSegNote" placeholder="Contoh: Lower Third Nama Host ON, Bumper VT Roll" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+        <button onclick="tutupModalSegmen()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+          Batal
+        </button>
+        <button onclick="simpanSegmen()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow">
+          Simpan Segmen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Edit Info Acara -->
+  <div id="infoModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="text-base font-brand font-bold text-slate-900">Ubah Identitas Program</h3>
+        <button onclick="tutupModalInfo()" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nama Program</label>
+          <input type="text" id="editProgName" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Episode / Subjudul</label>
+          <input type="text" id="editEpisode" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+        <button onclick="tutupModalInfo()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+          Batal
+        </button>
+        <button onclick="simpanInfoProgram()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow">
+          Perbarui Info
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog Notifikasi Modal -->
+  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">✓</div>
+      <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
+      <p id="noticeMessage" class="text-sm text-slate-600 mb-5"></p>
+      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+        Tutup
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // State Aplikasi
+    let currentRoomToken = 'STUDIO-1';
+    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+
+    // Mock data awal untuk demo preview
+    let mockRundown = [
+      {
+        title: "Opening & Bumper Utama",
+        duration: "01:30",
+        durationSeconds: 90,
+        talent: "Host membuka acara di area presenter",
+        note: "Roll VT Bumper dari Drive, Lower Third Program ON"
+      },
+      {
+        title: "Sapa Host & Pengenalan Narasumber",
+        duration: "03:00",
+        durationSeconds: 180,
+        talent: "Host menyapa narasumber tamu di kursi bincang",
+        note: "Cam 1 Wide, Cam 2 Close Host, Cam 3 Close Guest"
+      },
+      {
+        title: "Diskusi Segmen 1 - Gagasan Kreatif",
+        duration: "05:00",
+        durationSeconds: 300,
+        talent: "Pembahasan materi utama bersama narasumber",
+        note: "FD hitung 5 menit mundur, siap-siap Lower Third Nama Narasumber"
+      }
+    ];
+
+    let currentProgramInfo = {
+      programName: "Bincang Sore SKAWAN",
+      episode: "Eps 01 - Pengenalan Studio Broadcast"
+    };
+
+    // Modal Helper
+    function showNotice(title, message, isSuccess = true) {
+      document.getElementById('noticeTitle').innerText = title;
+      document.getElementById('noticeMessage').innerText = message;
+      const icon = document.getElementById('noticeIcon');
+      if (isSuccess) {
+        icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.innerText = "✓";
+      } else {
+        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.innerText = "!";
+      }
+      document.getElementById('noticeModal').classList.remove('hidden');
+    }
+
+    function closeNotice() {
+      document.getElementById('noticeModal').classList.add('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      const sessionRoom = sessionStorage.getItem('skawan_room');
+      
+      currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
+      document.getElementById('navDisplayToken').innerText = currentRoomToken;
+
+      muatDataRundown(currentRoomToken);
+    });
+
+    function muatDataRundown(token) {
+      if (isFirebaseReady) {
+        // Tarik metadata acara
+        db.ref(`rooms/${token}/meta`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const meta = snapshot.val();
+          currentProgramInfo.programName = meta.programName || currentProgramInfo.programName;
+          currentProgramInfo.episode = meta.episode || currentProgramInfo.episode;
+          renderHeaderInfo();
+        });
+
+        // Tarik data rundown real-time
+        db.ref(`rooms/${token}/rundown`).on('value', snapshot => {
+          const data = snapshot.val();
+          if (data && Array.isArray(data)) {
+            mockRundown = data;
+          } else if (data && typeof data === 'object') {
+            mockRundown = Object.values(data);
+          }
+          renderRundownTable();
+        });
+      } else {
+        // Fallback mode preview
+        renderHeaderInfo();
+        renderRundownTable();
+      }
+    }
+
+    function renderHeaderInfo() {
+      document.getElementById('displayProgramTitle').innerText = currentProgramInfo.programName;
+      document.getElementById('displayEpisodeDesc').innerText = currentProgramInfo.episode;
+      document.getElementById('badgeEpisode').innerText = currentProgramInfo.episode.split('-')[0]?.trim() || "Episode";
+    }
+
+    function renderRundownTable() {
+      const tbody = document.getElementById('rundownTableBody');
+      tbody.innerHTML = '';
+
+      let totalSecs = 0;
+
+      if (!mockRundown || mockRundown.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-400 italic">
+              Belum ada segmen rundown. Klik tombol "Tambah Segmen" untuk memulai.
+            </td>
+          </tr>
+        `;
+        document.getElementById('statTotalSegments').innerText = '0';
+        document.getElementById('statTotalDuration').innerText = '00:00';
+        return;
+      }
+
+      mockRundown.forEach((seg, idx) => {
+        const sec = seg.durationSeconds || parseDurationToSeconds(seg.duration);
+        totalSecs += sec;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/80 transition";
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-center font-mono font-bold text-slate-500">${idx + 1}</td>
+          <td class="py-3 px-4">
+            <span class="font-bold text-slate-900 block">${seg.title || '-'}</span>
+          </td>
+          <td class="py-3 px-4 text-center font-mono font-bold text-violet-700 bg-violet-50/40 rounded-lg">
+            ${seg.duration || '00:00'}
+          </td>
+          <td class="py-3 px-4 text-slate-600 text-xs">${seg.talent || '-'}</td>
+          <td class="py-3 px-4">
+            <span class="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200 block truncate max-w-xs font-mono">
+              ${seg.note || '-'}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="editSegmen(${idx})" class="p-1.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition" title="Edit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              </button>
+              <button onclick="hapusSegmen(${idx})" class="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('statTotalSegments').innerText = mockRundown.length;
+      document.getElementById('statTotalDuration').innerText = formatSecondsToDuration(totalSecs);
+    }
+
+    function parseDurationToSeconds(durStr) {
+      if (!durStr) return 0;
+      const parts = durStr.split(':');
+      if (parts.length === 2) {
+        return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+      }
+      return 0;
+    }
+
+    function formatSecondsToDuration(totalSec) {
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function bukaModalTambahSegmen() {
+      document.getElementById('modalSegmentTitle').innerText = "Tambah Segmen Baru";
+      document.getElementById('editSegmentIndex').value = "-1";
+      document.getElementById('inputSegTitle').value = "";
+      document.getElementById('inputSegMinutes').value = "2";
+      document.getElementById('inputSegSeconds').value = "0";
+      document.getElementById('inputSegTalent').value = "";
+      document.getElementById('inputSegNote').value = "";
+      document.getElementById('segmentModal').classList.remove('hidden');
+    }
+
+    function editSegmen(index) {
+      const seg = mockRundown[index];
+      if (!seg) return;
+
+      document.getElementById('modalSegmentTitle').innerText = "Edit Segmen " + (index + 1);
+      document.getElementById('editSegmentIndex').value = index;
+      document.getElementById('inputSegTitle').value = seg.title || '';
+      
+      const totalSec = seg.durationSeconds || parseDurationToSeconds(seg.duration);
+      document.getElementById('inputSegMinutes').value = Math.floor(totalSec / 60);
+      document.getElementById('inputSegSeconds').value = totalSec % 60;
+
+      document.getElementById('inputSegTalent').value = seg.talent || '';
+      document.getElementById('inputSegNote').value = seg.note || '';
+      document.getElementById('segmentModal').classList.remove('hidden');
+    }
+
+    function tutupModalSegmen() {
+      document.getElementById('segmentModal').classList.add('hidden');
+    }
+
+    function simpanSegmen() {
+      const title = document.getElementById('inputSegTitle').value.trim();
+      const mins = parseInt(document.getElementById('inputSegMinutes').value) || 0;
+      const secs = parseInt(document.getElementById('inputSegSeconds').value) || 0;
+      const talent = document.getElementById('inputSegTalent').value.trim();
+      const note = document.getElementById('inputSegNote').value.trim();
+      const editIdx = parseInt(document.getElementById('editSegmentIndex').value);
+
+      if (!title) {
+        showNotice("Peringatan", "Harap isi Nama Segmen!", false);
+        return;
+      }
+
+      const totalSec = mins * 60 + secs;
+      const durationFormatted = formatSecondsToDuration(totalSec);
+
+      const segmentObj = {
+        title: title,
+        duration: durationFormatted,
+        durationSeconds: totalSec,
+        talent: talent || '-',
+        note: note || '-'
+      };
+
+      if (editIdx >= 0) {
+        mockRundown[editIdx] = segmentObj;
+      } else {
+        mockRundown.push(segmentObj);
+      }
+
+      syncRundownKeFirebase();
+      tutupModalSegmen();
+      renderRundownTable();
+      showNotice("Berhasil", "Segmen rundown berhasil disimpan.");
+    }
+
+    function hapusSegmen(index) {
+      mockRundown.splice(index, 1);
+      syncRundownKeFirebase();
+      renderRundownTable();
+      showNotice("Dihapus", "Segmen berhasil dihapus dari rundown.");
+    }
+
+    function syncRundownKeFirebase() {
+      if (isFirebaseReady) {
+        db.ref(`rooms/${currentRoomToken}/rundown`).set(mockRundown);
+      }
+    }
+
+    // Modal Edit Info Program
+    function bukaModalEditInfo() {
+      document.getElementById('editProgName').value = currentProgramInfo.programName;
+      document.getElementById('editEpisode').value = currentProgramInfo.episode;
+      document.getElementById('infoModal').classList.remove('hidden');
+    }
+
+    function tutupModalInfo() {
+      document.getElementById('infoModal').classList.add('hidden');
+    }
+
+    function simpanInfoProgram() {
+      const name = document.getElementById('editProgName').value.trim();
+      const eps = document.getElementById('editEpisode').value.trim();
+
+      if (!name) {
+        showNotice("Peringatan", "Nama Program tidak boleh kosong!", false);
+        return;
+      }
+
+      currentProgramInfo.programName = name;
+      currentProgramInfo.episode = eps;
+
+      if (isFirebaseReady) {
+        db.ref(`rooms/${currentRoomToken}/meta/programName`).set(name);
+        db.ref(`rooms/${currentRoomToken}/meta/episode`).set(eps);
+      }
+
+      renderHeaderInfo();
+      tutupModalInfo();
+      showNotice("Diperbarui", "Informasi program berhasil diperbarui.");
+    }
+
+    function keluarSesi() {
+      sessionStorage.removeItem('skawan_role');
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>
