@@ -1,1 +1,396 @@
-test
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKAWAN TV | SKASA WAHANA TELEVISI</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            brand: ['Montserrat', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            skawan: {
+              red: '#E50914',
+              dark: '#0B0F17',
+              panel: '#151C28',
+              border: '#222F3E',
+              accent: '#3B82F6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Firebase SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- File Konfigurasi Firebase Anda -->
+  <script src="js/firebase-config.js"></script>
+</head>
+<body class="bg-skawan-dark text-slate-100 font-sans min-h-screen flex flex-col items-center justify-center p-4 selection:bg-skawan-red selection:text-white">
+
+  <!-- Header Branding SKAWAN TV -->
+  <header class="text-center mb-6">
+    <div class="inline-flex items-center gap-2 bg-red-950/60 border border-red-500/40 text-red-400 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 shadow-lg shadow-red-950/40">
+      <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+      ON-AIR SIMULATION SYSTEM
+    </div>
+    
+    <div class="flex items-center justify-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center font-brand font-black text-xl text-white shadow-lg shadow-red-600/30">
+        SK
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-brand font-black tracking-wider text-white">
+        SKAWAN <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-400">TV</span>
+      </h1>
+    </div>
+    <p class="text-xs sm:text-sm tracking-widest uppercase font-semibold text-slate-400 mt-1">
+      SKASA WAHANA TELEVISI
+    </p>
+  </header>
+
+  <!-- Container Utama -->
+  <main class="w-full max-w-xl bg-skawan-panel border border-skawan-border rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm relative overflow-hidden">
+    <!-- Garis Aksen Dekoratif Atas -->
+    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-blue-500 to-red-600"></div>
+
+    <!-- Tab Navigasi (Siswa vs Guru) -->
+    <div id="tabContainer" class="flex border-b border-skawan-border mb-6">
+      <button id="tabSiswaBtn" onclick="switchTab('siswa')" class="flex-1 pb-3 text-sm font-bold border-b-2 border-skawan-red text-red-400 focus:outline-none transition">
+        Masuk Sebagai Kru
+      </button>
+      <button id="tabGuruBtn" onclick="switchTab('guru')" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 focus:outline-none transition">
+        Master Control (Guru)
+      </button>
+    </div>
+
+    <!-- VIEW 1: Form Siswa Masuk Sesi -->
+    <section id="viewSiswa" class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Token Ruangan Studio</label>
+        <input type="text" id="siswaRoomToken" placeholder="Ketik token dari Guru (misal: STUDIO-1)" class="w-full uppercase bg-skawan-dark border border-skawan-border rounded-xl px-4 py-3 text-sm font-mono text-white focus:border-skawan-red focus:ring-1 focus:ring-skawan-red outline-none transition placeholder-slate-600">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Nama Lengkap Siswa</label>
+        <input type="text" id="siswaName" placeholder="Masukkan nama Anda" class="w-full bg-skawan-dark border border-skawan-border rounded-xl px-4 py-3 text-sm text-white focus:border-skawan-red focus:ring-1 focus:ring-skawan-red outline-none transition placeholder-slate-600">
+      </div>
+      <button onclick="masukLobbySiswa()" class="w-full mt-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-red-600/30 active:scale-[0.99]">
+        Buka Daftar Peran Produksi
+      </button>
+    </section>
+
+    <!-- VIEW 2: Form Guru (Buat Ruangan Baru) -->
+    <section id="viewGuru" class="hidden space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Nama Program / Acara</label>
+        <input type="text" id="guruProgramName" placeholder="Contoh: Skasa News Siang" class="w-full bg-skawan-dark border border-skawan-border rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition placeholder-slate-600">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Token Ruangan</label>
+          <input type="text" id="guruRoomToken" placeholder="STUDIO-1" class="w-full uppercase bg-skawan-dark border border-skawan-border rounded-xl px-4 py-3 text-sm font-mono text-white focus:border-blue-500 outline-none transition placeholder-slate-600">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Jumlah Kamera HP</label>
+          <select id="guruTotalCams" class="w-full bg-skawan-dark border border-skawan-border rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition">
+            <option value="1">1 Kamera</option>
+            <option value="2">2 Kamera</option>
+            <option value="3" selected>3 Kamera</option>
+            <option value="4">4 Kamera</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="buatRuanganGuru()" class="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-blue-600/30 active:scale-[0.99]">
+        Buat Sesi & Masuk Master Control
+      </button>
+    </section>
+
+    <!-- VIEW 3: Pemilihan Posisi Kru (Real-time Slot Locking) -->
+    <section id="viewRoleSelector" class="hidden space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-skawan-border">
+        <div>
+          <span class="text-xs text-slate-400 uppercase tracking-wider">Ruangan:</span>
+          <span id="displayRoomToken" class="font-mono font-bold text-red-400 ml-1"></span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 uppercase tracking-wider">Kru:</span>
+          <span id="displaySiswaName" class="font-semibold text-white ml-1"></span>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400">Pilih salah satu peran kru di bawah. Posisi yang sudah diambil kru lain akan otomatis terkunci:</p>
+
+      <!-- Grid Daftar Tombol Peran -->
+      <div id="roleGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
+        <!-- Render otomatis via JavaScript -->
+      </div>
+    </section>
+
+    <!-- VIEW 4: Ruang Tunggu (Waiting Room Kru) -->
+    <section id="viewWaitingRoom" class="hidden text-center py-6 space-y-4">
+      <div class="w-14 h-14 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <h3 class="text-lg font-bold text-white">Posisi Terdaftar:</h3>
+      <div id="badgeRoleSelected" class="inline-block bg-red-600/20 border border-red-500 text-red-300 text-sm font-mono px-4 py-1.5 rounded-full font-bold"></div>
+      <p class="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
+        Standby di posisi Anda. Menunggu Guru menekan tombol <span class="text-red-400 font-bold">"Mulai Siaran"</span>. Layar Anda akan berpindah otomatis ke workstation peran Anda.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- Footer Branding -->
+  <footer class="mt-6 text-center text-xs text-slate-500 font-medium">
+    SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026
+  </footer>
+
+  <!-- Script Logika Alur -->
+  <script>
+    let currentRoomToken = '';
+    let currentSiswaName = '';
+    let selectedRoleKey = '';
+
+    // Switch Tab Guru vs Siswa
+    function switchTab(role) {
+      const isSiswa = role === 'siswa';
+      document.getElementById('viewSiswa').classList.toggle('hidden', !isSiswa);
+      document.getElementById('viewGuru').classList.toggle('hidden', isSiswa);
+      
+      document.getElementById('tabSiswaBtn').className = isSiswa 
+        ? "flex-1 pb-3 text-sm font-bold border-b-2 border-skawan-red text-red-400 focus:outline-none transition"
+        : "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 focus:outline-none transition";
+
+      document.getElementById('tabGuruBtn').className = !isSiswa 
+        ? "flex-1 pb-3 text-sm font-bold border-b-2 border-blue-500 text-blue-400 focus:outline-none transition"
+        : "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 focus:outline-none transition";
+    }
+
+    // 1. Guru Menginisialisasi Ruangan Baru
+    function buatRuanganGuru() {
+      const programName = document.getElementById('guruProgramName').value.trim();
+      const token = document.getElementById('guruRoomToken').value.trim().toUpperCase();
+      const totalCams = parseInt(document.getElementById('guruTotalCams').value);
+
+      if (!programName || !token) {
+        alert("Harap isi Nama Program dan Token Ruangan!");
+        return;
+      }
+
+      // Seluruh slot peran lengkap sesuai struktur tim SKAWAN TV
+      const rolesData = {
+        creative: null,
+        pd: null,
+        switcher: null,
+        audio_vt: null,
+        cg: null,
+        fd: null
+      };
+
+      // Tambahkan slot kamera sesuai konfigurasi guru
+      for (let i = 1; i <= totalCams; i++) {
+        rolesData[`cam_${i}`] = null;
+      }
+
+      // Tally default untuk semua kamera
+      const defaultTally = {};
+      for (let i = 1; i <= totalCams; i++) {
+        defaultTally[`cam_${i}`] = 'off';
+      }
+
+      // Simpan inisialisasi state ke Firebase Realtime Database
+      db.ref(`rooms/${token}`).set({
+        meta: {
+          programName: programName,
+          totalCameras: totalCams,
+          status: 'waiting',
+          createdAt: Date.now()
+        },
+        roles: rolesData,
+        live_state: {
+          programSource: 'cam_1',
+          previewSource: totalCams > 1 ? 'cam_2' : 'cam_1',
+          tally: defaultTally
+        },
+        vt_state: {
+          status: 'stopped',
+          selectedVtId: '',
+          currentTime: 0
+        },
+        cg_state: {
+          lowerThirdActive: false,
+          lowerThirdTitle: '',
+          lowerThirdSubtitle: '',
+          logoActive: true,
+          tickerActive: false,
+          tickerText: ''
+        },
+        timer_rundown: {
+          currentSegmentIndex: 0,
+          timeRemaining: 0,
+          isActive: false
+        },
+        crisis: {
+          isActive: false,
+          type: 'NONE',
+          message: ''
+        }
+      }).then(() => {
+        sessionStorage.setItem('skawan_room', token);
+        sessionStorage.setItem('skawan_role', 'admin');
+        window.location.href = `admin.html?room=${token}`;
+      }).catch(err => {
+        alert("Gagal membuat sesi studio: " + err.message);
+      });
+    }
+
+    // 2. Siswa Masuk Sesi Menggunakan Token
+    function masukLobbySiswa() {
+      const token = document.getElementById('siswaRoomToken').value.trim().toUpperCase();
+      const name = document.getElementById('siswaName').value.trim();
+
+      if (!token || !name) {
+        alert("Harap masukkan Token Ruangan dan Nama Anda!");
+        return;
+      }
+
+      // Verifikasi ketersediaan sesi di Firebase
+      db.ref(`rooms/${token}`).once('value', snapshot => {
+        if (!snapshot.exists()) {
+          alert("Token Ruangan tidak ditemukan! Pastikan kode studio sudah dibuat oleh Guru.");
+          return;
+        }
+
+        const roomData = snapshot.val();
+        if (roomData.meta && roomData.meta.status === 'ended') {
+          alert("Sesi produksi studio ini sudah selesai.");
+          return;
+        }
+
+        currentRoomToken = token;
+        currentSiswaName = name;
+
+        // Beralih ke layar seleksi peran
+        document.getElementById('tabContainer').classList.add('hidden');
+        document.getElementById('viewSiswa').classList.add('hidden');
+        document.getElementById('viewRoleSelector').classList.remove('hidden');
+        document.getElementById('displayRoomToken').innerText = token;
+        document.getElementById('displaySiswaName').innerText = name;
+
+        // Dengarkan slot peran real-time
+        listenRoles(token);
+      });
+    }
+
+    // Label ramah untuk tiap divisi kru SKAWAN TV
+    const roleLabels = {
+      creative: "Tim Kreatif (Rundown & Script)",
+      pd: "Program Director (PD)",
+      switcher: "Video Switcher (ATEM Desk)",
+      audio_vt: "Audio & VT Operator (Drive)",
+      cg: "Graphic Operator (CG & Lower Third)",
+      fd: "Floor Director (FD / Studio Floor)"
+    };
+
+    // 3. Listener Real-time Slot Peran Kru
+    function listenRoles(token) {
+      db.ref(`rooms/${token}/roles`).on('value', snapshot => {
+        const roles = snapshot.val() || {};
+        const grid = document.getElementById('roleGrid');
+        grid.innerHTML = '';
+
+        Object.keys(roles).forEach(roleKey => {
+          const occupant = roles[roleKey];
+          const isTaken = occupant !== null;
+          
+          let title = roleLabels[roleKey];
+          if (!title && roleKey.startsWith('cam_')) {
+            const camNum = roleKey.replace('cam_', '');
+            title = `Kamerawan ${camNum} (HP Live)`;
+          }
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.disabled = isTaken;
+          btn.onclick = () => ambilPeran(roleKey, title);
+
+          btn.className = isTaken
+            ? "flex flex-col text-left p-3.5 rounded-xl border border-skawan-border bg-slate-900/50 opacity-40 cursor-not-allowed text-slate-500"
+            : "flex flex-col text-left p-3.5 rounded-xl border border-skawan-border bg-skawan-dark/80 hover:border-red-500 hover:bg-red-950/20 text-white transition active:scale-[0.98]";
+
+          btn.innerHTML = `
+            <span class="text-sm font-bold tracking-wide">${title}</span>
+            <span class="text-xs mt-1.5 font-mono ${isTaken ? 'text-amber-500 font-semibold' : 'text-emerald-400'}">
+              ${isTaken ? `&bull; Terisi: ${occupant}` : '&bull; Posisi Kosong (Klik Ambil)'}
+            </span>
+          `;
+
+          grid.appendChild(btn);
+        });
+      });
+    }
+
+    // 4. Kunci Peran Terpilih Menggunakan Transaksi Atomik
+    function ambilPeran(roleKey, roleTitle) {
+      const roleRef = db.ref(`rooms/${currentRoomToken}/roles/${roleKey}`);
+
+      roleRef.transaction(currentValue => {
+        if (currentValue === null) {
+          return currentSiswaName; // Ambil slot jika belum diisi
+        } else {
+          return; // Batalkan transaksi jika baru saja diambil siswa lain
+        }
+      }, (error, committed, snapshot) => {
+        if (error) {
+          alert("Gagal memilih peran: " + error.message);
+        } else if (!committed) {
+          alert("Maaf, peran ini baru saja diambil oleh siswa lain! Silakan pilih posisi lain.");
+        } else {
+          selectedRoleKey = roleKey;
+          sessionStorage.setItem('skawan_room', currentRoomToken);
+          sessionStorage.setItem('skawan_role', roleKey);
+          sessionStorage.setItem('skawan_user', currentSiswaName);
+
+          // Masuk ke ruang tunggu
+          document.getElementById('viewRoleSelector').classList.add('hidden');
+          document.getElementById('viewWaitingRoom').classList.remove('hidden');
+          document.getElementById('badgeRoleSelected').innerText = `${roleTitle} - ${currentSiswaName}`;
+
+          // Dengarkan trigger mulai siaran dari Guru
+          listenGameStart(currentRoomToken, roleKey);
+        }
+      });
+    }
+
+    // 5. Menunggu Aba-aba Siaran Mulai dari Guru
+    function listenGameStart(token, roleKey) {
+      db.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
+        if (snapshot.val() === 'live') {
+          const targetPages = {
+            creative: 'creative.html',
+            pd: 'pd.html',
+            switcher: 'switcher.html',
+            audio_vt: 'audio-vt.html',
+            cg: 'cg.html',
+            fd: 'fd.html'
+          };
+
+          const destination = targetPages[roleKey] || 'camera.html';
+          window.location.href = `${destination}?room=${token}&role=${roleKey}`;
+        }
+      });
+    }
+  </script>
+</body>
+</html>
