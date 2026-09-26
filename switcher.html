@@ -42,6 +42,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+  <!-- PeerJS WebRTC Streamer & YouTube API -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
@@ -158,7 +161,11 @@
 
         <!-- Layar Video PVW -->
         <div class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-emerald-500 flex items-center justify-center shadow-inner">
-          <div id="pvwScreenContainer" class="w-full h-full flex items-center justify-center">
+          <div id="pvwScreenContainer" class="w-full h-full flex items-center justify-center relative">
+            
+            <!-- Video Stream Nyata Kamera HP Siswa untuk Preview -->
+            <video id="pvwCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+
             <!-- Simulated Feed Canvas/Placeholder -->
             <div id="pvwVisualFeed" class="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 flex flex-col items-center justify-center p-4 text-center">
               <span class="font-brand font-black text-3xl sm:text-4xl text-slate-300 tracking-wider" id="pvwFeedLabel">CAM 2</span>
@@ -166,7 +173,7 @@
             </div>
 
             <!-- Kontainer Video VT untuk Layar Preview -->
-            <div id="pvwVtVideoContainer" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center">
+            <div id="pvwVtVideoContainer" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10">
               <video id="pvwVtHtml5" class="w-full h-full object-contain" muted playsinline></video>
               <div id="pvwVtYtWrapper" class="w-full h-full hidden">
                 <div id="pvwVtYtElement" class="w-full h-full pointer-events-none"></div>
@@ -177,7 +184,7 @@
             </div>
           </div>
           <!-- Watermark PVW -->
-          <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-emerald-600/90 text-white font-mono text-[10px] font-bold">
+          <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-emerald-600/90 text-white font-mono text-[10px] font-bold z-20">
             PVW BUS
           </div>
         </div>
@@ -197,7 +204,11 @@
 
         <!-- Layar Video PGM -->
         <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-red-600 flex items-center justify-center shadow-inner" id="pgmScreenWrapper">
-          <div id="pgmScreenContainer" class="w-full h-full flex items-center justify-center transition-opacity duration-300">
+          <div id="pgmScreenContainer" class="w-full h-full flex items-center justify-center transition-opacity duration-300 relative">
+            
+            <!-- Video Stream Nyata Kamera HP Siswa untuk Program (Live On-Air) -->
+            <video id="pgmCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+
             <!-- Simulated Feed Canvas/Placeholder -->
             <div id="pgmVisualFeed" class="w-full h-full bg-gradient-to-br from-slate-900 via-neutral-900 to-black flex flex-col items-center justify-center p-4 text-center">
               <span class="font-brand font-black text-3xl sm:text-4xl text-red-500 tracking-wider" id="pgmFeedLabel">CAM 1</span>
@@ -205,7 +216,7 @@
             </div>
 
             <!-- Kontainer Video VT untuk Layar Program (On-Air) -->
-            <div id="pgmVtVideoContainer" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center">
+            <div id="pgmVtVideoContainer" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10">
               <video id="pgmVtHtml5" class="w-full h-full object-contain" playsinline></video>
               <div id="pgmVtYtWrapper" class="w-full h-full hidden">
                 <div id="pgmVtYtElement" class="w-full h-full pointer-events-none"></div>
@@ -362,6 +373,8 @@
     // State Aplikasi Switcher
     let currentRoomToken = 'STUDIO-1';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
 
     // State Operasi Switcher
     let switcherState = {
@@ -465,6 +478,9 @@
           if (meta.totalCameras) {
             switcherState.totalCameras = meta.totalCameras;
             renderAllConsoleButtons();
+            if (streamerInstance) {
+              streamerInstance.discoverAndConnectCameras(switcherState.totalCameras);
+            }
           }
         });
 
@@ -536,6 +552,30 @@
         updateMonitorViews();
         updateAtemButtonHighlights();
       }
+
+      // Inisialisasi penerima video WebRTC dari kamera HP siswa
+      if (typeof SkawanStreamer !== 'undefined') {
+        streamerInstance = new SkawanStreamer({
+          roomToken: token,
+          roleKey: 'switcher',
+          onRemoteStream: (camKey, stream) => {
+            console.log(`[WebRTC Switcher] Menerima feed stream aktif dari ${camKey}`);
+            remoteCamStreams.set(camKey, stream);
+
+            // Pasang ke thumbnail Multiview
+            const mvVideo = document.getElementById(`mv-video-${camKey}`);
+            if (mvVideo) {
+              mvVideo.srcObject = stream;
+              mvVideo.classList.remove('hidden');
+            }
+
+            updateMonitorViews();
+          },
+          onStatusChange: (status, info) => {
+            console.log(`[WebRTC Switcher] Status: ${status} - ${info}`);
+          }
+        });
+      }
     }
 
     function getAvailableSources() {
@@ -592,16 +632,30 @@
         card.className = "bg-slate-900 border-2 border-slate-300 rounded-xl p-2.5 flex flex-col justify-between aspect-video relative overflow-hidden transition cursor-pointer hover:border-slate-500 shadow-sm";
         card.onclick = () => selectPreviewSource(src);
         card.innerHTML = `
-          <div class="flex items-center justify-between">
-            <span class="font-brand font-black text-xs text-white">${meta.label}</span>
+          <!-- Video nyata kamera jika ada -->
+          <video id="mv-video-${src}" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+          
+          <div class="flex items-center justify-between relative z-10">
+            <span class="font-brand font-black text-xs text-white drop-shadow">${meta.label}</span>
             <span id="mv-tally-${src}" class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
           </div>
-          <div class="text-center font-mono font-bold text-xs text-slate-400" id="mv-content-${src}">
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-content-${src}">
             LIVE FEED
           </div>
-          <div class="text-[9px] text-slate-500 font-mono truncate">${meta.name || ''}</div>
+          <div class="text-[9px] text-slate-300 font-mono truncate relative z-10 drop-shadow">${meta.name || ''}</div>
         `;
         multiviewBar.appendChild(card);
+
+        // Jika stream sudah ada sebelumnya, langsung pasang
+        if (remoteCamStreams.has(src)) {
+          setTimeout(() => {
+            const mvVid = document.getElementById(`mv-video-${src}`);
+            if (mvVid) {
+              mvVid.srcObject = remoteCamStreams.get(src);
+              mvVid.classList.remove('hidden');
+            }
+          }, 50);
+        }
       });
     }
 
@@ -653,23 +707,45 @@
       // 1. Tangani Layar Program (PGM)
       const pgmVisual = document.getElementById('pgmVisualFeed');
       const pgmVtBox = document.getElementById('pgmVtVideoContainer');
+      const pgmCamVideo = document.getElementById('pgmCamVideo');
+
       if (switcherState.programSource === 'vt') {
         pgmVisual.classList.add('hidden');
+        pgmCamVideo.classList.add('hidden');
         pgmVtBox.classList.remove('hidden');
       } else {
-        pgmVisual.classList.remove('hidden');
         pgmVtBox.classList.add('hidden');
+        const activeStream = remoteCamStreams.get(switcherState.programSource);
+        if (activeStream && pgmCamVideo) {
+          pgmCamVideo.srcObject = activeStream;
+          pgmCamVideo.classList.remove('hidden');
+          pgmVisual.classList.add('hidden');
+        } else {
+          if (pgmCamVideo) pgmCamVideo.classList.add('hidden');
+          pgmVisual.classList.remove('hidden');
+        }
       }
 
       // 2. Tangani Layar Preview (PVW)
       const pvwVisual = document.getElementById('pvwVisualFeed');
       const pvwVtBox = document.getElementById('pvwVtVideoContainer');
+      const pvwCamVideo = document.getElementById('pvwCamVideo');
+
       if (switcherState.previewSource === 'vt') {
         pvwVisual.classList.add('hidden');
+        pvwCamVideo.classList.add('hidden');
         pvwVtBox.classList.remove('hidden');
       } else {
-        pvwVisual.classList.remove('hidden');
         pvwVtBox.classList.add('hidden');
+        const previewStream = remoteCamStreams.get(switcherState.previewSource);
+        if (previewStream && pvwCamVideo) {
+          pvwCamVideo.srcObject = previewStream;
+          pvwCamVideo.classList.remove('hidden');
+          pvwVisual.classList.add('hidden');
+        } else {
+          if (pvwCamVideo) pvwCamVideo.classList.add('hidden');
+          pvwVisual.classList.remove('hidden');
+        }
       }
 
       syncVtPlaybackToMonitors();
@@ -902,6 +978,10 @@
     }
 
     function keluarSesi() {
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
       sessionStorage.removeItem('skawan_role');
       window.location.href = 'index.html';
     }
