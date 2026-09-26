@@ -414,16 +414,17 @@
       sessionStorage.setItem('skawan_room', token);
 
       // Siapkan struktur slot kru
+      // Catatan: Gunakan string kosong "" bukan null, karena Firebase RTDB otomatis menghapus key bernilai null
       const rolesData = {
-        creative: null,
-        pd: null,
-        switcher: null,
-        audio_vt: null,
-        cg: null,
-        fd: null
+        creative: "",
+        pd: "",
+        switcher: "",
+        audio_vt: "",
+        cg: "",
+        fd: ""
       };
       for (let i = 1; i <= totalCams; i++) {
-        rolesData[`cam_${i}`] = null;
+        rolesData[`cam_${i}`] = "";
       }
 
       const initialRoom = {
@@ -486,6 +487,25 @@
         db.ref(`rooms/${token}`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const data = snapshot.val();
+
+          // SELF-HEALING: Jika roles belum ada atau terhapus karena nilai null sebelumnya, perbaiki otomatis
+          if (!data.roles || Object.keys(data.roles).length === 0) {
+            const totalCams = data.meta?.totalCameras || 3;
+            const repairedRoles = {
+              creative: "",
+              pd: "",
+              switcher: "",
+              audio_vt: "",
+              cg: "",
+              fd: ""
+            };
+            for (let i = 1; i <= totalCams; i++) {
+              repairedRoles[`cam_${i}`] = "";
+            }
+            db.ref(`rooms/${token}/roles`).set(repairedRoles);
+            data.roles = repairedRoles;
+          }
+
           currentRoomData = data;
           updateDashboardUI(data);
         });
@@ -542,11 +562,13 @@
       grid.innerHTML = '';
 
       let filledCount = 0;
-      const totalRoles = Object.keys(roles).length;
+      const roleKeys = Object.keys(roles);
+      const totalRoles = roleKeys.length;
 
-      Object.keys(roles).forEach(roleKey => {
+      roleKeys.forEach(roleKey => {
         const occupant = roles[roleKey];
-        const isFilled = occupant !== null;
+        // Posisi terisi jika bukan string kosong, bukan null, bukan undefined
+        const isFilled = Boolean(occupant && typeof occupant === 'string' && occupant.trim().length > 0);
         if (isFilled) filledCount++;
 
         let title = roleDefinitions[roleKey]?.title;
@@ -567,8 +589,8 @@
 
         card.innerHTML = `
           <div>
-            <div class="text-xs font-bold ${isFilled ? 'text-slate-900' : 'text-slate-500'}">${title}</div>
-            <div class="text-[11px] text-slate-400">${desc}</div>
+            <div class="text-xs font-bold ${isFilled ? 'text-slate-900' : 'text-slate-500'}">${title || roleKey.toUpperCase()}</div>
+            <div class="text-[11px] text-slate-400">${desc || 'Kru Studio'}</div>
             <div class="text-xs font-semibold mt-1 font-mono ${isFilled ? 'text-emerald-700' : 'text-slate-400 italic'}">
               ${isFilled ? `👤 ${occupant}` : '○ Belum ada siswa'}
             </div>
