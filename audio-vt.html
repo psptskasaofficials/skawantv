@@ -172,10 +172,11 @@
                 <option value="vt_profil_sekolah">2. Profil Studio Broadcast SMK (01:20)</option>
                 <option value="vt_liputan_kegiatan">3. Berita Liputan Praktik Siswa (02:10)</option>
                 <option value="bumper_closing">4. Bumper Closing & Credit Title (00:25)</option>
-                <option value="custom_drive">-- Masukkan ID / Link Drive Lain --</option>
+                <option value="custom_drive">+ Tambah Video Baru dari Drive...</option>
               </select>
-              <button onclick="bukaModalCustomDrive()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition" title="Input Manual Link File Drive">
-                ID Drive
+              <button onclick="bukaModalCustomDrive()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1" title="Input Manual Link File Drive">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>Tambah VT</span>
               </button>
             </div>
           </div>
@@ -407,12 +408,17 @@
 
         <div>
           <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Judul Video VT</label>
-          <input type="text" id="inputCustomVtTitle" placeholder="Contoh: VT Wawancara Narasumber" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none">
+          <input type="text" id="inputCustomVtTitle" placeholder="Contoh: Wawancara Narasumber Praktik" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Estimasi Durasi (Detik, Opsional)</label>
+          <input type="number" id="inputCustomVtDuration" value="90" min="5" max="900" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-mono text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none">
         </div>
 
         <div>
           <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">ID File Drive atau Tautan Sharing</label>
-          <input type="text" id="inputCustomDriveId" placeholder="Misal: 14AX_s8Q508LctXyoP-DBODfoHpHx-_Vr atau ID File" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-mono text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none">
+          <input type="text" id="inputCustomDriveId" placeholder="Misal: https://drive.google.com/file/d/14AX_s8Q... atau ID File" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-mono text-slate-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none">
         </div>
       </div>
 
@@ -791,6 +797,8 @@
 
     // 3. Modal Input Custom Google Drive File ID
     function bukaModalCustomDrive() {
+      document.getElementById('inputCustomVtTitle').value = '';
+      document.getElementById('inputCustomDriveId').value = '';
       document.getElementById('customDriveModal').classList.remove('hidden');
     }
 
@@ -799,15 +807,16 @@
     }
 
     function simpanCustomDriveVt() {
-      const title = document.getElementById('inputCustomVtTitle').value.trim() || 'Custom Drive VT';
+      const title = document.getElementById('inputCustomVtTitle').value.trim() || 'Klip Drive Baru';
+      const durationSec = parseInt(document.getElementById('inputCustomVtDuration').value) || 60;
       let rawId = document.getElementById('inputCustomDriveId').value.trim();
 
       if (!rawId) {
-        showNotice("Peringatan", "Harap masukkan File ID atau tautan Google Drive!", false);
+        showNotice("Peringatan", "Harap masukkan File ID atau tautan sharing Google Drive!", false);
         return;
       }
 
-      // Ekstrak File ID jika input berupa tautan lengkap Drive
+      // Ekstrak File ID jika input berupa tautan lengkap Google Drive
       let fileId = rawId;
       const match = rawId.match(/[-\w]{25,}/);
       if (match) {
@@ -816,20 +825,43 @@
 
       // Buat URL direct-stream Google Drive
       const driveDirectUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+      const uniqueKey = `drive_${Date.now()}`;
 
-      vtCatalog['custom_drive'] = {
+      // Simpan ke katalog lokal
+      vtCatalog[uniqueKey] = {
         title: title,
-        durationSec: 60,
+        durationSec: durationSec,
         url: driveDirectUrl
       };
 
+      // Tambahkan item baru ke dropdown select secara dinamis
+      const select = document.getElementById('selectVtItem');
+      const newOption = document.createElement('option');
+      newOption.value = uniqueKey;
+      newOption.innerText = `📁 ${title} (${formatTimecode(durationSec)})`;
+      
+      // Sisipkan sebelum opsi paling akhir (opsi "Tambah Video Baru")
+      select.insertBefore(newOption, select.lastElementChild);
+      select.value = uniqueKey;
+
+      activeVtKey = uniqueKey;
       const video = document.getElementById('vtVideoElement');
       video.src = driveDirectUrl;
       video.load();
       cueVtVideo();
 
+      // Sinkronkan ke Firebase jika database aktif
+      if (isFirebaseReady) {
+        db.ref(`rooms/${currentRoomToken}/vt_catalog/${uniqueKey}`).set({
+          title: title,
+          durationSec: durationSec,
+          url: driveDirectUrl,
+          addedAt: Date.now()
+        });
+      }
+
       tutupModalCustomDrive();
-      showNotice("Klip Drive Dimuat", `File ID [${fileId}] berhasil dihubungkan ke VT Player.`, true);
+      showNotice("Video Berhasil Ditambahkan", `Video "${title}" berhasil dimasukkan ke daftar putar VT.`, true);
     }
 
     function keluarSesi() {
