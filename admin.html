@@ -66,8 +66,15 @@
         </span>
       </div>
 
-      <div class="flex items-center gap-3">
-        <button onclick="keluarSesiGuru()" class="text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Tombol Buat Sesi Baru -->
+        <button onclick="bukaModalSesiBaru()" class="text-xs font-bold text-slate-700 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-2 rounded-xl transition flex items-center gap-1.5 active:scale-95 shadow-sm" title="Buat Sesi Ruangan Baru">
+          <span class="text-base leading-none font-black text-red-600">+</span>
+          <span class="hidden sm:inline">Sesi Baru</span>
+        </button>
+
+        <!-- Tombol Keluar Sesi Guru -->
+        <button onclick="bukaModalKeluarGuru()" class="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 active:scale-95 shadow-sm shadow-red-600/20" title="Keluar dari Master Control">
           <span>Keluar</span>
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
         </button>
@@ -78,9 +85,20 @@
   <!-- Container Konten Utama -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
     
-    <!-- SECTION 1: Setup Ruangan Studio (Muncul jika belum ada sesi aktif) -->
-    <div id="panelSetupRoom" class="max-w-2xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-lg p-6 sm:p-8 relative overflow-hidden">
+    <!-- SECTION 1: Setup Ruangan Studio (Form Pembuatan Sesi Baru) -->
+    <div id="panelSetupRoom" class="max-w-2xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 relative overflow-hidden">
       <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 to-blue-600"></div>
+
+      <!-- Banner Info Jika Sudah Ada Sesi Aktif Sebelumnya -->
+      <div id="prevSessionAlert" class="hidden mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+        <div>
+          <span class="font-bold text-slate-800 block">Ada Sesi Studio yang Sedang Berjalan:</span>
+          <span id="prevSessionToken" class="font-mono font-bold text-red-600">STUDIO-1</span>
+        </div>
+        <button onclick="kembaliKeSesiAktif()" class="px-3.5 py-2 bg-slate-900 hover:bg-black text-white font-bold rounded-lg transition active:scale-95 shadow-sm">
+          Buka Sesi Ini &rarr;
+        </button>
+      </div>
 
       <div class="mb-6">
         <div class="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2">
@@ -164,13 +182,13 @@
           </button>
           
           <!-- Tombol Selesaikan Siaran -->
-          <button id="btnStopLive" onclick="triggerSelesaiSiaran()" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow flex items-center gap-1.5">
+          <button id="btnStopLive" onclick="triggerSelesaiSiaran()" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow flex items-center gap-1.5 active:scale-95">
             <span>Selesaikan Siaran</span>
           </button>
 
-          <!-- Tombol Reset Sesi -->
-          <button onclick="resetSesiKeLobby()" class="p-3 text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 rounded-xl transition" title="Reset Sesi">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <!-- Tombol Ganti / Buat Sesi Baru -->
+          <button onclick="bukaModalSesiBaru()" class="p-3 text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 rounded-xl transition flex items-center gap-1.5 text-xs font-bold" title="Ganti Sesi Ruangan">
+            <span>🔄 Ganti Sesi</span>
           </button>
         </div>
       </div>
@@ -383,24 +401,72 @@
     </div>
   </main>
 
+  <!-- MODAL KONFIRMASI BUAT SESI BARU -->
+  <div id="newSessionModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
+      <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-xl font-bold">
+        🆕
+      </div>
+      <div>
+        <h4 class="text-base font-brand font-black text-slate-900">Buka Sesi Ruangan Baru?</h4>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+          Anda akan dialihkan ke formulir konfigurasi untuk membuat sesi studio baru. Sesi sebelumnya tetap tersimpan di database.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="tutupModalSesiBaru()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
+          Batal
+        </button>
+        <button onclick="eksekusiBukaSesiBaru()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm">
+          Ya, Buat Sesi Baru
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI KELUAR GURU -->
+  <div id="logoutConfirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
+      <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold">
+        🚪
+      </div>
+      <div>
+        <h4 class="text-base font-brand font-black text-slate-900">Keluar dari Master Control?</h4>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+          Sesi admin Anda akan ditutup dan Anda akan dialihkan kembali ke halaman utama SKAWAN TV.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="tutupModalKeluarGuru()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
+          Batal
+        </button>
+        <button onclick="eksekusiKeluarGuru()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
+          Ya, Keluar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Notification Dialog Modal (Pengganti alert) -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
       <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
-      <p id="noticeMessage" class="text-sm text-slate-600 mb-5"></p>
+      <p id="noticeMessage" class="text-sm text-slate-600 mb-5 leading-relaxed"></p>
       <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
         Tutup
       </button>
     </div>
   </div>
 
+  <!-- Logika JavaScript Lengkap Master Control -->
   <script>
     // State Aplikasi
     let currentRoomToken = '';
     let currentRoomData = null;
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined' && firebase.apps && firebase.apps.length > 0;
     let currentMonitorPage = 'pd.html';
+    let roomDatabaseListener = null;
 
     // Mock data untuk mode preview/demo tanpa database
     let mockRoomState = {
@@ -443,7 +509,7 @@
       fd: { title: "Floor Director (FD)", desc: "Timer & Isyarat Studio" }
     };
 
-    // Modal Helper
+    // Modal Helper (Bebas dari alert)
     function showNotice(title, message, isSuccess = false) {
       document.getElementById('noticeTitle').innerText = title;
       document.getElementById('noticeMessage').innerText = message;
@@ -464,14 +530,25 @@
 
     // Inisialisasi awal saat halaman termuat
     window.addEventListener('DOMContentLoaded', () => {
+      // Periksa status login admin
+      const isLogged = sessionStorage.getItem('skawan_admin_logged') === 'true' || localStorage.getItem('skawan_admin_logged') === 'true';
+      if (!isLogged) {
+        // Jika belum login admin, beri peringatan dan arahkan ke index.html
+        sessionStorage.setItem('skawan_admin_logged', 'true'); // Izinkan demo jika diakses langsung
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
-      const sessionRoom = sessionStorage.getItem('skawan_room');
+      const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
       
       const activeToken = roomParam || sessionRoom;
       if (activeToken) {
         currentRoomToken = activeToken;
         loadLiveControl(activeToken);
+      } else {
+        // Tampilkan panel setup ruangan baru
+        document.getElementById('panelSetupRoom').classList.remove('hidden');
+        document.getElementById('panelLiveControl').classList.add('hidden');
       }
     });
 
@@ -494,8 +571,9 @@
 
       currentRoomToken = token;
       sessionStorage.setItem('skawan_room', token);
+      localStorage.setItem('skawan_room', token);
 
-      // Siapkan struktur slot kru (gunakan string kosong "" bukan null agar tidak dihapus Firebase)
+      // Siapkan struktur slot kru (gunakan string kosong "" bukan null agar tidak terhapus di Firebase)
       const rolesData = {
         creative: "",
         pd: "",
@@ -524,7 +602,8 @@
         },
         vt_state: {
           status: 'stopped',
-          selectedVtId: ''
+          currentTime: 0,
+          title: 'Bumper Opening'
         },
         timer_rundown: {
           currentSegmentIndex: 0,
@@ -562,9 +641,16 @@
       document.getElementById('panelLiveControl').classList.remove('hidden');
       document.getElementById('liveDisplayToken').innerText = token;
 
+      // Hentikan listener lama jika ada
+      if (isFirebaseReady && roomDatabaseListener && currentRoomToken) {
+        db.ref(`rooms/${currentRoomToken}`).off('value', roomDatabaseListener);
+      }
+
+      currentRoomToken = token;
+
       if (isFirebaseReady) {
         // Listener real-time data ruangan dari Firebase
-        db.ref(`rooms/${token}`).on('value', snapshot => {
+        roomDatabaseListener = db.ref(`rooms/${token}`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const data = snapshot.val();
 
@@ -830,7 +916,7 @@
         timestamp: Date.now()
       };
 
-      if (isFirebaseReady) {
+      if (isFirebaseReady && currentRoomToken) {
         db.ref(`rooms/${currentRoomToken}/crisis`).set(crisisData).then(() => {
           showNotice("Krisis Disuntikkan!", message);
         });
@@ -848,4 +934,5 @@
         message: ''
       };
 
-      if (isFirebaseReady) {
+      if (isFirebaseReady && currentRoomToken) {
+        db.ref
