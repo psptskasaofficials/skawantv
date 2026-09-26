@@ -88,7 +88,17 @@
           <span class="text-xs text-slate-500 font-medium">Ruangan:</span>
           <span id="navDisplayToken" class="font-mono font-bold text-xs text-blue-600">STUDIO-1</span>
         </div>
-        <button onclick="keluarSesi()" class="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+        <div class="hidden md:flex items-center gap-1.5 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg text-blue-800 text-xs font-semibold">
+          <span>👤</span>
+          <span id="navDisplayUser">CG Operator</span>
+        </div>
+        <!-- Tombol Ganti Peran Cepat -->
+        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Ganti Posisi Kru">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+          <span class="hidden sm:inline">Ganti Peran</span>
+        </button>
+        <!-- Tombol Keluar Sesi Cepat -->
+        <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Keluar Sesi">
           <span>Keluar</span>
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
         </button>
@@ -340,8 +350,34 @@
     </div>
   </div>
 
+  <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN CG -->
+  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
+      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-xl font-bold">
+        🔄
+      </div>
+      <div>
+        <h4 id="exitModalTitle" class="text-base font-brand font-black text-slate-900">Ganti Peran Kru?</h4>
+        <p id="exitModalMessage" class="text-xs text-slate-500 mt-1 leading-relaxed">
+          Slot posisi <strong>Graphic Operator (CG)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
+          Batal
+        </button>
+        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
+          Ya, Lepaskan Slot
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let currentRoomToken = 'STUDIO-1';
+    let currentRoleKey = 'cg';
+    let currentSiswaUser = '';
+    let pendingExitType = 'ganti'; // 'ganti' atau 'keluar'
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
 
     // State Grafis CG
@@ -385,10 +421,15 @@
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
-      const sessionRoom = sessionStorage.getItem('skawan_room');
+      const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
+      const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
       
       currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
+      currentSiswaUser = sessionUser || 'Graphic Operator';
+
       document.getElementById('navDisplayToken').innerText = currentRoomToken;
+      const userBadge = document.getElementById('navDisplayUser');
+      if (userBadge) userBadge.innerText = currentSiswaUser;
 
       initCgSystem(currentRoomToken);
       sinkronInputPreview();
@@ -599,9 +640,65 @@
       });
     }
 
-    function keluarSesi() {
+    // Modal Konfirmasi Keluar / Ganti Peran CG
+    function bukaModalKeluar(type) {
+      pendingExitType = type;
+      const modal = document.getElementById('exitConfirmModal');
+      const title = document.getElementById('exitModalTitle');
+      const message = document.getElementById('exitModalMessage');
+      const icon = document.getElementById('exitModalIcon');
+      const btn = document.getElementById('btnConfirmExitAction');
+
+      if (type === 'ganti') {
+        icon.innerText = "🔄";
+        icon.className = "w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-xl font-bold";
+        title.innerText = "Ganti Peran Kru?";
+        message.innerHTML = `Slot posisi <strong>Graphic Operator (CG)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.`;
+        btn.innerText = "Ya, Ganti Peran";
+        btn.className = "w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm";
+      } else {
+        icon.innerText = "🚪";
+        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold";
+        title.innerText = "Keluar dari Sesi Siaran?";
+        message.innerHTML = `Slot posisi <strong>Graphic Operator (CG)</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.`;
+        btn.innerText = "Ya, Keluar Sesi";
+        btn.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm";
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function tutupModalKeluar() {
+      document.getElementById('exitConfirmModal').classList.add('hidden');
+    }
+
+    function eksekusiKeluarSesi() {
+      // 1. Kosongkan kembali slot peran di Firebase secara atomik
+      if (isFirebaseReady && currentRoomToken && currentSiswaUser) {
+        db.ref(`rooms/${currentRoomToken}/roles/cg`).transaction(currentVal => {
+          if (currentVal === currentSiswaUser) {
+            return "";
+          }
+          return currentVal;
+        });
+      }
+
+      // 2. Bersihkan penanda role di storage agar index.html TIDAK melakukan auto-redirect kembali
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
-      window.location.href = 'index.html';
+      sessionStorage.removeItem('skawan_role_title');
+
+      tutupModalKeluar();
+
+      // 3. Arahkan kembali ke lobby index.html
+      if (pendingExitType === 'keluar') {
+        localStorage.removeItem('skawan_user');
+        sessionStorage.removeItem('skawan_user');
+        window.location.href = 'index.html';
+      } else {
+        window.location.href = `index.html?room=${currentRoomToken}`;
+      }
     }
   </script>
 </body>
