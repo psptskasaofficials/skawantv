@@ -31,12 +31,41 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+
+  <!-- AUTO-FALLBACK: Menjamin Firebase SELALU aktif di HP siswa -->
+  <script>
+    (function ensureFirebaseConnection() {
+      const config = {
+        apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
+        authDomain: "skawan-tv.firebaseapp.com",
+        databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "skawan-tv",
+        storageBucket: "skawan-tv.firebasestorage.app",
+        messagingSenderId: "501619282826",
+        appId: "1:501619282826:web:81e624ac35e9798062ae73"
+      };
+
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || !firebase.apps.length) {
+          try {
+            firebase.initializeApp(config);
+          } catch (e) {
+            console.warn("Init fallback:", e);
+          }
+        }
+        if (!window.db && firebase.database) {
+          window.db = firebase.database();
+        }
+      }
+    })();
+    var db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
+  </script>
+
   <!-- PeerJS WebRTC Streamer -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="js/webrtc-stream.js"></script>
 
   <style>
-    /* Bingkai Lampu Tally Layar Penuh */
     .tally-frame-red {
       box-shadow: inset 0 0 0 10px #ef4444, inset 0 0 35px rgba(239, 68, 68, 0.8) !important;
       border: 8px solid #ef4444 !important;
@@ -49,7 +78,6 @@
       box-shadow: inset 0 0 0 4px #334155 !important;
       border: 4px solid #1e293b !important;
     }
-    /* Grid Rule of Thirds untuk Kamera */
     .grid-overlay {
       background-image: 
         linear-gradient(to right, rgba(255, 255, 255, 0.15) 1px, transparent 1px),
@@ -62,7 +90,7 @@
 
   <div id="viewfinderWrapper" class="relative w-full h-screen tally-frame-idle transition-all duration-300 flex items-center justify-center overflow-hidden">
     
-    <!-- Video Stream Asli dari Kamera HP (Low Res 360p, No Audio) -->
+    <!-- Video Stream Asli dari Kamera HP -->
     <video id="cameraVideo" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
 
     <!-- Overlay Grid Rule of Thirds -->
@@ -75,6 +103,7 @@
       </div>
     </div>
 
+    <!-- Header Viewfinder -->
     <header class="absolute top-0 left-0 right-0 p-3 sm:p-4 flex items-center justify-between z-30 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
       <div class="flex items-center gap-2">
         <div class="bg-black/70 backdrop-blur-md border border-white/20 px-3 py-1 rounded-xl flex items-center gap-1.5 shadow">
@@ -92,13 +121,11 @@
           OFF (IDLE)
         </div>
         
-        <!-- Tombol Ganti Peran Cepat -->
         <button onclick="bukaModalKeluar('ganti')" class="bg-black/60 hover:bg-black/80 active:scale-95 text-white border border-white/20 px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Ganti Posisi Kru">
           <span>🔄</span>
           <span class="hidden sm:inline text-[11px]">Ganti</span>
         </button>
 
-        <!-- Tombol Keluar Sesi Cepat -->
         <button onclick="bukaModalKeluar('keluar')" class="bg-red-600/80 hover:bg-red-600 active:scale-95 text-white border border-red-400/40 px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Keluar Sesi">
           <span>🚪</span>
           <span class="hidden sm:inline text-[11px]">Keluar</span>
@@ -106,7 +133,14 @@
       </div>
     </header>
 
-    <div id="cueOverlayContainer" class="absolute top-16 left-3 right-3 sm:left-6 sm:right-6 z-30 transition-all duration-300 transform translate-y-0">
+    <!-- Indikator Banner WebRTC Real-Time Status -->
+    <div id="streamStatusBadge" class="absolute top-14 left-3 z-30 inline-flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-[10px] font-mono font-bold text-amber-300 shadow">
+      <span id="streamStatusDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+      <span id="streamStatusText">Menghubungkan Stream...</span>
+    </div>
+
+    <!-- Banner Instruksi Sutradara (PD) -->
+    <div id="cueOverlayContainer" class="absolute top-22 left-3 right-3 sm:left-6 sm:right-6 z-30 transition-all duration-300 transform translate-y-0">
       <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-3 rounded-2xl shadow-2xl border border-white/20 flex items-center justify-between gap-2 backdrop-blur-md">
         <div class="flex items-center gap-2.5">
           <div class="p-1.5 rounded-xl bg-white/25 shrink-0">
@@ -114,7 +148,7 @@
           </div>
           <div>
             <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-blue-200 block">INSTRUKSI SUTRADARA (PD):</span>
-            <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby Cam 1 & Atur Framing Medium Shot</span>
+            <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby Cam 1 & Atur Framing</span>
           </div>
         </div>
         <span id="cueLiveTime" class="text-[10px] font-mono bg-black/30 px-2 py-0.5 rounded font-bold">LIVE</span>
@@ -122,15 +156,16 @@
     </div>
 
     <!-- Peringatan Krisis Teknis jika Cam ini ditarget Guru -->
-    <div id="camCrisisBanner" class="hidden absolute top-32 left-3 right-3 sm:left-6 sm:right-6 z-30 p-3 rounded-2xl bg-red-600 text-white shadow-2xl border-2 border-white/40 flex items-center justify-between animate-pulse">
+    <div id="camCrisisBanner" class="hidden absolute top-36 left-3 right-3 sm:left-6 sm:right-6 z-30 p-3 rounded-2xl bg-red-600 text-white shadow-2xl border-2 border-white/40 flex items-center justify-between animate-pulse">
       <div class="flex items-center gap-2">
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
         <div class="text-xs font-bold leading-tight">
-          ⚠️ SIMULASI KENDALA: Feed Kamera 1 Dianggap Rusak oleh Guru! Tahan posisi.
+          ⚠️ SIMULASI KENDALA: Feed Kamera Anda Dianggap Hilang Sinyal oleh Guru! Tahan posisi.
         </div>
       </div>
     </div>
 
+    <!-- Footer Viewfinder -->
     <footer class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center justify-between gap-3">
       
       <!-- Tombol Balik Kamera (Depan / Belakang) -->
@@ -139,24 +174,20 @@
         <span class="text-xs font-bold hidden sm:inline">Flip Cam</span>
       </button>
 
-      <!-- Indikator Kunci Layar (Wake Lock) & Status Resolusi Rendah -->
+      <!-- Status Info Resolusi & Screen Wake Lock -->
       <div class="text-center font-mono text-[10px] text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
         <div class="flex items-center justify-center gap-1.5 text-emerald-400 font-bold">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-          <span>LOW-RES 360p &bull; NO AUDIO</span>
+          <span>WEBRTC BROADCAST ACTIVE</span>
         </div>
         <span class="text-slate-400">Screen Wake Lock Aktif</span>
       </div>
 
-      <!-- Tombol Tes Tally Cepat (Bermanfaat saat mode uji coba tanpa database) -->
+      <!-- Tombol Tes Tally Cepat -->
       <div class="flex items-center gap-1.5">
         <button onclick="simulateTally('red')" class="w-7 h-7 rounded-full bg-red-600 hover:bg-red-500 border border-white/40 shadow text-[9px] font-bold text-white active:scale-90" title="Simulasi On-Air">R</button>
         <button onclick="simulateTally('green')" class="w-7 h-7 rounded-full bg-emerald-500 hover:bg-emerald-400 border border-white/40 shadow text-[9px] font-bold text-white active:scale-90" title="Simulasi Standby">G</button>
         <button onclick="simulateTally('off')" class="w-7 h-7 rounded-full bg-slate-700 hover:bg-slate-600 border border-white/40 shadow text-[9px] font-bold text-white active:scale-90" title="Simulasi Idle">O</button>
-        
-        <button onclick="bukaModalKeluar('keluar')" class="ml-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 p-2.5 rounded-2xl active:scale-90 transition" title="Keluar Sesi">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-        </button>
       </div>
 
     </footer>
@@ -186,6 +217,7 @@
     </div>
   </div>
 
+  <!-- Modal Peringatan / Dialog -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white">
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
@@ -201,7 +233,7 @@
     let currentRoomToken = 'STUDIO-1';
     let currentRoleKey = 'cam_1';
     let currentSiswaUser = '';
-    let pendingExitType = 'ganti'; // 'ganti' atau 'keluar'
+    let pendingExitType = 'ganti';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
 
     let currentStream = null;
@@ -209,7 +241,6 @@
     let wakeLock = null;
     let streamerInstance = null;
 
-    // Modal Helper
     function showNotice(title, message, isSuccess = false) {
       document.getElementById('noticeTitle').innerText = title;
       document.getElementById('noticeMessage').innerText = message;
@@ -228,8 +259,12 @@
       document.getElementById('noticeModal').classList.add('hidden');
     }
 
-    // Inisialisasi awal
     window.addEventListener('DOMContentLoaded', () => {
+      // 1. Peringatan protokol HTTPS jika dibuka di HP
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        showNotice("Perhatian Protokol HTTPS", "Kamera browser HP mewajibkan protokol aman (HTTPS). Pastikan membuka melalui tautan GitHub Pages (https://...) agar kamera diizinkan oleh Chrome/Safari.");
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       const roleParam = urlParams.get('role');
@@ -251,37 +286,43 @@
     });
 
     async function initCameraFeed() {
-      // Matikan stream sebelumnya jika ada
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
       }
 
-      // Resolusi rendah 360p tanpa audio demi menghemat bandwidth jaringan sekolah
-      const constraints = {
+      // Format constraints yang adaptif untuk berbagai tipe HP
+      const primaryConstraints = {
         audio: false,
         video: {
           facingMode: usingFrontCamera ? "user" : "environment",
-          width: { ideal: 480, max: 640 },
-          height: { ideal: 360, max: 480 },
-          frameRate: { ideal: 15, max: 20 }
+          width: { ideal: 640 },
+          height: { ideal: 360 }
         }
       };
 
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Browser tidak mendukung akses kamera langsung.");
+          throw new Error("Peramban Anda tidak mendukung akses kamera langsung.");
         }
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia(primaryConstraints);
+        } catch (strictErr) {
+          console.warn("Mencoba fallback constraint kamera standar:", strictErr);
+          currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+
         const videoElement = document.getElementById('cameraVideo');
         videoElement.srcObject = currentStream;
 
+        // Inisialisasi WebRTC Streamer dengan instance video aktif
         if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
           streamerInstance = new SkawanStreamer({
             roomToken: currentRoomToken,
             roleKey: currentRoleKey,
             localStream: currentStream,
             onStatusChange: (status, info) => {
-              console.log(`[WebRTC Cam] Status: ${status} - ${info}`);
+              updateStreamStatusUI(status, info);
             }
           });
         } else if (streamerInstance) {
@@ -289,7 +330,34 @@
         }
       } catch (err) {
         console.warn("Gagal membuka kamera:", err);
-        showNotice("Akses Kamera", "Tidak dapat membuka kamera HP: " + err.message + ". Pastikan Anda memberikan izin akses kamera.");
+        updateStreamStatusUI('error', 'Kamera Ditolak');
+        showNotice("Izin Kamera Diperlukan", "Kamera tidak dapat diakses: " + err.message + ". Pastikan Anda telah mengklik 'Izinkan' (Allow) pada browser HP.");
+      }
+    }
+
+    function updateStreamStatusUI(status, info) {
+      const badge = document.getElementById('streamStatusBadge');
+      const dot = document.getElementById('streamStatusDot');
+      const text = document.getElementById('streamStatusText');
+
+      if (!badge || !dot || !text) return;
+
+      if (status === 'connected') {
+        badge.className = "absolute top-14 left-3 z-30 inline-flex items-center gap-1.5 bg-emerald-950/80 backdrop-blur-md border border-emerald-500/50 px-3 py-1 rounded-full text-[10px] font-mono font-bold text-emerald-300 shadow";
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        text.innerText = "Live Terhubung ke Switcher";
+      } else if (status === 'connecting') {
+        badge.className = "absolute top-14 left-3 z-30 inline-flex items-center gap-1.5 bg-amber-950/80 backdrop-blur-md border border-amber-500/50 px-3 py-1 rounded-full text-[10px] font-mono font-bold text-amber-300 shadow";
+        dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+        text.innerText = "Menghubungkan ke Studio...";
+      } else if (status === 'error') {
+        badge.className = "absolute top-14 left-3 z-30 inline-flex items-center gap-1.5 bg-rose-950/80 backdrop-blur-md border border-rose-500/50 px-3 py-1 rounded-full text-[10px] font-mono font-bold text-rose-300 shadow";
+        dot.className = "w-2 h-2 rounded-full bg-rose-500";
+        text.innerText = info || "Koneksi WebRTC Gagal";
+      } else {
+        badge.className = "absolute top-14 left-3 z-30 inline-flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-[10px] font-mono font-bold text-slate-300 shadow";
+        dot.className = "w-2 h-2 rounded-full bg-slate-400";
+        text.innerText = "Standby (Menunggu Switcher)";
       }
     }
 
@@ -298,7 +366,6 @@
       initCameraFeed();
     }
 
-    // Mencegah layar HP mati otomatis saat siaran
     async function initScreenWakeLock() {
       try {
         if ('wakeLock' in navigator) {
@@ -310,9 +377,10 @@
     }
 
     function initFirebaseTallyListener(token, camKey) {
-      if (isFirebaseReady) {
-        // Pantau status Tally langsung dari Switcher
-        db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
+      const activeDb = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
+      if (activeDb) {
+        // Pantau status Tally real-time dari Switcher
+        activeDb.ref(`rooms/${token}/live_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const live = snapshot.val();
           
@@ -328,8 +396,8 @@
           applyTallyUI(tallyStatus);
         });
 
-        // Pantau instruksi komando sutradara (PD)
-        db.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
+        // Pantau komando sutradara (PD)
+        activeDb.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const cue = snapshot.val();
           const camNum = camKey.replace('cam_', '');
@@ -339,18 +407,16 @@
             const now = new Date(cue.timestamp || Date.now());
             document.getElementById('cueLiveTime').innerText = now.toTimeString().split(' ')[0];
 
-            // Sorot notifikasi
             const box = document.getElementById('cueOverlayContainer');
             box.classList.add('scale-105');
             setTimeout(() => box.classList.remove('scale-105'), 1500);
 
-            // Getar HP kamerawan jika didukung browser
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
           }
         });
 
-        // Pantau krisis guru (apakah Cam 1 dimatikan)
-        db.ref(`rooms/${token}/crisis`).on('value', snapshot => {
+        // Pantau simulasi kendala guru
+        activeDb.ref(`rooms/${token}/crisis`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const crisis = snapshot.val();
           const crisisBanner = document.getElementById('camCrisisBanner');
@@ -362,7 +428,6 @@
           }
         });
       } else {
-        // Default mode offline
         applyTallyUI('off');
       }
     }
@@ -373,24 +438,17 @@
       const badge = document.getElementById('tallyMainBadge');
 
       if (status === 'red') {
-        // ON-AIR (Merah Menyala)
         wrapper.className = "relative w-full h-screen tally-frame-red transition-all duration-300 flex items-center justify-center overflow-hidden";
         dot.className = "w-2.5 h-2.5 rounded-full bg-red-500 animate-ping";
         badge.className = "px-4 py-1 rounded-xl font-brand font-black text-xs sm:text-sm uppercase tracking-widest bg-red-600 text-white shadow-xl animate-pulse";
         badge.innerText = "● ON-AIR (LIVE)";
-        
-        // Getar HP sekali saat kamera terpilih On-Air
         if (navigator.vibrate) navigator.vibrate(200);
-
       } else if (status === 'green') {
-        // PREVIEW / STANDBY (Hijau Menyala)
         wrapper.className = "relative w-full h-screen tally-frame-green transition-all duration-300 flex items-center justify-center overflow-hidden";
         dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
         badge.className = "px-4 py-1 rounded-xl font-brand font-black text-xs sm:text-sm uppercase tracking-widest bg-emerald-600 text-white shadow-lg";
         badge.innerText = "STANDBY (PVW)";
-
       } else {
-        // IDLE / OFF
         wrapper.className = "relative w-full h-screen tally-frame-idle transition-all duration-300 flex items-center justify-center overflow-hidden";
         dot.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
         badge.className = "px-4 py-1 rounded-xl font-brand font-black text-xs sm:text-sm uppercase tracking-widest bg-slate-800 text-slate-300 border border-slate-700 shadow";
@@ -402,7 +460,6 @@
       applyTallyUI(color);
     }
 
-    // Modal Konfirmasi Keluar / Ganti Peran
     function bukaModalKeluar(type) {
       pendingExitType = type;
       const modal = document.getElementById('exitConfirmModal');
@@ -436,35 +493,31 @@
     }
 
     function eksekusiKeluarSesi() {
-      // 1. Hentikan seluruh track hardware kamera HP
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
         currentStream = null;
       }
 
-      // 2. Lepaskan kunci layar HP (Screen WakeLock)
       if (wakeLock) {
         wakeLock.release().catch(() => {});
         wakeLock = null;
       }
 
-      // 3. Putuskan koneksi WebRTC PeerJS secara bersih
       if (streamerInstance) {
         streamerInstance.destroy();
         streamerInstance = null;
       }
 
-      // 4. Kosongkan kembali slot peran kamera di Firebase secara atomik
-      if (isFirebaseReady && currentRoomToken && currentRoleKey) {
-        db.ref(`rooms/${currentRoomToken}/roles/${currentRoleKey}`).transaction(currentVal => {
+      const activeDb = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
+      if (activeDb && currentRoomToken && currentRoleKey) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/${currentRoleKey}`).transaction(currentVal => {
           if (!currentSiswaUser || currentVal === currentSiswaUser) {
-            return ""; // Kosongkan kembali slot kamera
+            return "";
           }
           return currentVal;
         });
       }
 
-      // 5. Bersihkan penanda role di storage agar index.html TIDAK melakukan auto-redirect kembali ke camera.html
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
@@ -472,13 +525,11 @@
 
       tutupModalKeluar();
 
-      // 6. Arahkan kembali ke lobby index.html
       if (pendingExitType === 'keluar') {
         localStorage.removeItem('skawan_user');
         sessionStorage.removeItem('skawan_user');
         window.location.href = 'index.html';
       } else {
-        // Ganti peran: pertahankan token & nama agar langsung melihat daftar peran
         window.location.href = `index.html?room=${currentRoomToken}`;
       }
     }
