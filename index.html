@@ -486,7 +486,9 @@
     function listenGameStart(token, roleKey) {
       if (!checkFirebaseReady()) return;
       db.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
-        if (snapshot.val() === 'live') {
+        const status = snapshot.val();
+        // Alihkan siswa jika guru membuka workstation ('standby') maupun langsung on-air ('live')
+        if (status === 'standby' || status === 'live') {
           alihkanKeWorkstation(token, roleKey);
         }
       });
@@ -537,9 +539,10 @@
         document.getElementById('badgeRoleSelected').innerText = `${savedRoleTitle} &bull; ${savedUser}`;
 
         if (checkFirebaseReady()) {
-          // Periksa apakah siaran sudah berjalan, jika ya langsung redirect
+          // Periksa apakah status sudah 'standby' atau 'live', jika ya langsung redirect
           db.ref(`rooms/${savedRoom}/meta/status`).once('value', snapshot => {
-            if (snapshot.val() === 'live') {
+            const status = snapshot.val();
+            if (status === 'standby' || status === 'live') {
               alihkanKeWorkstation(savedRoom, savedRole);
             } else {
               listenGameStart(savedRoom, savedRole);
