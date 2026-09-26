@@ -150,157 +150,240 @@
         </div>
 
         <!-- Tombol Aksi Utama Guru -->
-        <div class="flex items-center gap-3">
-          <button id="btnStartLive" onclick="triggerMulaiSiaran()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-emerald-600/25 flex items-center gap-2 active:scale-95">
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- Tombol Buka Workstation Persiapan Kru -->
+          <button id="btnOpenWorkstations" onclick="triggerBukaWorkstations()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-3 rounded-xl text-xs sm:text-sm transition shadow-md shadow-indigo-600/25 flex items-center gap-2 active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            <span>Buka Workstation (Persiapan Kru)</span>
+          </button>
+
+          <!-- Tombol Mulai Siaran On-Air -->
+          <button id="btnStartLive" onclick="triggerMulaiSiaran()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow-lg shadow-emerald-600/25 flex items-center gap-2 active:scale-95">
             <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
             <span>MULAI SIARAN (ON-AIR)</span>
           </button>
           
-          <button id="btnStopLive" onclick="triggerSelesaiSiaran()" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-sm transition shadow flex items-center gap-1.5">
+          <!-- Tombol Selesaikan Siaran -->
+          <button id="btnStopLive" onclick="triggerSelesaiSiaran()" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow flex items-center gap-1.5">
             <span>Selesaikan Siaran</span>
           </button>
 
+          <!-- Tombol Reset Sesi -->
           <button onclick="resetSesiKeLobby()" class="p-3 text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 rounded-xl transition" title="Reset Sesi">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
           </button>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Tab Navigasi Sub-Halaman Guru: Ringkasan vs Live Monitor Inspector -->
+      <div class="border-b border-slate-200 flex items-center gap-4">
+        <button id="tabNavOverview" onclick="switchAdminSubTab('overview')" class="px-4 py-2.5 text-sm font-bold border-b-2 border-red-600 text-red-600 transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+          <span>Ringkasan Studio & Krisis</span>
+        </button>
+        <button id="tabNavMonitor" onclick="switchAdminSubTab('monitor')" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+          <span>Pantau Workstation Kru (Live View)</span>
+        </button>
+      </div>
 
-        <!-- Kolom Kiri & Tengah: Monitor Keterisian Kru Produksi (2 Kolom) -->
-        <div class="lg:col-span-2 space-y-6">
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div>
-                <h3 class="font-bold text-slate-900 text-sm">Status Keterisian Posisi Kru</h3>
-                <p class="text-xs text-slate-500">Pantau siswa yang telah memilih posisi melalui halaman depan.</p>
-              </div>
-              <span id="crewCounterBadge" class="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
-                0 Peran Terisi
-              </span>
-            </div>
+      <!-- SUB-TAB 1: Ringkasan Studio & Kontrol Krisis -->
+      <div id="subTabOverview" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <!-- Grid Kartu Posisi Kru -->
-            <div id="crewStatusGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <!-- Render otomatis via JavaScript -->
-            </div>
-          </div>
-
-          <!-- Quick Rundown Preview (Ditarik dari Tim Kreatif) -->
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-              <div>
-                <h3 class="font-bold text-slate-900 text-sm">Rundown Siaran (Live dari Tim Kreatif)</h3>
-                <p class="text-xs text-slate-500">Segmen rundown yang sedang dirancang/diedit oleh Tim Kreatif.</p>
-              </div>
-              <span class="text-xs bg-red-50 text-red-700 font-semibold px-2.5 py-0.5 rounded border border-red-200">Sync Real-time</span>
-            </div>
-
-            <div id="rundownPreviewContainer" class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead>
-                  <tr class="text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                    <th class="pb-2 font-bold w-12">Seg</th>
-                    <th class="pb-2 font-bold">Judul Segmen</th>
-                    <th class="pb-2 font-bold w-20">Durasi</th>
-                    <th class="pb-2 font-bold">Catatan Teknis</th>
-                  </tr>
-                </thead>
-                <tbody id="rundownTableBody" class="divide-y divide-slate-100 text-slate-700">
-                  <tr>
-                    <td colspan="4" class="py-4 text-center text-slate-400 italic">
-                      Menunggu Tim Kreatif menginput segmen rundown...
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Kolom Kanan: Panel Injeksi Krisis & Glitch Teknis (Instruktur Tool) -->
-        <div class="space-y-6">
-          <div class="bg-white border border-red-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-            <div class="absolute top-0 left-0 right-0 h-1 bg-red-600"></div>
-
-            <div class="flex items-center gap-2 mb-2">
-              <span class="p-1.5 rounded-lg bg-red-100 text-red-700">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-              </span>
-              <h3 class="font-brand font-black text-slate-900 text-base">Injeksi Kendala (Crisis)</h3>
-            </div>
-            <p class="text-xs text-slate-500 mb-4 leading-relaxed">
-              Klik salah satu kendala di bawah untuk memicu situasi darurat pada workstation siswa saat siaran berlangsung:
-            </p>
-
-            <!-- Status Krisis Aktif -->
-            <div id="activeCrisisBanner" class="hidden mb-4 p-3 rounded-xl bg-red-50 border border-red-300 text-xs">
-              <div class="flex items-start justify-between gap-2">
+          <!-- Kolom Kiri & Tengah: Monitor Keterisian Kru Produksi & Rundown (2 Kolom) -->
+          <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <div>
-                  <span class="font-bold text-red-700 uppercase block mb-0.5">⚠️ Krisis Sedang Aktif:</span>
-                  <p id="activeCrisisMessage" class="text-slate-800 font-medium"></p>
+                  <h3 class="font-bold text-slate-900 text-sm">Status Keterisian Posisi Kru</h3>
+                  <p class="text-xs text-slate-500">Pantau siswa yang telah memilih posisi melalui halaman depan.</p>
                 </div>
-                <button onclick="pulihkanKrisis()" class="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded-lg transition shrink-0">
-                  Pulihkan
+                <span id="crewCounterBadge" class="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+                  0 dari 0 Posisi Terisi
+                </span>
+              </div>
+
+              <!-- Grid Kartu Posisi Kru -->
+              <div id="crewStatusGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Render otomatis via JavaScript -->
+              </div>
+            </div>
+
+            <!-- Quick Rundown Preview (Ditarik dari Tim Kreatif) -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                <div>
+                  <h3 class="font-bold text-slate-900 text-sm">Rundown Siaran (Live dari Tim Kreatif)</h3>
+                  <p class="text-xs text-slate-500">Segmen rundown yang sedang dirancang/diedit oleh Tim Kreatif.</p>
+                </div>
+                <span class="text-xs bg-red-50 text-red-700 font-semibold px-2.5 py-0.5 rounded border border-red-200">Sync Real-time</span>
+              </div>
+
+              <div id="rundownPreviewContainer" class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                      <th class="pb-2 font-bold w-12">Seg</th>
+                      <th class="pb-2 font-bold">Judul Segmen</th>
+                      <th class="pb-2 font-bold w-20">Durasi</th>
+                      <th class="pb-2 font-bold">Catatan Teknis</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rundownTableBody" class="divide-y divide-slate-100 text-slate-700">
+                    <tr>
+                      <td colspan="4" class="py-4 text-center text-slate-400 italic">
+                        Menunggu Tim Kreatif menginput segmen rundown...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kolom Kanan: Panel Injeksi Krisis & Glitch Teknis (Instruktur Tool) -->
+          <div class="space-y-6">
+            <div class="bg-white border border-red-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+              <div class="absolute top-0 left-0 right-0 h-1 bg-red-600"></div>
+
+              <div class="flex items-center gap-2 mb-2">
+                <span class="p-1.5 rounded-lg bg-red-100 text-red-700">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </span>
+                <h3 class="font-brand font-black text-slate-900 text-base">Injeksi Kendala (Crisis)</h3>
+              </div>
+              <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+                Klik salah satu kendala di bawah untuk memicu situasi darurat pada workstation siswa saat siaran berlangsung:
+              </p>
+
+              <!-- Status Krisis Aktif -->
+              <div id="activeCrisisBanner" class="hidden mb-4 p-3 rounded-xl bg-red-50 border border-red-300 text-xs">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <span class="font-bold text-red-700 uppercase block mb-0.5">⚠️ Krisis Sedang Aktif:</span>
+                    <p id="activeCrisisMessage" class="text-slate-800 font-medium"></p>
+                  </div>
+                  <button onclick="pulihkanKrisis()" class="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded-lg transition shrink-0">
+                    Pulihkan
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tombol Pemicu Krisis -->
+              <div class="space-y-2.5">
+                <button onclick="injectCrisis('CAM_FAIL', 'Kamera 1 Hilang Sinyal (No Signal)!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
+                  <div>
+                    <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">1. Cam 1 Loss Video</div>
+                    <div class="text-[11px] text-slate-500">Feed Cam 1 jadi Color Bar di Switcher & PD</div>
+                  </div>
+                  <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
+                </button>
+
+                <button onclick="injectCrisis('VT_HANG', 'Video VT Macet / Glitch di detik ke-10!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
+                  <div>
+                    <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">2. VT Freeze / Hang</div>
+                    <div class="text-[11px] text-slate-500">Video klip VT membeku saat sedang on-air</div>
+                  </div>
+                  <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
+                </button>
+
+                <button onclick="injectCrisis('TIME_CUT', 'Percepat Segmen! Durasi dipotong 60 detik.')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
+                  <div>
+                    <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">3. Time Crunch (-1 Menit)</div>
+                    <div class="text-[11px] text-slate-500">Timer FD berkedip merah dan memotong waktu</div>
+                  </div>
+                  <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
+                </button>
+
+                <button onclick="injectCrisis('CG_ERROR', 'Sistem Grafis Crash (Lower Third Hilang)!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
+                  <div>
+                    <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">4. CG Operator Crash</div>
+                    <div class="text-[11px] text-slate-500">Overlay grafis nama host menghilang tiba-tiba</div>
+                  </div>
+                  <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
+                </button>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[11px] text-slate-400 font-medium">Reset semua masalah:</span>
+                <button onclick="pulihkanKrisis()" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition">
+                  Normalisasi Semua Sistem
                 </button>
               </div>
             </div>
 
-            <!-- Tombol-tombol Pemicu Krisis -->
-            <div class="space-y-2.5">
-              <button onclick="injectCrisis('CAM_FAIL', 'Kamera 1 Hilang Sinyal (No Signal)!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
-                <div>
-                  <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">1. Cam 1 Loss Video</div>
-                  <div class="text-[11px] text-slate-500">Feed Cam 1 jadi Color Bar di Switcher & PD</div>
-                </div>
-                <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
-              </button>
-
-              <button onclick="injectCrisis('VT_HANG', 'Video VT Macet / Glitch di detik ke-10!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
-                <div>
-                  <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">2. VT Freeze / Hang</div>
-                  <div class="text-[11px] text-slate-500">Video klip VT membeku saat sedang on-air</div>
-                </div>
-                <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
-              </button>
-
-              <button onclick="injectCrisis('TIME_CUT', 'Percepat Segmen! Durasi dipotong 60 detik.')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
-                <div>
-                  <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">3. Time Crunch (-1 Menit)</div>
-                  <div class="text-[11px] text-slate-500">Timer FD berkedip merah dan memotong waktu</div>
-                </div>
-                <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
-              </button>
-
-              <button onclick="injectCrisis('CG_ERROR', 'Sistem Grafis Crash (Lower Third Hilang)!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
-                <div>
-                  <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">4. CG Operator Crash</div>
-                  <div class="text-[11px] text-slate-500">Overlay grafis nama host menghilang tiba-tiba</div>
-                </div>
-                <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
-              </button>
+            <!-- Pedoman Evaluasi Guru -->
+            <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-xs text-blue-900 leading-relaxed">
+              <span class="font-bold block mb-1">Pedoman Penilaian Praktik:</span>
+              Amati apakah <strong>PD</strong> memberi instruksi cepat saat krisis disuntikkan, apakah <strong>Switcher</strong> memotong ke kamera aman, dan bagaimana <strong>FD</strong> mengondisikan talent di studio.
             </div>
+          </div>
 
-            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span class="text-[11px] text-slate-400 font-medium">Reset semua masalah:</span>
-              <button onclick="pulihkanKrisis()" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition">
-                Normalisasi Semua Sistem
+        </div>
+      </div>
+
+      <!-- SUB-TAB 2: Pantau Workstation Kru (Live View Inspector) -->
+      <div id="subTabMonitor" class="hidden space-y-4">
+        
+        <!-- Baris Tombol Pemilihan Workstation -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm flex items-center gap-2 overflow-x-auto" id="monitorRolePills">
+          <button onclick="pilihWorkstationMonitor('pd.html', 'Program Director (PD)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white shadow-sm shrink-0">
+            🎬 Program Director (PD)
+          </button>
+          <button onclick="pilihWorkstationMonitor('switcher.html', 'Video Switcher (ATEM)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+            🎛️ Video Switcher (ATEM)
+          </button>
+          <button onclick="pilihWorkstationMonitor('creative.html', 'Tim Kreatif (Rundown)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+            📝 Tim Kreatif (Rundown)
+          </button>
+          <button onclick="pilihWorkstationMonitor('audio-vt.html', 'Audio & VT Operator', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+            🔊 Audio & VT Operator
+          </button>
+          <button onclick="pilihWorkstationMonitor('cg.html', 'Graphic Operator (CG)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+            🏷️ Graphic Operator (CG)
+          </button>
+          <button onclick="pilihWorkstationMonitor('fd.html', 'Floor Director (FD)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+            ⏱️ Floor Director (FD)
+          </button>
+          <button onclick="pilihWorkstationMonitor('camera.html', 'Kamera HP Siswa (Cam 1)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+            📱 Kamera HP (Cam 1)
+          </button>
+        </div>
+
+        <!-- Frame Monitor Interaktif -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-xs font-bold text-slate-900" id="inspectingTargetTitle">Program Director (PD)</span>
+              <span class="text-[11px] font-mono text-slate-400" id="inspectingTargetUrl">pd.html</span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <button onclick="refreshPreviewIframe()" class="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                <span>Muat Ulang Layar</span>
+              </button>
+              <button onclick="bukaWorkstationEksternal()" class="text-xs bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-bold">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                <span>Buka di Tab Baru</span>
               </button>
             </div>
           </div>
 
-          <!-- Petunjuk Evaluasi Guru -->
-          <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-xs text-blue-900 leading-relaxed">
-            <span class="font-bold block mb-1">Pedoman Penilaian Praktik:</span>
-            Amati apakah <strong>PD</strong> memberi instruksi cepat saat krisis disuntikkan, apakah <strong>Switcher</strong> memotong ke kamera aman, dan bagaimana <strong>FD</strong> mengondisikan talent di studio.
+          <!-- Iframe Container Layar Kerja Siswa -->
+          <div class="w-full bg-slate-900 rounded-xl overflow-hidden border border-slate-200 shadow-inner h-[680px]">
+            <iframe id="workstationInspectIframe" src="pd.html" class="w-full h-full border-0" allow="camera; microphone; display-capture"></iframe>
           </div>
         </div>
 
       </div>
+
     </div>
   </main>
 
+  <!-- Notification Dialog Modal (Pengganti alert) -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
@@ -316,7 +399,7 @@
     // State Aplikasi
     let currentRoomToken = '';
     let currentRoomData = null;
-    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined' && firebase.apps && firebase.apps.length > 0;
     let currentMonitorPage = 'pd.html';
 
     // Mock data untuk mode preview/demo tanpa database
@@ -381,12 +464,10 @@
 
     // Inisialisasi awal saat halaman termuat
     window.addEventListener('DOMContentLoaded', () => {
-      // Cek sesi login admin
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       const sessionRoom = sessionStorage.getItem('skawan_room');
       
-      // Jika token room sudah ada di URL atau session, muat dashboard
       const activeToken = roomParam || sessionRoom;
       if (activeToken) {
         currentRoomToken = activeToken;
@@ -414,8 +495,7 @@
       currentRoomToken = token;
       sessionStorage.setItem('skawan_room', token);
 
-      // Siapkan struktur slot kru
-      // Catatan: Gunakan string kosong "" bukan null, karena Firebase RTDB otomatis menghapus key bernilai null
+      // Siapkan struktur slot kru (gunakan string kosong "" bukan null agar tidak dihapus Firebase)
       const rolesData = {
         creative: "",
         pd: "",
@@ -471,7 +551,6 @@
         mockRoomState.meta.episode = episode;
         mockRoomState.meta.totalCameras = totalCams;
         mockRoomState.roles = rolesData;
-        mockRoomState.roles.pd = "Siswa Contoh (PD)";
         loadLiveControl(token);
         showNotice("Mode Preview", `Ruangan ${token} aktif dalam mode simulasi browser.`, true);
       }
@@ -577,6 +656,7 @@
       // Render preview rundown
       renderRundownPreview(data.rundown || []);
     }
+
     // 4. Guru Membuka Workstation Siswa untuk Persiapan Teknis (Belum On-Air)
     function triggerBukaWorkstations() {
       if (isFirebaseReady) {
@@ -669,6 +749,26 @@
       if (iframe) iframe.src = iframe.src;
     }
 
+    // 8. Render Kartu Keterisian Posisi Kru
+    function renderCrewGrid(roles) {
+      const grid = document.getElementById('crewStatusGrid');
+      grid.innerHTML = '';
+
+      let filledCount = 0;
+      const totalRoles = Object.keys(roles).length;
+
+      Object.keys(roles).forEach(roleKey => {
+        const occupant = roles[roleKey];
+        const isFilled = Boolean(occupant && typeof occupant === 'string' && occupant.trim().length > 0);
+        if (isFilled) filledCount++;
+
+        let { title, desc } = roleDefinitions[roleKey] || {};
+        if (!title && roleKey.startsWith('cam_')) {
+          const camNum = roleKey.replace('cam_', '');
+          title = `Kamera ${camNum}`;
+          desc = `Kamerawan HP Live Angle ${camNum}`;
+        }
+
         const card = document.createElement('div');
         card.className = `p-3 rounded-xl border flex items-center justify-between transition ${
           isFilled 
@@ -693,6 +793,7 @@
       document.getElementById('crewCounterBadge').innerText = `${filledCount} dari ${totalRoles} Posisi Terisi`;
     }
 
+    // 9. Render Preview Rundown dari Tim Kreatif
     function renderRundownPreview(rundownList) {
       const tbody = document.getElementById('rundownTableBody');
       if (!rundownList || rundownList.length === 0) {
@@ -720,33 +821,7 @@
       });
     }
 
-    // 4. Guru Menekan Tombol MULAI SIARAN (ON-AIR)
-    function triggerMulaiSiaran() {
-      if (isFirebaseReady) {
-        db.ref(`rooms/${currentRoomToken}/meta/status`).set('live').then(() => {
-          showNotice("ON-AIR Dimulai!", "Status siaran diaktifkan. Layar seluruh siswa otomatis dialihkan ke workstation peran masing-masing.", true);
-        });
-      } else {
-        mockRoomState.meta.status = 'live';
-        updateDashboardUI(mockRoomState);
-        showNotice("ON-AIR Dimulai! (Preview)", "Simulasi siaran berjalan! Pada implementasi nyata, seluruh browser siswa langsung berpindah ke halaman peran.", true);
-      }
-    }
-
-    // 5. Guru Menyelesaikan Siaran
-    function triggerSelesaiSiaran() {
-      if (isFirebaseReady) {
-        db.ref(`rooms/${currentRoomToken}/meta/status`).set('ended').then(() => {
-          showNotice("Siaran Selesai", "Sesi siaran telah resmi ditutup.", true);
-        });
-      } else {
-        mockRoomState.meta.status = 'waiting';
-        updateDashboardUI(mockRoomState);
-        showNotice("Siaran Selesai", "Sesi dikembalikan ke mode tunggu.", true);
-      }
-    }
-
-    // 6. Injeksi Krisis & Kendala Teknis
+    // 10. Injeksi Krisis & Kendala Teknis
     function injectCrisis(type, message) {
       const crisisData = {
         isActive: true,
@@ -774,26 +849,3 @@
       };
 
       if (isFirebaseReady) {
-        db.ref(`rooms/${currentRoomToken}/crisis`).set(normalData).then(() => {
-          showNotice("Sistem Normal", "Semua kendala telah dipulihkan ke kondisi aman.", true);
-        });
-      } else {
-        mockRoomState.crisis = normalData;
-        updateDashboardUI(mockRoomState);
-        showNotice("Sistem Normal", "Kendala dipulihkan.", true);
-      }
-    }
-
-    function resetSesiKeLobby() {
-      document.getElementById('panelLiveControl').classList.add('hidden');
-      document.getElementById('panelSetupRoom').classList.remove('hidden');
-    }
-
-    function keluarSesiGuru() {
-      sessionStorage.removeItem('skawan_role');
-      sessionStorage.removeItem('skawan_room');
-      window.location.href = 'index.html';
-    }
-  </script>
-</body>
-</html>
