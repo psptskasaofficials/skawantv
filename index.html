@@ -252,15 +252,15 @@
 
     // Mock DB Fallback jika Firebase belum tersambung (untuk Live Preview)
     let mockRoles = {
-      creative: null,
+      creative: "",
       pd: "Rian (Contoh)",
-      switcher: null,
-      audio_vt: null,
-      cg: null,
-      fd: null,
-      cam_1: null,
-      cam_2: null,
-      cam_3: null
+      switcher: "",
+      audio_vt: "",
+      cg: "",
+      fd: "",
+      cam_1: "",
+      cam_2: "",
+      cam_3: ""
     };
 
     // 1. Verifikasi Login Guru
@@ -350,8 +350,26 @@
     // 3. Listener & Render Tombol Peran Kru
     function listenRoles(token) {
       if (!checkFirebaseReady()) return;
-      db.ref(`rooms/${token}/roles`).on('value', snapshot => {
-        const roles = snapshot.val() || {};
+      db.ref(`rooms/${token}`).on('value', snapshot => {
+        if (!snapshot.exists()) return;
+        const roomData = snapshot.val();
+        let roles = roomData.roles || {};
+
+        // Self-heal: jika node roles kosong di room yang sudah dibuat, isi slot default
+        if (Object.keys(roles).length === 0) {
+          const totalCams = roomData.meta?.totalCameras || 3;
+          roles = {
+            creative: "",
+            pd: "",
+            switcher: "",
+            audio_vt: "",
+            cg: "",
+            fd: ""
+          };
+          for (let i = 1; i <= totalCams; i++) roles[`cam_${i}`] = "";
+          db.ref(`rooms/${token}/roles`).set(roles);
+        }
+
         renderRoleButtons(roles);
       });
     }
@@ -362,7 +380,8 @@
 
       Object.keys(roles).forEach(roleKey => {
         const occupant = roles[roleKey];
-        const isTaken = occupant !== null && occupant !== undefined;
+        // Posisi dianggap terisi jika bernilai string tidak kosong
+        const isTaken = Boolean(occupant && typeof occupant === 'string' && occupant.trim().length > 0);
         const isMine = isTaken && occupant === currentSiswaName;
         
         let title = roleLabels[roleKey];
@@ -403,8 +422,8 @@
         const roleRef = db.ref(`rooms/${currentRoomToken}/roles/${roleKey}`);
 
         roleRef.transaction(currentValue => {
-          // Jika masih kosong atau sudah diisi oleh nama yang sama, izinkan
-          if (currentValue === null || currentValue === undefined || currentValue === currentSiswaName) {
+          // Jika slot masih kosong ("" atau null) atau sudah diisi oleh nama yang sama, izinkan
+          if (!currentValue || currentValue === "" || currentValue === currentSiswaName) {
             return currentSiswaName;
           } else {
             return; // Batalkan: slot diambil orang lain
@@ -449,7 +468,7 @@
     function batalPilihPeran() {
       if (selectedRoleKey && currentRoomToken && checkFirebaseReady()) {
         db.ref(`rooms/${currentRoomToken}/roles/${selectedRoleKey}`).transaction(currentValue => {
-          if (currentValue === currentSiswaName) return null;
+          if (currentValue === currentSiswaName) return "";
           return currentValue;
         });
       }
