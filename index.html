@@ -525,7 +525,20 @@
         document.getElementById('siswaName').value = savedUser;
       }
 
-      // Jika siswa sudah terdaftar dan memilih peran sebelum refresh
+      // KASUS 1: Siswa kembali karena ingin "Ganti Peran" (Token & Nama ada, tapi Role kosong)
+      if (savedRoom && savedUser && !savedRole) {
+        currentRoomToken = savedRoom;
+        currentSiswaName = savedUser;
+        bukaTampilanPeran(savedRoom, savedUser);
+        if (checkFirebaseReady()) {
+          listenRoles(savedRoom);
+        } else {
+          renderRoleButtons(mockRoles);
+        }
+        return;
+      }
+
+      // KASUS 2: Jika siswa sudah terdaftar dan memilih peran sebelum refresh
       if (savedRoom && savedUser && savedRole) {
         currentRoomToken = savedRoom;
         currentSiswaName = savedUser;
@@ -536,7 +549,7 @@
         document.getElementById('viewSiswa').classList.add('hidden');
         document.getElementById('viewRoleSelector').classList.add('hidden');
         document.getElementById('viewWaitingRoom').classList.remove('hidden');
-        document.getElementById('badgeRoleSelected').innerText = `${savedRoleTitle} &bull; ${savedUser}`;
+        document.getElementById('badgeRoleSelected').innerText = `${savedRoleTitle} • ${savedUser}`;
 
         if (checkFirebaseReady()) {
           // Periksa apakah status sudah 'standby' atau 'live', jika ya langsung redirect
