@@ -603,13 +603,19 @@
             console.log(`[WebRTC Switcher] Menerima feed stream aktif dari ${camKey}`);
             remoteCamStreams.set(camKey, stream);
 
-            // Pasang ke thumbnail Multiview
+            // 1. Pasang langsung ke thumbnail baris Multiview
             const mvVideo = document.getElementById(`mv-video-${camKey}`);
+            const mvContent = document.getElementById(`mv-content-${camKey}`);
             if (mvVideo) {
               mvVideo.srcObject = stream;
               mvVideo.classList.remove('hidden');
+              mvVideo.play().catch(() => {});
+            }
+            if (mvContent) {
+              mvContent.innerHTML = `<span class="text-emerald-400 font-bold text-[10px]">● LIVE FEED</span>`;
             }
 
+            // 2. Perbarui layar Program atau Preview jika kamera ini yang sedang dipilih
             updateMonitorViews();
           },
           onStatusChange: (status, info) => {
@@ -758,10 +764,13 @@
         pgmVtBox.classList.add('hidden');
         const activeStream = remoteCamStreams.get(switcherState.programSource);
         if (activeStream && pgmCamVideo) {
+          // Ada video live kamera HP: Tampilkan video dan sembunyikan kotak teks
           pgmCamVideo.srcObject = activeStream;
           pgmCamVideo.classList.remove('hidden');
           pgmVisual.classList.add('hidden');
+          pgmCamVideo.play().catch(() => {});
         } else {
+          // Belum ada feed: Tampilkan kotak teks placeholder
           if (pgmCamVideo) pgmCamVideo.classList.add('hidden');
           pgmVisual.classList.remove('hidden');
         }
@@ -783,6 +792,7 @@
           pvwCamVideo.srcObject = previewStream;
           pvwCamVideo.classList.remove('hidden');
           pvwVisual.classList.add('hidden');
+          pvwCamVideo.play().catch(() => {});
         } else {
           if (pvwCamVideo) pvwCamVideo.classList.add('hidden');
           pvwVisual.classList.remove('hidden');
