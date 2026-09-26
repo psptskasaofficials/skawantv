@@ -393,6 +393,20 @@
           }
         });
 
+        // Dengarkan nomor segmen dan timer rundown yang dikomandokan Sutradara (PD)
+        db.ref(`rooms/${token}/timer_rundown`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const tr = snapshot.val();
+          if (typeof tr.currentSegmentIndex === 'number' && tr.currentSegmentIndex !== currentSegmentIndex) {
+            currentSegmentIndex = tr.currentSegmentIndex;
+            updateSegmentDisplay();
+          }
+          if (typeof tr.timeRemaining === 'number') {
+            timerRemainingSeconds = tr.timeRemaining;
+            renderTimerUI();
+          }
+        });
+
         // Dengarkan live switching (PGM / PVW / Tally) dari ATEM Switcher
         db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
