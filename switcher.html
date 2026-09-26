@@ -42,6 +42,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     /* Styling Tombol Tactile Khas ATEM */
@@ -112,6 +113,22 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-1 space-y-5">
 
+    <!-- Intercom Cue Banner dari Program Director (PD) -->
+    <div id="directorCueBanner" class="bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between gap-3 transition">
+      <div class="flex items-center gap-3">
+        <div class="p-2 rounded-xl bg-white/20 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+        </div>
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-wider text-rose-100 block">INSTRUKSI PROGRAM DIRECTOR (PD):</span>
+          <span id="directorCueMessage" class="text-sm font-brand font-black">Standby Cam 1 & Siapkan VT Media</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="directorCueTime" class="text-[11px] font-mono bg-black/20 px-2.5 py-1 rounded-lg">LIVE</span>
+      </div>
+    </div>
+
     <!-- Crisis Alert Banner (Jika disuntikkan oleh Guru) -->
     <div id="crisisAlertBanner" class="hidden p-3.5 rounded-xl bg-red-500 text-white shadow-lg flex items-center justify-between animate-pulse">
       <div class="flex items-center gap-2.5">
@@ -147,6 +164,17 @@
               <span class="font-brand font-black text-3xl sm:text-4xl text-slate-300 tracking-wider" id="pvwFeedLabel">CAM 2</span>
               <span class="text-xs text-slate-400 mt-1 font-mono">STANDBY / NEXT SHOT</span>
             </div>
+
+            <!-- Kontainer Video VT untuk Layar Preview -->
+            <div id="pvwVtVideoContainer" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center">
+              <video id="pvwVtHtml5" class="w-full h-full object-contain" muted playsinline></video>
+              <div id="pvwVtYtWrapper" class="w-full h-full hidden">
+                <div id="pvwVtYtElement" class="w-full h-full pointer-events-none"></div>
+              </div>
+              <div class="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded shadow">
+                PVW VT TAPE
+              </div>
+            </div>
           </div>
           <!-- Watermark PVW -->
           <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-emerald-600/90 text-white font-mono text-[10px] font-bold">
@@ -174,6 +202,17 @@
             <div id="pgmVisualFeed" class="w-full h-full bg-gradient-to-br from-slate-900 via-neutral-900 to-black flex flex-col items-center justify-center p-4 text-center">
               <span class="font-brand font-black text-3xl sm:text-4xl text-red-500 tracking-wider" id="pgmFeedLabel">CAM 1</span>
               <span class="text-xs text-slate-400 mt-1 font-mono">BROADCASTING LIVE</span>
+            </div>
+
+            <!-- Kontainer Video VT untuk Layar Program (On-Air) -->
+            <div id="pgmVtVideoContainer" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center">
+              <video id="pgmVtHtml5" class="w-full h-full object-contain" playsinline></video>
+              <div id="pgmVtYtWrapper" class="w-full h-full hidden">
+                <div id="pgmVtYtElement" class="w-full h-full pointer-events-none"></div>
+              </div>
+              <div class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded shadow animate-pulse">
+                PGM VT LIVE ON-AIR
+              </div>
             </div>
           </div>
 
@@ -333,14 +372,57 @@
       totalCameras: 3
     };
 
+    // State Sinkronisasi VT dari Audio Operator
+    let latestVtState = {
+      status: 'stopped',
+      currentTime: 0,
+      title: 'Bumper Opening',
+      sourceType: 'html5',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      youtubeId: 'ysz5S6PUM-U'
+    };
+
+    let pgmYtPlayer = null;
+    let pvwYtPlayer = null;
+    let isYtReady = false;
+
     // Label Sumber Masukan
     const sourceMetadata = {
       cam_1: { label: "CAM 1", name: "Kamera 1 (Presenter)" },
       cam_2: { label: "CAM 2", name: "Kamera 2 (Tamu/Wide)" },
       cam_3: { label: "CAM 3", name: "Kamera 3 (Close-Up)" },
       cam_4: { label: "CAM 4", name: "Kamera 4 (Overhead)" },
-      vt: { label: "VT / MEDIA", name: "Video Tape Google Drive" }
+      vt: { label: "VT / MEDIA", name: "Video Tape Google Drive & YouTube" }
     };
+
+    // YouTube API Callback
+    window.onYouTubeIframeAPIReady = function() {
+      isYtReady = true;
+      initVtYouTubePlayers();
+    };
+
+    function initVtYouTubePlayers() {
+      try {
+        if (!pgmYtPlayer) {
+          pgmYtPlayer = new YT.Player('pgmVtYtElement', {
+            height: '100%',
+            width: '100%',
+            videoId: latestVtState.youtubeId || 'ysz5S6PUM-U',
+            playerVars: { playsinline: 1, controls: 0, rel: 0, modestbranding: 1, disablekb: 1 }
+          });
+        }
+        if (!pvwYtPlayer) {
+          pvwYtPlayer = new YT.Player('pvwVtYtElement', {
+            height: '100%',
+            width: '100%',
+            videoId: latestVtState.youtubeId || 'ysz5S6PUM-U',
+            playerVars: { playsinline: 1, controls: 0, rel: 0, modestbranding: 1, disablekb: 1, mute: 1 }
+          });
+        }
+      } catch (err) {
+        console.warn("YouTube init waiting:", err);
+      }
+    }
 
     // Modal Helper
     function showNotice(title, message, isSuccess = false) {
@@ -383,6 +465,30 @@
           if (meta.totalCameras) {
             switcherState.totalCameras = meta.totalCameras;
             renderAllConsoleButtons();
+          }
+        });
+
+        // Sinkronisasi pemutar video VT dari Audio Operator
+        db.ref(`rooms/${token}/vt_state`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          latestVtState = snapshot.val();
+          updateVtMultiviewCard(latestVtState);
+          syncVtPlaybackToMonitors();
+        });
+
+        // Dengarkan komando langsung dari Program Director (PD)
+        db.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const cue = snapshot.val();
+          if (cue.targetRole === 'SWITCHER' || cue.targetRole === 'ALL') {
+            document.getElementById('directorCueMessage').innerText = cue.message;
+            const now = new Date(cue.timestamp || Date.now());
+            document.getElementById('directorCueTime').innerText = now.toTimeString().split(' ')[0];
+
+            // Highlight visual banner
+            const banner = document.getElementById('directorCueBanner');
+            banner.classList.add('ring-4', 'ring-amber-300');
+            setTimeout(() => banner.classList.remove('ring-4', 'ring-amber-300'), 2000);
           }
         });
 
@@ -543,6 +649,126 @@
 
       document.getElementById('badgePreviewSource').innerText = pvwMeta.label;
       document.getElementById('pvwFeedLabel').innerText = pvwMeta.label;
+
+      // 1. Tangani Layar Program (PGM)
+      const pgmVisual = document.getElementById('pgmVisualFeed');
+      const pgmVtBox = document.getElementById('pgmVtVideoContainer');
+      if (switcherState.programSource === 'vt') {
+        pgmVisual.classList.add('hidden');
+        pgmVtBox.classList.remove('hidden');
+      } else {
+        pgmVisual.classList.remove('hidden');
+        pgmVtBox.classList.add('hidden');
+      }
+
+      // 2. Tangani Layar Preview (PVW)
+      const pvwVisual = document.getElementById('pvwVisualFeed');
+      const pvwVtBox = document.getElementById('pvwVtVideoContainer');
+      if (switcherState.previewSource === 'vt') {
+        pvwVisual.classList.add('hidden');
+        pvwVtBox.classList.remove('hidden');
+      } else {
+        pvwVisual.classList.remove('hidden');
+        pvwVtBox.classList.add('hidden');
+      }
+
+      syncVtPlaybackToMonitors();
+    }
+
+    function syncVtPlaybackToMonitors() {
+      const pgmHtml5 = document.getElementById('pgmVtHtml5');
+      const pgmYtWrap = document.getElementById('pgmVtYtWrapper');
+      const pvwHtml5 = document.getElementById('pvwVtHtml5');
+      const pvwYtWrap = document.getElementById('pvwVtYtWrapper');
+
+      const isPgmVt = switcherState.programSource === 'vt';
+      const isPvwVt = switcherState.previewSource === 'vt';
+
+      // 1. Eksekusi Synchronized Playback untuk YouTube
+      if (latestVtState.sourceType === 'youtube') {
+        pgmHtml5.classList.add('hidden');
+        pvwHtml5.classList.add('hidden');
+        pgmYtWrap.classList.remove('hidden');
+        pvwYtWrap.classList.remove('hidden');
+
+        const ytId = latestVtState.youtubeId || latestVtState.url;
+        if (isYtReady && ytId) {
+          if (isPgmVt && pgmYtPlayer && typeof pgmYtPlayer.cueVideoById === 'function') {
+            if (latestVtState.status === 'playing') {
+              pgmYtPlayer.playVideo();
+            } else if (latestVtState.status === 'paused') {
+              pgmYtPlayer.pauseVideo();
+            } else {
+              pgmYtPlayer.seekTo(0, true);
+              pgmYtPlayer.pauseVideo();
+            }
+          }
+          if (isPvwVt && pvwYtPlayer && typeof pvwYtPlayer.cueVideoById === 'function') {
+            pvwYtPlayer.mute();
+            if (latestVtState.status === 'playing') {
+              pvwYtPlayer.playVideo();
+            } else {
+              pvwYtPlayer.pauseVideo();
+            }
+          }
+        }
+      } 
+      // 2. Eksekusi Synchronized Playback untuk HTML5 / Google Drive
+      else {
+        pgmYtWrap.classList.add('hidden');
+        pvwYtWrap.classList.add('hidden');
+        pgmHtml5.classList.remove('hidden');
+        pvwHtml5.classList.remove('hidden');
+
+        if (latestVtState.url) {
+          if (pgmHtml5.src !== latestVtState.url) {
+            pgmHtml5.src = latestVtState.url;
+            pgmHtml5.load();
+          }
+          if (pvwHtml5.src !== latestVtState.url) {
+            pvwHtml5.src = latestVtState.url;
+            pvwHtml5.load();
+          }
+        }
+
+        if (isPgmVt) {
+          if (latestVtState.status === 'playing') {
+            if (Math.abs(pgmHtml5.currentTime - (latestVtState.currentTime || 0)) > 2) {
+              pgmHtml5.currentTime = latestVtState.currentTime || 0;
+            }
+            pgmHtml5.play().catch(() => {});
+          } else if (latestVtState.status === 'paused') {
+            pgmHtml5.pause();
+          } else {
+            pgmHtml5.pause();
+            pgmHtml5.currentTime = 0;
+          }
+        } else {
+          pgmHtml5.pause();
+        }
+
+        if (isPvwVt) {
+          pvwHtml5.muted = true;
+          if (latestVtState.status === 'playing') {
+            pvwHtml5.play().catch(() => {});
+          } else {
+            pvwHtml5.pause();
+          }
+        } else {
+          pvwHtml5.pause();
+        }
+      }
+    }
+
+    function updateVtMultiviewCard(vtData) {
+      const cardFeed = document.getElementById('mv-content-vt');
+      if (!cardFeed) return;
+
+      const statusBadge = vtData.status === 'playing' ? '🔴 ROLLING' : (vtData.status === 'paused' ? '⏸ PAUSED' : '⏹ CUE');
+      cardFeed.innerHTML = `
+        <div class="text-[10px] font-bold text-amber-400 truncate">${vtData.title || 'VT Klip'}</div>
+        <div class="text-[9px] font-mono text-slate-300 mt-0.5">${statusBadge}</div>
+      `;
     }
 
     function selectProgramSource(sourceKey) {
