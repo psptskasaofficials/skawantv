@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Switcher | SKAWAN TV (ATEM Mini Pro)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            brand: ['Montserrat', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            skawan: {
+              red: '#E50914',
+              redHover: '#C70812',
+              lightBg: '#F8FAFC',
+              cardBg: '#FFFFFF',
+              borderLight: '#E2E8F0',
+              accentBlue: '#2563EB',
+              atemBg: '#1E232A',
+              atemPanel: '#2A303C',
+              atemBorder: '#3D4451'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Firebase SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+
+  <style>
+    /* Styling Tombol Tactile Khas ATEM */
+    .atem-btn {
+      position: relative;
+      transition: all 0.12s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .atem-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(0,0,0,0.4);
+    }
+    /* Lampu LED On-Air (Program: Merah Menyala) */
+    .atem-led-red {
+      background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%) !important;
+      color: #ffffff !important;
+      border-color: #f87171 !important;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.5) !important;
+      text-shadow: 0 0 4px rgba(0,0,0,0.6);
+    }
+    /* Lampu LED Standby (Preview: Hijau Menyala) */
+    .atem-led-green {
+      background: linear-gradient(180deg, #10b981 0%, #047857 100%) !important;
+      color: #ffffff !important;
+      border-color: #34d399 !important;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.5) !important;
+      text-shadow: 0 0 4px rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-sm">
+            SK
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-brand font-black tracking-wide text-slate-900 text-lg leading-none">SKAWAN</span>
+              <span class="font-brand font-black text-red-600 text-lg leading-none">TV</span>
+            </div>
+            <span class="text-[10px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Vision Mixer & ATEM Desk</span>
+          </div>
+        </a>
+        <span class="hidden sm:inline-block h-5 w-px bg-slate-200 mx-2"></span>
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200">
+          <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+          Video Switcher
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg">
+          <span class="text-xs text-slate-500 font-medium">Ruangan:</span>
+          <span id="navDisplayToken" class="font-mono font-bold text-xs text-red-600">STUDIO-1</span>
+        </div>
+        <button onclick="keluarSesi()" class="text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+          <span>Keluar</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-1 space-y-5">
+
+    <!-- Crisis Alert Banner (Jika disuntikkan oleh Guru) -->
+    <div id="crisisAlertBanner" class="hidden p-3.5 rounded-xl bg-red-500 text-white shadow-lg flex items-center justify-between animate-pulse">
+      <div class="flex items-center gap-2.5">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <div>
+          <span class="text-xs font-black tracking-wider uppercase block">⚠️ KENDALA TEKNIS TERDETEKSI:</span>
+          <span id="crisisAlertText" class="text-xs font-semibold">Feed Kamera 1 Hilang Sinyal! Segera Cut ke kamera lain.</span>
+        </div>
+      </div>
+      <span class="text-[11px] font-mono font-bold bg-white/20 px-2.5 py-1 rounded">PERINTAH PD</span>
+    </div>
+
+    <!-- DUAL MONITOR: PREVIEW & PROGRAM -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+
+      <!-- Monitor PREVIEW (PVW) - Border Hijau -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="font-brand font-black text-xs uppercase tracking-wider text-emerald-600">PREVIEW (PVW)</span>
+          </div>
+          <span id="badgePreviewSource" class="font-mono text-xs font-bold px-2.5 py-0.5 rounded bg-emerald-50 border border-emerald-300 text-emerald-700 uppercase">
+            CAM 2
+          </span>
+        </div>
+
+        <!-- Layar Video PVW -->
+        <div class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden border-2 border-emerald-500 flex items-center justify-center shadow-inner">
+          <div id="pvwScreenContainer" class="w-full h-full flex items-center justify-center">
+            <!-- Simulated Feed Canvas/Placeholder -->
+            <div id="pvwVisualFeed" class="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 flex flex-col items-center justify-center p-4 text-center">
+              <span class="font-brand font-black text-3xl sm:text-4xl text-slate-300 tracking-wider" id="pvwFeedLabel">CAM 2</span>
+              <span class="text-xs text-slate-400 mt-1 font-mono">STANDBY / NEXT SHOT</span>
+            </div>
+          </div>
+          <!-- Watermark PVW -->
+          <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-emerald-600/90 text-white font-mono text-[10px] font-bold">
+            PVW BUS
+          </div>
+        </div>
+      </div>
+
+      <!-- Monitor PROGRAM (PGM) - Border Merah ON-AIR -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
+            <span class="font-brand font-black text-xs uppercase tracking-wider text-red-600">PROGRAM (PGM) &bull; ON-AIR</span>
+          </div>
+          <span id="badgeProgramSource" class="font-mono text-xs font-bold px-2.5 py-0.5 rounded bg-red-50 border border-red-300 text-red-700 uppercase">
+            CAM 1
+          </span>
+        </div>
+
+        <!-- Layar Video PGM -->
+        <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-red-600 flex items-center justify-center shadow-inner" id="pgmScreenWrapper">
+          <div id="pgmScreenContainer" class="w-full h-full flex items-center justify-center transition-opacity duration-300">
+            <!-- Simulated Feed Canvas/Placeholder -->
+            <div id="pgmVisualFeed" class="w-full h-full bg-gradient-to-br from-slate-900 via-neutral-900 to-black flex flex-col items-center justify-center p-4 text-center">
+              <span class="font-brand font-black text-3xl sm:text-4xl text-red-500 tracking-wider" id="pgmFeedLabel">CAM 1</span>
+              <span class="text-xs text-slate-400 mt-1 font-mono">BROADCASTING LIVE</span>
+            </div>
+          </div>
+
+          <!-- Overlay CG Simulasi (Jika On-Air) -->
+          <div id="simulatedCgOverlay" class="hidden absolute bottom-5 left-5 right-5 pointer-events-none">
+            <div class="bg-gradient-to-r from-red-600 to-rose-700 text-white px-4 py-1.5 rounded-t-lg font-bold text-xs sm:text-sm tracking-wide shadow-lg inline-block">
+              SKAWAN BROADCAST NEWS
+            </div>
+            <div class="bg-slate-900/90 backdrop-blur-sm text-slate-100 px-4 py-1 rounded-b-lg border-l-4 border-red-500 text-[11px] shadow-lg">
+              Siaran Langsung Simulasi Studio Televisi SMK Negeri 1 Pacitan
+            </div>
+          </div>
+
+          <!-- On-Air Bug Tag -->
+          <div class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded bg-red-600 text-white font-brand font-black text-[11px] tracking-widest uppercase flex items-center gap-1 shadow-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> LIVE
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- INPUT MULTIVIEW MINI BAR -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between mb-2.5">
+        <span class="text-xs font-brand font-bold text-slate-700 uppercase tracking-wider">Multi-Source Feeds</span>
+        <span class="text-[11px] font-mono text-slate-400">Pilih sumber untuk diarahkan ke bus Preview / Program</span>
+      </div>
+
+      <div id="multiviewBar" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        <!-- Render otomatis via JavaScript: Cam 1, Cam 2, Cam 3, VT/Media -->
+      </div>
+    </div>
+
+    <!-- KONSOL HARDWARE ATEM MINI PRO EMULATION -->
+    <div class="bg-slate-900 border-2 border-slate-700 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5 text-slate-100 relative overflow-hidden">
+      <!-- Top Branding Strip ATEM -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1 bg-black/60 px-3 py-1 rounded-lg border border-slate-800 font-mono text-xs font-bold text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            ATEM MINI PRO DESK
+          </div>
+          <span class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold hidden sm:inline">SKAWAN BROADCAST HARDWARE CONTROLLER</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono">
+          <span class="text-slate-400">TRANSISI:</span>
+          <select id="selectTransitionRate" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded px-2 py-1 outline-none">
+            <option value="0.5">0.5 DETIK</option>
+            <option value="1.0" selected>1.0 DETIK</option>
+            <option value="1.5">1.5 DETIK</option>
+            <option value="2.0">2.0 DETIK</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Grid Tombol Bus ATEM -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+
+        <!-- Kiri: Baris Bus Program & Preview (8 Kolom) -->
+        <div class="lg:col-span-8 space-y-4">
+
+          <!-- Baris PROGRAM BUS (PGM) - Merah jika On-Air -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] font-brand font-black uppercase tracking-widest text-red-400">PROGRAM BUS (ON-AIR ACTIVE)</span>
+              <span class="text-[10px] font-mono text-slate-500">Kamera atau Media yang sedang tayang langsung</span>
+            </div>
+            <div id="pgmBtnRow" class="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+              <!-- Render tombol Program via JS -->
+            </div>
+          </div>
+
+          <!-- Baris PREVIEW BUS (PVW) - Hijau jika Standby -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] font-brand font-black uppercase tracking-widest text-emerald-400">PREVIEW BUS (NEXT SHOT STANDBY)</span>
+              <span class="text-[10px] font-mono text-slate-500">Kamera atau Media yang siap dipotong (Cut / Auto)</span>
+            </div>
+            <div id="pvwBtnRow" class="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+              <!-- Render tombol Preview via JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Kanan: Blok Transisi CUT & AUTO & FTB (4 Kolom) -->
+        <div class="lg:col-span-4 bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col justify-between h-full space-y-3">
+          <div class="text-[10px] font-brand font-black uppercase tracking-widest text-slate-400 text-center border-b border-slate-800 pb-1">
+            TRANSITION CONTROLS
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Tombol CUT (Hard Cut instan) -->
+            <button onclick="triggerCut()" class="atem-btn bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 text-white font-brand font-black text-sm py-4 rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 shadow-md">
+              <span class="text-xs uppercase tracking-widest text-slate-400 font-mono">INSTANT</span>
+              <span class="text-base text-red-400">CUT</span>
+            </button>
+
+            <!-- Tombol AUTO (Mix / Dissolve) -->
+            <button id="btnAutoTransition" onclick="triggerAutoTransition()" class="atem-btn bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 text-white font-brand font-black text-sm py-4 rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 shadow-md">
+              <span class="text-xs uppercase tracking-widest text-slate-400 font-mono">DISSOLVE</span>
+              <span class="text-base text-emerald-400">AUTO</span>
+            </button>
+          </div>
+
+          <!-- Tombol FTB (Fade to Black) -->
+          <button id="btnFtb" onclick="triggerFadeToBlack()" class="atem-btn w-full bg-slate-900 hover:bg-black border border-slate-700 hover:border-red-500 text-slate-300 font-mono font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 transition active:scale-98">
+            <span class="w-2 h-2 rounded-full bg-red-600"></span>
+            <span>FTB (FADE TO BLACK)</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Bottom Status Bar ATEM -->
+      <div class="border-t border-slate-800 pt-3 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400 gap-2">
+        <div class="flex items-center gap-4">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Tally Bus Sinkron
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span> Downstream Keyer (CG Ready)
+          </span>
+        </div>
+        <div class="text-[11px] text-slate-500">
+          Gunakan tombol keyboard: <kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300">Space</kbd> untuk CUT &bull; <kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300">Enter</kbd> untuk AUTO
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Dialog Notifikasi Modal -->
+  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
+      <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
+      <p id="noticeMessage" class="text-sm text-slate-600 mb-5"></p>
+      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+        Tutup
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // State Aplikasi Switcher
+    let currentRoomToken = 'STUDIO-1';
+    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+
+    // State Operasi Switcher
+    let switcherState = {
+      programSource: 'cam_1',
+      previewSource: 'cam_2',
+      isFtbActive: false,
+      isTransitioning: false,
+      totalCameras: 3
+    };
+
+    // Label Sumber Masukan
+    const sourceMetadata = {
+      cam_1: { label: "CAM 1", name: "Kamera 1 (Presenter)" },
+      cam_2: { label: "CAM 2", name: "Kamera 2 (Tamu/Wide)" },
+      cam_3: { label: "CAM 3", name: "Kamera 3 (Close-Up)" },
+      cam_4: { label: "CAM 4", name: "Kamera 4 (Overhead)" },
+      vt: { label: "VT / MEDIA", name: "Video Tape Google Drive" }
+    };
+
+    // Modal Helper
+    function showNotice(title, message, isSuccess = false) {
+      document.getElementById('noticeTitle').innerText = title;
+      document.getElementById('noticeMessage').innerText = message;
+      const icon = document.getElementById('noticeIcon');
+      if (isSuccess) {
+        icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.innerText = "✓";
+      } else {
+        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.innerText = "!";
+      }
+      document.getElementById('noticeModal').classList.remove('hidden');
+    }
+
+    function closeNotice() {
+      document.getElementById('noticeModal').classList.add('hidden');
+    }
+
+    // Inisialisasi awal
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      const sessionRoom = sessionStorage.getItem('skawan_room');
+      
+      currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
+      document.getElementById('navDisplayToken').innerText = currentRoomToken;
+
+      initSwitcherSystem(currentRoomToken);
+      setupKeyboardShortcuts();
+    });
+
+    function initSwitcherSystem(token) {
+      if (isFirebaseReady) {
+        // Tarik meta ruangan untuk mengetahui jumlah kamera
+        db.ref(`rooms/${token}/meta`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const meta = snapshot.val();
+          if (meta.totalCameras) {
+            switcherState.totalCameras = meta.totalCameras;
+            renderAllConsoleButtons();
+          }
+        });
+
+        // Tarik state switching langsung dari Firebase
+        db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const live = snapshot.val();
+          switcherState.programSource = live.programSource || switcherState.programSource;
+          switcherState.previewSource = live.previewSource || switcherState.previewSource;
+          updateMonitorViews();
+          updateAtemButtonHighlights();
+        });
+
+        // Dengarkan trigger krisis dari Guru
+        db.ref(`rooms/${token}/crisis`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const crisis = snapshot.val();
+          const banner = document.getElementById('crisisAlertBanner');
+          if (crisis.isActive) {
+            banner.classList.remove('hidden');
+            document.getElementById('crisisAlertText').innerText = crisis.message;
+            if (crisis.type === 'CAM_FAIL') {
+              applyGlitchVisual(true);
+            }
+          } else {
+            banner.classList.add('hidden');
+            applyGlitchVisual(false);
+          }
+        });
+
+        // Dengarkan status CG
+        db.ref(`rooms/${token}/cg_state`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const cg = snapshot.val();
+          const overlay = document.getElementById('simulatedCgOverlay');
+          if (cg.lowerThirdActive) {
+            overlay.classList.remove('hidden');
+          } else {
+            overlay.classList.add('hidden');
+          }
+        });
+      } else {
+        // Fallback mode demo lokal
+        renderAllConsoleButtons();
+        updateMonitorViews();
+        updateAtemButtonHighlights();
+      }
+    }
+
+    function getAvailableSources() {
+      const sources = [];
+      for (let i = 1; i <= switcherState.totalCameras; i++) {
+        sources.push(`cam_${i}`);
+      }
+      sources.push('vt');
+      return sources;
+    }
+
+    function renderAllConsoleButtons() {
+      const sources = getAvailableSources();
+
+      // 1. Render Tombol Program Bus
+      const pgmRow = document.getElementById('pgmBtnRow');
+      pgmRow.innerHTML = '';
+      sources.forEach(src => {
+        const meta = sourceMetadata[src] || { label: src.toUpperCase() };
+        const btn = document.createElement('button');
+        btn.id = `btn-pgm-${src}`;
+        btn.onclick = () => selectProgramSource(src);
+        btn.className = "atem-btn bg-slate-800 hover:bg-slate-700 text-slate-300 border-2 border-slate-700 font-brand font-black text-xs sm:text-sm py-3 px-2 rounded-xl flex flex-col items-center justify-center gap-0.5 active:scale-95";
+        btn.innerHTML = `
+          <span>${meta.label}</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal">PGM</span>
+        `;
+        pgmRow.appendChild(btn);
+      });
+
+      // 2. Render Tombol Preview Bus
+      const pvwRow = document.getElementById('pvwBtnRow');
+      pvwRow.innerHTML = '';
+      sources.forEach(src => {
+        const meta = sourceMetadata[src] || { label: src.toUpperCase() };
+        const btn = document.createElement('button');
+        btn.id = `btn-pvw-${src}`;
+        btn.onclick = () => selectPreviewSource(src);
+        btn.className = "atem-btn bg-slate-800 hover:bg-slate-700 text-slate-300 border-2 border-slate-700 font-brand font-black text-xs sm:text-sm py-3 px-2 rounded-xl flex flex-col items-center justify-center gap-0.5 active:scale-95";
+        btn.innerHTML = `
+          <span>${meta.label}</span>
+          <span class="text-[9px] font-mono text-slate-400 font-normal">PVW</span>
+        `;
+        pvwRow.appendChild(btn);
+      });
+
+      // 3. Render Multiview Mini Feeds
+      const multiviewBar = document.getElementById('multiviewBar');
+      multiviewBar.innerHTML = '';
+      sources.forEach(src => {
+        const meta = sourceMetadata[src] || { label: src.toUpperCase() };
+        const card = document.createElement('div');
+        card.id = `mv-card-${src}`;
+        card.className = "bg-slate-900 border-2 border-slate-300 rounded-xl p-2.5 flex flex-col justify-between aspect-video relative overflow-hidden transition cursor-pointer hover:border-slate-500 shadow-sm";
+        card.onclick = () => selectPreviewSource(src);
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-brand font-black text-xs text-white">${meta.label}</span>
+            <span id="mv-tally-${src}" class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+          </div>
+          <div class="text-center font-mono font-bold text-xs text-slate-400" id="mv-content-${src}">
+            LIVE FEED
+          </div>
+          <div class="text-[9px] text-slate-500 font-mono truncate">${meta.name || ''}</div>
+        `;
+        multiviewBar.appendChild(card);
+      });
+    }
+
+    function updateAtemButtonHighlights() {
+      const sources = getAvailableSources();
+
+      sources.forEach(src => {
+        const pgmBtn = document.getElementById(`btn-pgm-${src}`);
+        const pvwBtn = document.getElementById(`btn-pvw-${src}`);
+        const mvTally = document.getElementById(`mv-tally-${src}`);
+        const mvCard = document.getElementById(`mv-card-${src}`);
+
+        // Reset class
+        if (pgmBtn) pgmBtn.classList.remove('atem-led-red');
+        if (pvwBtn) pvwBtn.classList.remove('atem-led-green');
+        if (mvTally) mvTally.className = "w-2.5 h-2.5 rounded-full bg-slate-600";
+        if (mvCard) mvCard.className = "bg-slate-900 border-2 border-slate-300 rounded-xl p-2.5 flex flex-col justify-between aspect-video relative overflow-hidden transition cursor-pointer shadow-sm";
+
+        // Program Source -> Merah
+        if (src === switcherState.programSource) {
+          if (pgmBtn) pgmBtn.classList.add('atem-led-red');
+          if (mvTally) mvTally.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-md shadow-red-500/80 animate-ping";
+          if (mvCard) mvCard.className = "bg-slate-900 border-2 border-red-500 rounded-xl p-2.5 flex flex-col justify-between aspect-video relative overflow-hidden transition cursor-pointer shadow-md";
+        }
+
+        // Preview Source -> Hijau
+        if (src === switcherState.previewSource) {
+          if (pvwBtn) pvwBtn.classList.add('atem-led-green');
+          if (mvTally && src !== switcherState.programSource) {
+            mvTally.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/80";
+          }
+          if (mvCard && src !== switcherState.programSource) {
+            mvCard.className = "bg-slate-900 border-2 border-emerald-500 rounded-xl p-2.5 flex flex-col justify-between aspect-video relative overflow-hidden transition cursor-pointer shadow-md";
+          }
+        }
+      });
+    }
+
+    function updateMonitorViews() {
+      const pgmMeta = sourceMetadata[switcherState.programSource] || { label: switcherState.programSource.toUpperCase() };
+      const pvwMeta = sourceMetadata[switcherState.previewSource] || { label: switcherState.previewSource.toUpperCase() };
+
+      document.getElementById('badgeProgramSource').innerText = pgmMeta.label;
+      document.getElementById('pgmFeedLabel').innerText = pgmMeta.label;
+
+      document.getElementById('badgePreviewSource').innerText = pvwMeta.label;
+      document.getElementById('pvwFeedLabel').innerText = pvwMeta.label;
+    }
+
+    function selectProgramSource(sourceKey) {
+      if (switcherState.isTransitioning) return;
+      switcherState.programSource = sourceKey;
+      syncSwitcherState();
+      updateMonitorViews();
+      updateAtemButtonHighlights();
+    }
+
+    function selectPreviewSource(sourceKey) {
+      if (switcherState.isTransitioning) return;
+      switcherState.previewSource = sourceKey;
+      syncSwitcherState();
+      updateMonitorViews();
+      updateAtemButtonHighlights();
+    }
+
+    // 1. Eksekusi CUT (Instant Hard Cut)
+    function triggerCut() {
+      if (switcherState.isTransitioning) return;
+
+      // Tukar posisi Program dan Preview
+      const temp = switcherState.programSource;
+      switcherState.programSource = switcherState.previewSource;
+      switcherState.previewSource = temp;
+
+      syncSwitcherState();
+      updateMonitorViews();
+      updateAtemButtonHighlights();
+    }
+
+    // 2. Eksekusi AUTO (Dissolve/Mix Transition)
+    function triggerAutoTransition() {
+      if (switcherState.isTransitioning) return;
+      switcherState.isTransitioning = true;
+
+      const rate = parseFloat(document.getElementById('selectTransitionRate').value) * 1000;
+      const pgmWrapper = document.getElementById('pgmScreenContainer');
+      const btnAuto = document.getElementById('btnAutoTransition');
+
+      btnAuto.classList.add('atem-led-red');
+      pgmWrapper.style.transition = `opacity ${rate / 2}ms ease-in-out`;
+      pgmWrapper.style.opacity = '0.3';
+
+      setTimeout(() => {
+        // Pertengahan transisi: tukar sumber
+        const temp = switcherState.programSource;
+        switcherState.programSource = switcherState.previewSource;
+        switcherState.previewSource = temp;
+
+        updateMonitorViews();
+        updateAtemButtonHighlights();
+        syncSwitcherState();
+
+        pgmWrapper.style.opacity = '1';
+
+        setTimeout(() => {
+          switcherState.isTransitioning = false;
+          btnAuto.classList.remove('atem-led-red');
+        }, rate / 2);
+
+      }, rate / 2);
+    }
+
+    // 3. Eksekusi Fade to Black (FTB)
+    function triggerFadeToBlack() {
+      switcherState.isFtbActive = !switcherState.isFtbActive;
+      const pgmWrapper = document.getElementById('pgmScreenContainer');
+      const btnFtb = document.getElementById('btnFtb');
+
+      if (switcherState.isFtbActive) {
+        pgmWrapper.style.opacity = '0';
+        btnFtb.classList.add('bg-red-700', 'text-white', 'border-red-400');
+        showNotice("Fade to Black", "Layar Program (PGM) telah dimatikan ke Hitam (FTB).");
+      } else {
+        pgmWrapper.style.opacity = '1';
+        btnFtb.classList.remove('bg-red-700', 'text-white', 'border-red-400');
+      }
+    }
+
+    // 4. Sinkronisasi State & Tally ke Firebase
+    function syncSwitcherState() {
+      // Hitung Tally untuk seluruh kamera
+      const tallyState = {};
+      for (let i = 1; i <= switcherState.totalCameras; i++) {
+        const camKey = `cam_${i}`;
+        if (switcherState.programSource === camKey) {
+          tallyState[camKey] = 'red';   // ON-AIR
+        } else if (switcherState.previewSource === camKey) {
+          tallyState[camKey] = 'green'; // STANDBY
+        } else {
+          tallyState[camKey] = 'off';   // IDLE
+        }
+      }
+
+      if (isFirebaseReady) {
+        db.ref(`rooms/${currentRoomToken}/live_state`).update({
+          programSource: switcherState.programSource,
+          previewSource: switcherState.previewSource,
+          tally: tallyState,
+          lastSwitchedAt: Date.now()
+        });
+      }
+    }
+
+    // 5. Visual Efek Glitch saat Krisis Teknis
+    function applyGlitchVisual(isGlitch) {
+      const pgmVisual = document.getElementById('pgmVisualFeed');
+      if (isGlitch && switcherState.programSource === 'cam_1') {
+        pgmVisual.className = "w-full h-full bg-gradient-to-r from-blue-600 via-pink-600 to-amber-500 flex flex-col items-center justify-center p-4 text-center animate-pulse";
+        document.getElementById('pgmFeedLabel').innerText = "NO SIGNAL";
+      } else {
+        pgmVisual.className = "w-full h-full bg-gradient-to-br from-slate-900 via-neutral-900 to-black flex flex-col items-center justify-center p-4 text-center";
+      }
+    }
+
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        // Spacebar = CUT
+        if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          triggerCut();
+        }
+        // Enter = AUTO
+        if (e.code === 'Enter' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          triggerAutoTransition();
+        }
+      });
+    }
+
+    function keluarSesi() {
+      sessionStorage.removeItem('skawan_role');
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>
