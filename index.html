@@ -38,8 +38,38 @@
   <!-- Firebase SDK (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <!-- File Konfigurasi Firebase Lokal -->
+  <!-- File Konfigurasi Firebase Eksternal -->
   <script src="js/firebase-config.js"></script>
+
+  <!-- AUTO-FALLBACK: Menjamin Firebase SELALU aktif meski file eksternal belum di-commit/ter-cache -->
+  <script>
+    (function ensureFirebaseConnection() {
+      const config = {
+        apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
+        authDomain: "skawan-tv.firebaseapp.com",
+        databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "skawan-tv",
+        storageBucket: "skawan-tv.firebasestorage.app",
+        messagingSenderId: "501619282826",
+        appId: "1:501619282826:web:81e624ac35e9798062ae73"
+      };
+
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || !firebase.apps.length) {
+          try {
+            firebase.initializeApp(config);
+          } catch (e) {
+            console.warn("Init fallback:", e);
+          }
+        }
+        if (!window.db && firebase.database) {
+          window.db = firebase.database();
+        }
+      }
+    })();
+    // Pastikan variabel db selalu tersedia di global scope
+    var db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
+  </script>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center p-4 selection:bg-red-600 selection:text-white">
 
@@ -51,7 +81,7 @@
         ON-AIR SIMULATION SYSTEM
       </div>
       
-      <!-- Indikator Status Koneksi Real-Time -->
+      <!-- Indikator Status Koneksi Real-Time Interaktif -->
       <div id="connStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm transition-all duration-300">
         <span id="connStatusDot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
         <span id="connStatusText">Menghubungkan Database...</span>
@@ -181,18 +211,31 @@
     let selectedRoleTitle = '';
     let isFirebaseReady = false;
 
-    // Utilitas Cek Kesiapan Firebase & Inisialisasi Koneksi
-    function checkFirebaseReady() {
-      return typeof firebase !== 'undefined' && typeof db !== 'undefined' && firebase.apps && firebase.apps.length > 0;
+    // Helper untuk mengambil instance database secara aman
+    function getDatabase() {
+      if (window.db) return window.db;
+      if (typeof firebase !== 'undefined' && firebase.database) {
+        window.db = firebase.database();
+        return window.db;
+      }
+      return null;
     }
 
-    // Indikator Status Koneksi Realtime
+    // Utilitas Cek Kesiapan Firebase & Inisialisasi Koneksi
+    function checkFirebaseReady() {
+      const activeDb = getDatabase();
+      return Boolean(typeof firebase !== 'undefined' && activeDb && firebase.apps && firebase.apps.length > 0);
+    }
+
+    // Indikator Status Koneksi Realtime dengan Diagnostik Lengkap
     function setupConnectionMonitor() {
       const badge = document.getElementById('connStatusBadge');
       const dot = document.getElementById('connStatusDot');
       const text = document.getElementById('connStatusText');
 
-      if (!checkFirebaseReady()) {
+      const activeDb = getDatabase();
+
+      if (!activeDb) {
         isFirebaseReady = false;
         badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-600 border border-slate-300 shadow-sm";
         dot.className = "w-2 h-2 rounded-full bg-slate-400";
@@ -202,17 +245,22 @@
 
       isFirebaseReady = true;
 
-      // Pantau koneksi native Firebase Database
-      db.ref('.info/connected').on('value', snap => {
+      // Pantau koneksi native Firebase Database via .info/connected
+      activeDb.ref('.info/connected').on('value', snap => {
         if (snap.val() === true) {
           badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm";
           dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-          text.innerText = "Firebase Terhubung";
+          text.innerText = "🟢 Firebase Terhubung";
         } else {
           badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm";
-          dot.className = "w-2 h-2 rounded-full bg-amber-500";
-          text.innerText = "Koneksi Terputus...";
+          dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+          text.innerText = "Menghubungkan Server...";
         }
+      }, err => {
+        console.warn("Connection monitor error:", err);
+        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-sm";
+        dot.className = "w-2 h-2 rounded-full bg-rose-500";
+        text.innerText = "Periksa Security Rules";
       });
     }
 
@@ -298,12 +346,13 @@
       currentRoomToken = token;
       currentSiswaName = name;
 
-      // Simpan input token & nama sementara agar tidak hilang jika reload
       localStorage.setItem('skawan_room', token);
       localStorage.setItem('skawan_user', name);
 
-      if (checkFirebaseReady()) {
-        db.ref(`rooms/${token}`).once('value', snapshot => {
+      const activeDb = getDatabase();
+
+      if (activeDb) {
+        activeDb.ref(`rooms/${token}`).once('value', snapshot => {
           if (!snapshot.exists()) {
             showNotice("Token Tidak Valid", `Ruangan "${token}" tidak ditemukan! Pastikan Guru sudah membuka sesi di Master Control.`);
             return;
@@ -322,7 +371,6 @@
           showNotice("Koneksi Bermasalah", "Gagal menghubungi database Firebase: " + err.message);
         });
       } else {
-        // Fallback untuk mode preview tanpa database
         bukaTampilanPeran(token, name);
         renderRoleButtons(mockRoles);
       }
@@ -349,13 +397,13 @@
 
     // 3. Listener & Render Tombol Peran Kru
     function listenRoles(token) {
-      if (!checkFirebaseReady()) return;
-      db.ref(`rooms/${token}`).on('value', snapshot => {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref(`rooms/${token}`).on('value', snapshot => {
         if (!snapshot.exists()) return;
         const roomData = snapshot.val();
         let roles = roomData.roles || {};
 
-        // Self-heal: jika node roles kosong di room yang sudah dibuat, isi slot default
         if (Object.keys(roles).length === 0) {
           const totalCams = roomData.meta?.totalCameras || 3;
           roles = {
@@ -367,7 +415,7 @@
             fd: ""
           };
           for (let i = 1; i <= totalCams; i++) roles[`cam_${i}`] = "";
-          db.ref(`rooms/${token}/roles`).set(roles);
+          activeDb.ref(`rooms/${token}/roles`).set(roles);
         }
 
         renderRoleButtons(roles);
@@ -418,15 +466,15 @@
 
     // 4. Kunci Peran Terpilih Menggunakan Transaksi Atomik
     function ambilPeran(roleKey, roleTitle) {
-      if (checkFirebaseReady()) {
-        const roleRef = db.ref(`rooms/${currentRoomToken}/roles/${roleKey}`);
+      const activeDb = getDatabase();
+      if (activeDb) {
+        const roleRef = activeDb.ref(`rooms/${currentRoomToken}/roles/${roleKey}`);
 
         roleRef.transaction(currentValue => {
-          // Jika slot masih kosong ("" atau null) atau sudah diisi oleh nama yang sama, izinkan
           if (!currentValue || currentValue === "" || currentValue === currentSiswaName) {
             return currentSiswaName;
           } else {
-            return; // Batalkan: slot diambil orang lain
+            return;
           }
         }, (error, committed, snapshot) => {
           if (error) {
@@ -439,7 +487,6 @@
           }
         });
       } else {
-        // Fallback mode demo
         mockRoles[roleKey] = currentSiswaName;
         prosesSuksesAmbilPeran(roleKey, roleTitle);
       }
@@ -466,8 +513,9 @@
 
     // 5. Batal Pilih Peran / Lepaskan Slot
     function batalPilihPeran() {
-      if (selectedRoleKey && currentRoomToken && checkFirebaseReady()) {
-        db.ref(`rooms/${currentRoomToken}/roles/${selectedRoleKey}`).transaction(currentValue => {
+      const activeDb = getDatabase();
+      if (selectedRoleKey && currentRoomToken && activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/${selectedRoleKey}`).transaction(currentValue => {
           if (currentValue === currentSiswaName) return "";
           return currentValue;
         });
@@ -484,10 +532,10 @@
 
     // 6. Menunggu Aba-aba Siaran Mulai dari Guru & Redirect
     function listenGameStart(token, roleKey) {
-      if (!checkFirebaseReady()) return;
-      db.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
         const status = snapshot.val();
-        // Alihkan siswa jika guru membuka workstation ('standby') maupun langsung on-air ('live')
         if (status === 'standby' || status === 'live') {
           alihkanKeWorkstation(token, roleKey);
         }
