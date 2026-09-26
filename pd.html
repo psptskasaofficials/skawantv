@@ -40,9 +40,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
-  <!-- PeerJS WebRTC Streamer -->
+  <!-- PeerJS WebRTC Streamer & YouTube API -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="js/webrtc-stream.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     .cue-btn {
@@ -157,7 +158,15 @@
               <!-- Video Nyata Kamera HP jika terpilih di PVW -->
               <video id="pvwLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
 
-              <div class="scanline absolute inset-0"></div>
+              <!-- Video VT Preview jika terpilih -->
+              <div id="pvwVtBox" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10">
+                <video id="pvwVtHtml5" class="w-full h-full object-contain" muted playsinline></video>
+                <div id="pvwVtYtWrap" class="w-full h-full hidden">
+                  <div id="pvwVtYtEl" class="w-full h-full pointer-events-none"></div>
+                </div>
+              </div>
+
+              <div class="scanline absolute inset-0 pointer-events-none"></div>
               <span id="pvwScreenLabel" class="font-brand font-black text-2xl sm:text-3xl text-slate-300 tracking-wider">CAM 2</span>
               <span class="text-[11px] font-mono text-emerald-400 mt-1 uppercase">STANDBY FOR NEXT CUE</span>
               <div class="absolute bottom-2 left-2 bg-emerald-600/90 text-white font-mono text-[9px] px-1.5 py-0.5 rounded font-bold z-10">
@@ -181,22 +190,40 @@
               <!-- Video Nyata Kamera HP jika On-Air -->
               <video id="pgmLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
 
-              <div class="scanline absolute inset-0"></div>
+              <!-- Video VT Program jika On-Air -->
+              <div id="pgmVtBox" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10">
+                <video id="pgmVtHtml5" class="w-full h-full object-contain" playsinline muted></video>
+                <div id="pgmVtYtWrap" class="w-full h-full hidden">
+                  <div id="pgmVtYtEl" class="w-full h-full pointer-events-none"></div>
+                </div>
+              </div>
+
+              <div class="scanline absolute inset-0 pointer-events-none"></div>
               <span id="pgmScreenLabel" class="font-brand font-black text-2xl sm:text-3xl text-red-500 tracking-wider">CAM 1</span>
               <span class="text-[11px] font-mono text-red-400 mt-1 uppercase">LIVE BROADCAST</span>
 
-              <!-- Overlay CG Lower Third Simulasi -->
-              <div id="cgLowerThirdBox" class="hidden absolute bottom-2 left-2 right-2 pointer-events-none z-10">
-                <div class="bg-red-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-t-md inline-block">
+              <!-- Overlay CG Lower Third Dinamis dari CG Operator -->
+              <div id="cgLowerThirdBox" class="hidden absolute bottom-6 left-2 right-2 pointer-events-none z-20">
+                <div id="pdCgTitle" class="bg-red-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-t-md inline-block">
                   SKAWAN TV NEWS
                 </div>
-                <div class="bg-slate-900/90 text-slate-100 text-[10px] px-2.5 py-1 rounded-b-md border-l-2 border-red-500 truncate">
+                <div id="pdCgSubtitle" class="bg-slate-900/90 text-slate-100 text-[10px] px-2.5 py-1 rounded-b-md border-l-2 border-red-500 truncate">
                   Bincang Sore: Praktik Simulasi Produksi Studio TV
                 </div>
               </div>
 
+              <!-- Ticker Bar Dinamis di Layar PD -->
+              <div id="pdTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-4 bg-red-700 text-white z-20 overflow-hidden flex items-center border-t border-red-500 pointer-events-none">
+                <div class="bg-slate-900 px-1.5 h-full flex items-center font-mono font-black text-[7px] text-amber-400 shrink-0">
+                  INFO
+                </div>
+                <div class="w-full overflow-hidden text-[8px] truncate px-1">
+                  <span id="pdTickerText">Siaran Simulasi SKAWAN TV</span>
+                </div>
+              </div>
+
               <!-- On-Air Bug -->
-              <div class="absolute top-2 right-2 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded flex items-center gap-1 shadow z-10">
+              <div class="absolute top-2 right-2 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded flex items-center gap-1 shadow z-30">
                 <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> LIVE
               </div>
             </div>
@@ -474,6 +501,10 @@
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
     let streamerInstance = null;
     const remoteCamStreams = new Map();
+    let latestVtState = { status: 'stopped', currentTime: 0, url: '', youtubeId: '', sourceType: 'html5' };
+    let pdPgmYt = null;
+    let pdPvwYt = null;
+    let isYtReady = false;
 
     let totalCameras = 3;
     let liveState = {
@@ -548,6 +579,20 @@
       startSegmentTimer();
     });
 
+    window.onYouTubeIframeAPIReady = function() {
+      isYtReady = true;
+      try {
+        pdPgmYt = new YT.Player('pgmVtYtEl', {
+          height: '100%', width: '100%', videoId: 'ysz5S6PUM-U',
+          playerVars: { playsinline: 1, controls: 0, rel: 0, mute: 1 }
+        });
+        pdPvwYt = new YT.Player('pvwVtYtEl', {
+          height: '100%', width: '100%', videoId: 'ysz5S6PUM-U',
+          playerVars: { playsinline: 1, controls: 0, rel: 0, mute: 1 }
+        });
+      } catch (e) { console.warn(e); }
+    };
+
     function initDirectorSystem(token) {
       if (isFirebaseReady) {
         // Tarik metadata ruangan
@@ -569,6 +614,13 @@
           renderMultiviewCards();
         });
 
+        // Tarik data sinkronisasi pemutar VT dari Audio Operator
+        db.ref(`rooms/${token}/vt_state`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          latestVtState = snapshot.val();
+          syncPdVtDisplay();
+        });
+
         // Tarik data rundown live dari Tim Kreatif
         db.ref(`rooms/${token}/rundown`).on('value', snapshot => {
           const val = snapshot.val();
@@ -587,6 +639,7 @@
           liveState.previewSource = live.previewSource || liveState.previewSource;
           liveState.tally = live.tally || liveState.tally;
           updateMonitorsAndTally();
+          syncPdVtDisplay();
         });
 
         // Dengarkan pemicu krisis dari Guru
@@ -606,15 +659,29 @@
           }
         });
 
-        // Dengarkan status CG Lower Third
+        // Dengarkan status CG Lower Third & Ticker
         db.ref(`rooms/${token}/cg_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const cg = snapshot.val();
           const lowerBox = document.getElementById('cgLowerThirdBox');
+          const pdTitle = document.getElementById('pdCgTitle');
+          const pdSub = document.getElementById('pdCgSubtitle');
+          const tickerBar = document.getElementById('pdTickerBar');
+          const tickerText = document.getElementById('pdTickerText');
+
           if (cg.lowerThirdActive) {
             lowerBox.classList.remove('hidden');
+            if (pdTitle) pdTitle.innerText = cg.title || 'NAMA PRESENTER';
+            if (pdSub) pdSub.innerText = cg.subtitle || 'Keterangan';
           } else {
             lowerBox.classList.add('hidden');
+          }
+
+          if (cg.tickerActive) {
+            tickerBar.classList.remove('hidden');
+            if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live';
+          } else {
+            tickerBar.classList.add('hidden');
           }
         });
       } else {
@@ -646,6 +713,47 @@
             console.log(`[WebRTC PD] Status: ${status} - ${info}`);
           }
         });
+      }
+    }
+
+    function syncPdVtDisplay() {
+      const pgmVtBox = document.getElementById('pgmVtBox');
+      const pvwVtBox = document.getElementById('pvwVtBox');
+      const pgmHtml5 = document.getElementById('pgmVtHtml5');
+      const pvwHtml5 = document.getElementById('pvwVtHtml5');
+      const pgmYtWrap = document.getElementById('pgmVtYtWrap');
+      const pvwYtWrap = document.getElementById('pvwVtYtWrap');
+
+      const isPgmVt = liveState.programSource === 'vt';
+      const isPvwVt = liveState.previewSource === 'vt';
+
+      if (isPgmVt) pgmVtBox.classList.remove('hidden'); else pgmVtBox.classList.add('hidden');
+      if (isPvwVt) pvwVtBox.classList.remove('hidden'); else pvwVtBox.classList.add('hidden');
+
+      if (latestVtState.sourceType === 'youtube') {
+        pgmHtml5.classList.add('hidden');
+        pvwHtml5.classList.add('hidden');
+        pgmYtWrap.classList.remove('hidden');
+        pvwYtWrap.classList.remove('hidden');
+        if (isYtReady && latestVtState.youtubeId) {
+          if (isPgmVt && pdPgmYt && pdPgmYt.playVideo) {
+            if (latestVtState.status === 'playing') pdPgmYt.playVideo(); else pdPgmYt.pauseVideo();
+          }
+          if (isPvwVt && pdPvwYt && pdPvwYt.playVideo) {
+            if (latestVtState.status === 'playing') pdPvwYt.playVideo(); else pdPvwYt.pauseVideo();
+          }
+        }
+      } else {
+        pgmYtWrap.classList.add('hidden');
+        pvwYtWrap.classList.add('hidden');
+        pgmHtml5.classList.remove('hidden');
+        pvwHtml5.classList.remove('hidden');
+        if (latestVtState.url && pgmHtml5.src !== latestVtState.url) {
+          pgmHtml5.src = latestVtState.url;
+          pvwHtml5.src = latestVtState.url;
+        }
+        if (isPgmVt && latestVtState.status === 'playing') pgmHtml5.play().catch(()=>{}); else pgmHtml5.pause();
+        if (isPvwVt && latestVtState.status === 'playing') pvwHtml5.play().catch(()=>{}); else pvwHtml5.pause();
       }
     }
 
@@ -787,11 +895,14 @@
       timerRemainingSeconds = totalSec;
       renderTimerUI();
 
+      // Siarkan nomor segmen dan waktu sisa ke Firebase agar Floor Director sinkron seketika
       if (isFirebaseReady) {
         db.ref(`rooms/${currentRoomToken}/timer_rundown`).update({
           currentSegmentIndex: currentSegmentIndex,
           segmentTitle: seg.title,
-          timeRemaining: timerRemainingSeconds
+          timeRemaining: timerRemainingSeconds,
+          targetDuration: totalSec,
+          updatedAt: Date.now()
         });
       }
     }
