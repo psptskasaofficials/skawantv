@@ -86,9 +86,23 @@
         </span>
       </div>
 
-      <!-- Badge Tally Utama Raksasa -->
-      <div id="tallyMainBadge" class="px-4 py-1 rounded-xl font-brand font-black text-xs sm:text-sm uppercase tracking-widest bg-slate-800 text-slate-300 border border-slate-700 shadow-lg">
-        OFF (IDLE)
+      <!-- Badge Tally Utama & Tombol Kontrol Keluar/Ganti Peran -->
+      <div class="flex items-center gap-2">
+        <div id="tallyMainBadge" class="px-3.5 py-1 rounded-xl font-brand font-black text-xs sm:text-sm uppercase tracking-widest bg-slate-800 text-slate-300 border border-slate-700 shadow-lg">
+          OFF (IDLE)
+        </div>
+        
+        <!-- Tombol Ganti Peran Cepat -->
+        <button onclick="bukaModalKeluar('ganti')" class="bg-black/60 hover:bg-black/80 active:scale-95 text-white border border-white/20 px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Ganti Posisi Kru">
+          <span>🔄</span>
+          <span class="hidden sm:inline text-[11px]">Ganti</span>
+        </button>
+
+        <!-- Tombol Keluar Sesi Cepat -->
+        <button onclick="bukaModalKeluar('keluar')" class="bg-red-600/80 hover:bg-red-600 active:scale-95 text-white border border-red-400/40 px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Keluar Sesi">
+          <span>🚪</span>
+          <span class="hidden sm:inline text-[11px]">Keluar</span>
+        </button>
       </div>
     </header>
 
@@ -140,13 +154,36 @@
         <button onclick="simulateTally('green')" class="w-7 h-7 rounded-full bg-emerald-500 hover:bg-emerald-400 border border-white/40 shadow text-[9px] font-bold text-white active:scale-90" title="Simulasi Standby">G</button>
         <button onclick="simulateTally('off')" class="w-7 h-7 rounded-full bg-slate-700 hover:bg-slate-600 border border-white/40 shadow text-[9px] font-bold text-white active:scale-90" title="Simulasi Idle">O</button>
         
-        <button onclick="keluarSesi()" class="ml-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 p-2.5 rounded-2xl active:scale-90 transition" title="Keluar">
+        <button onclick="bukaModalKeluar('keluar')" class="ml-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 p-2.5 rounded-2xl active:scale-90 transition" title="Keluar Sesi">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
         </button>
       </div>
 
     </footer>
 
+  </div>
+
+  <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN KAMERAWAN -->
+  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">
+        🔄
+      </div>
+      <div>
+        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Kamerawan?</h4>
+        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">
+          Kamera akan dimatikan dan slot posisi ini akan dilepaskan di studio agar siswa lain dapat mengambilnya.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
+          Batal
+        </button>
+        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
+          Ya, Lepaskan Slot
+        </button>
+      </div>
+    </div>
   </div>
 
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -163,6 +200,8 @@
   <script>
     let currentRoomToken = 'STUDIO-1';
     let currentRoleKey = 'cam_1';
+    let currentSiswaUser = '';
+    let pendingExitType = 'ganti'; // 'ganti' atau 'keluar'
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
 
     let currentStream = null;
@@ -194,11 +233,13 @@
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       const roleParam = urlParams.get('role');
-      const sessionRoom = sessionStorage.getItem('skawan_room');
-      const sessionRole = sessionStorage.getItem('skawan_role');
+      const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
+      const sessionRole = sessionStorage.getItem('skawan_role') || localStorage.getItem('skawan_role');
+      const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
       
       currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
       currentRoleKey = roleParam || sessionRole || 'cam_1';
+      currentSiswaUser = sessionUser || '';
 
       const camNum = currentRoleKey.replace('cam_', '');
       document.getElementById('cameraNameBadge').innerText = `KAMERA ${camNum}`;
@@ -361,19 +402,85 @@
       applyTallyUI(color);
     }
 
-    function keluarSesi() {
+    // Modal Konfirmasi Keluar / Ganti Peran
+    function bukaModalKeluar(type) {
+      pendingExitType = type;
+      const modal = document.getElementById('exitConfirmModal');
+      const title = document.getElementById('exitModalTitle');
+      const message = document.getElementById('exitModalMessage');
+      const icon = document.getElementById('exitModalIcon');
+      const btn = document.getElementById('btnConfirmExitAction');
+      const camNum = currentRoleKey.replace('cam_', '');
+
+      if (type === 'ganti') {
+        icon.innerText = "🔄";
+        icon.className = "w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold";
+        title.innerText = "Ganti Peran Kru?";
+        message.innerHTML = `Feed <strong>Kamera ${camNum}</strong> akan dimatikan dan slot peran akan dilepaskan di sistem studio. Anda akan langsung diarahkan ke layar pemilihan peran.`;
+        btn.innerText = "Ya, Ganti Peran";
+        btn.className = "w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-sm";
+      } else {
+        icon.innerText = "🚪";
+        icon.className = "w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl font-bold";
+        title.innerText = "Keluar dari Sesi Siaran?";
+        message.innerHTML = `Feed <strong>Kamera ${camNum}</strong> akan dimatikan dan slot peran akan dilepaskan. Anda akan keluar dari sesi studio.`;
+        btn.innerText = "Ya, Keluar Sesi";
+        btn.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm";
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function tutupModalKeluar() {
+      document.getElementById('exitConfirmModal').classList.add('hidden');
+    }
+
+    function eksekusiKeluarSesi() {
+      // 1. Hentikan seluruh track hardware kamera HP
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
       }
+
+      // 2. Lepaskan kunci layar HP (Screen WakeLock)
       if (wakeLock) {
         wakeLock.release().catch(() => {});
+        wakeLock = null;
       }
+
+      // 3. Putuskan koneksi WebRTC PeerJS secara bersih
       if (streamerInstance) {
         streamerInstance.destroy();
         streamerInstance = null;
       }
+
+      // 4. Kosongkan kembali slot peran kamera di Firebase secara atomik
+      if (isFirebaseReady && currentRoomToken && currentRoleKey) {
+        db.ref(`rooms/${currentRoomToken}/roles/${currentRoleKey}`).transaction(currentVal => {
+          if (!currentSiswaUser || currentVal === currentSiswaUser) {
+            return ""; // Kosongkan kembali slot kamera
+          }
+          return currentVal;
+        });
+      }
+
+      // 5. Bersihkan penanda role di storage agar index.html TIDAK melakukan auto-redirect kembali ke camera.html
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
-      window.location.href = 'index.html';
+      sessionStorage.removeItem('skawan_role_title');
+
+      tutupModalKeluar();
+
+      // 6. Arahkan kembali ke lobby index.html
+      if (pendingExitType === 'keluar') {
+        localStorage.removeItem('skawan_user');
+        sessionStorage.removeItem('skawan_user');
+        window.location.href = 'index.html';
+      } else {
+        // Ganti peran: pertahankan token & nama agar langsung melihat daftar peran
+        window.location.href = `index.html?room=${currentRoomToken}`;
+      }
     }
   </script>
 </body>
