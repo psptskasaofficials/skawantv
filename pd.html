@@ -40,6 +40,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+  <!-- PeerJS WebRTC Streamer -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="js/webrtc-stream.js"></script>
 
   <style>
     .cue-btn {
@@ -141,10 +144,13 @@
               </span>
             </div>
             <div class="aspect-video feed-screen rounded-xl overflow-hidden border-2 border-emerald-500 flex flex-col items-center justify-center relative shadow-inner">
+              <!-- Video Nyata Kamera HP jika terpilih di PVW -->
+              <video id="pvwLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+
               <div class="scanline absolute inset-0"></div>
               <span id="pvwScreenLabel" class="font-brand font-black text-2xl sm:text-3xl text-slate-300 tracking-wider">CAM 2</span>
               <span class="text-[11px] font-mono text-emerald-400 mt-1 uppercase">STANDBY FOR NEXT CUE</span>
-              <div class="absolute bottom-2 left-2 bg-emerald-600/90 text-white font-mono text-[9px] px-1.5 py-0.5 rounded font-bold">
+              <div class="absolute bottom-2 left-2 bg-emerald-600/90 text-white font-mono text-[9px] px-1.5 py-0.5 rounded font-bold z-10">
                 PVW BUS
               </div>
             </div>
@@ -162,12 +168,15 @@
               </span>
             </div>
             <div class="aspect-video feed-screen rounded-xl overflow-hidden border-2 border-red-600 flex flex-col items-center justify-center relative shadow-inner" id="pgmScreenBox">
+              <!-- Video Nyata Kamera HP jika On-Air -->
+              <video id="pgmLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+
               <div class="scanline absolute inset-0"></div>
               <span id="pgmScreenLabel" class="font-brand font-black text-2xl sm:text-3xl text-red-500 tracking-wider">CAM 1</span>
               <span class="text-[11px] font-mono text-red-400 mt-1 uppercase">LIVE BROADCAST</span>
 
               <!-- Overlay CG Lower Third Simulasi -->
-              <div id="cgLowerThirdBox" class="hidden absolute bottom-2 left-2 right-2 pointer-events-none">
+              <div id="cgLowerThirdBox" class="hidden absolute bottom-2 left-2 right-2 pointer-events-none z-10">
                 <div class="bg-red-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-t-md inline-block">
                   SKAWAN TV NEWS
                 </div>
@@ -177,7 +186,7 @@
               </div>
 
               <!-- On-Air Bug -->
-              <div class="absolute top-2 right-2 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded flex items-center gap-1 shadow">
+              <div class="absolute top-2 right-2 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded flex items-center gap-1 shadow z-10">
                 <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> LIVE
               </div>
             </div>
@@ -427,6 +436,8 @@
     // State Aplikasi Program Director
     let currentRoomToken = 'STUDIO-1';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
 
     let totalCameras = 3;
     let liveState = {
@@ -504,6 +515,9 @@
           const meta = snapshot.val();
           if (meta.totalCameras) {
             totalCameras = meta.totalCameras;
+            if (streamerInstance) {
+              streamerInstance.discoverAndConnectCameras(totalCameras);
+            }
           }
           if (meta.programName) {
             document.getElementById('metaProgName').innerText = meta.programName;
@@ -568,6 +582,30 @@
         updateMonitorsAndTally();
         updateSegmentDisplay();
       }
+
+      // Inisialisasi penerima WebRTC feed kamera HP siswa
+      if (typeof SkawanStreamer !== 'undefined') {
+        streamerInstance = new SkawanStreamer({
+          roomToken: token,
+          roleKey: 'pd',
+          onRemoteStream: (camKey, stream) => {
+            console.log(`[WebRTC PD] Menerima feed kamera ${camKey}`);
+            remoteCamStreams.set(camKey, stream);
+
+            // Tampilkan pada kartu thumbnail Multiview
+            const mvVideo = document.getElementById(`mv-pd-video-${camKey}`);
+            if (mvVideo) {
+              mvVideo.srcObject = stream;
+              mvVideo.classList.remove('hidden');
+            }
+
+            updateMonitorsAndTally();
+          },
+          onStatusChange: (status, info) => {
+            console.log(`[WebRTC PD] Status: ${status} - ${info}`);
+          }
+        });
+      }
     }
 
     function renderMultiviewCards() {
@@ -585,18 +623,32 @@
         card.id = `mv-pd-card-${src.key}`;
         card.className = "bg-slate-900 border-2 border-slate-300 rounded-xl p-2.5 flex flex-col justify-between aspect-video relative overflow-hidden transition shadow-sm";
         card.innerHTML = `
-          <div class="flex items-center justify-between">
-            <span class="font-brand font-black text-xs text-white">${src.label}</span>
+          <!-- Video WebRTC kamera HP jika tersedia -->
+          <video id="mv-pd-video-${src.key}" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+
+          <div class="flex items-center justify-between relative z-10">
+            <span class="font-brand font-black text-xs text-white drop-shadow">${src.label}</span>
             <span id="mv-tally-badge-${src.key}" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">
               OFF
             </span>
           </div>
-          <div class="text-center font-mono font-bold text-xs text-slate-400" id="mv-pd-feed-${src.key}">
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-pd-feed-${src.key}">
             FEED LIVE
           </div>
-          <div class="text-[9px] text-slate-400 font-mono truncate">${src.name}</div>
+          <div class="text-[9px] text-slate-300 font-mono truncate relative z-10 drop-shadow">${src.name}</div>
         `;
         grid.appendChild(card);
+
+        // Jika stream sudah diterima sebelumnya, pasang kembali
+        if (remoteCamStreams.has(src.key)) {
+          setTimeout(() => {
+            const mvVid = document.getElementById(`mv-pd-video-${src.key}`);
+            if (mvVid) {
+              mvVid.srcObject = remoteCamStreams.get(src.key);
+              mvVid.classList.remove('hidden');
+            }
+          }, 50);
+        }
       });
 
       updateMonitorsAndTally();
@@ -611,6 +663,26 @@
 
       document.getElementById('badgePvwSource').innerText = pvwLabel;
       document.getElementById('pvwScreenLabel').innerText = pvwLabel;
+
+      // Render stream pada layar Program PD
+      const pgmVideoEl = document.getElementById('pgmLiveCamVideo');
+      const pgmStream = remoteCamStreams.get(liveState.programSource);
+      if (pgmStream && pgmVideoEl && liveState.programSource.startsWith('cam_')) {
+        pgmVideoEl.srcObject = pgmStream;
+        pgmVideoEl.classList.remove('hidden');
+      } else if (pgmVideoEl) {
+        pgmVideoEl.classList.add('hidden');
+      }
+
+      // Render stream pada layar Preview PD
+      const pvwVideoEl = document.getElementById('pvwLiveCamVideo');
+      const pvwStream = remoteCamStreams.get(liveState.previewSource);
+      if (pvwStream && pvwVideoEl && liveState.previewSource.startsWith('cam_')) {
+        pvwVideoEl.srcObject = pvwStream;
+        pvwVideoEl.classList.remove('hidden');
+      } else if (pvwVideoEl) {
+        pvwVideoEl.classList.add('hidden');
+      }
 
       const sources = [];
       for (let i = 1; i <= totalCameras; i++) sources.push(`cam_${i}`);
@@ -759,6 +831,10 @@
     }
 
     function keluarSesi() {
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
       sessionStorage.removeItem('skawan_role');
       window.location.href = 'index.html';
     }
