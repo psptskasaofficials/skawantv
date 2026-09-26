@@ -45,9 +45,17 @@
 
   <!-- Header Branding SKAWAN TV (Tema Cerah) -->
   <header class="text-center mb-6">
-    <div class="inline-flex items-center gap-2 bg-red-100 border border-red-200 text-red-700 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 shadow-sm">
-      <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
-      ON-AIR SIMULATION SYSTEM
+    <div class="flex items-center justify-center gap-2 mb-3 flex-wrap">
+      <div class="inline-flex items-center gap-2 bg-red-100 border border-red-200 text-red-700 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+        ON-AIR SIMULATION SYSTEM
+      </div>
+      
+      <!-- Indikator Status Koneksi Real-Time -->
+      <div id="connStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm transition-all duration-300">
+        <span id="connStatusDot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+        <span id="connStatusText">Menghubungkan Database...</span>
+      </div>
     </div>
     
     <div class="flex items-center justify-center gap-3">
@@ -138,6 +146,12 @@
       <p class="text-sm text-slate-600 max-w-sm mx-auto leading-relaxed">
         Standby di posisi Anda. Menunggu Guru menekan tombol <span class="text-red-600 font-bold">"Mulai Siaran"</span>. Layar Anda akan berpindah otomatis ke workstation peran Anda.
       </p>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-center gap-2">
+        <button onclick="batalPilihPeran()" class="text-xs text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 px-3 py-1.5 rounded-lg transition">
+          Ganti Peran / Keluar Sesi
+        </button>
+      </div>
     </section>
 
   </main>
@@ -164,6 +178,43 @@
     let currentRoomToken = '';
     let currentSiswaName = '';
     let selectedRoleKey = '';
+    let selectedRoleTitle = '';
+    let isFirebaseReady = false;
+
+    // Utilitas Cek Kesiapan Firebase & Inisialisasi Koneksi
+    function checkFirebaseReady() {
+      return typeof firebase !== 'undefined' && typeof db !== 'undefined' && firebase.apps && firebase.apps.length > 0;
+    }
+
+    // Indikator Status Koneksi Realtime
+    function setupConnectionMonitor() {
+      const badge = document.getElementById('connStatusBadge');
+      const dot = document.getElementById('connStatusDot');
+      const text = document.getElementById('connStatusText');
+
+      if (!checkFirebaseReady()) {
+        isFirebaseReady = false;
+        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-600 border border-slate-300 shadow-sm";
+        dot.className = "w-2 h-2 rounded-full bg-slate-400";
+        text.innerText = "Mode Demo / Offline";
+        return;
+      }
+
+      isFirebaseReady = true;
+
+      // Pantau koneksi native Firebase Database
+      db.ref('.info/connected').on('value', snap => {
+        if (snap.val() === true) {
+          badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm";
+          dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+          text.innerText = "Firebase Terhubung";
+        } else {
+          badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm";
+          dot.className = "w-2 h-2 rounded-full bg-amber-500";
+          text.innerText = "Koneksi Terputus...";
+        }
+      });
+    }
 
     // Utilitas Modal Pengganti alert()
     function showNotice(title, message, isSuccess = false) {
@@ -224,12 +275,11 @@
       if (pass === "admin") {
         sessionStorage.setItem('skawan_role', 'admin');
         sessionStorage.setItem('skawan_admin_logged', 'true');
-        showNotice("Akses Diterima", "Berhasil login! Mengalihkan ke Halaman Pengaturan Studio...", true);
+        showNotice("Akses Diterima", "Berhasil login! Mengalihkan ke Halaman Master Control Guru...", true);
         
-        // Alihkan ke halaman admin setelah jeda singkat
         setTimeout(() => {
           window.location.href = "admin.html";
-        }, 1000);
+        }, 800);
       } else {
         showNotice("Akses Ditolak", "Kata sandi salah! Pastikan memasukkan kata sandi yang benar.");
       }
@@ -248,10 +298,14 @@
       currentRoomToken = token;
       currentSiswaName = name;
 
-      if (isFirebaseReady) {
+      // Simpan input token & nama sementara agar tidak hilang jika reload
+      localStorage.setItem('skawan_room', token);
+      localStorage.setItem('skawan_user', name);
+
+      if (checkFirebaseReady()) {
         db.ref(`rooms/${token}`).once('value', snapshot => {
           if (!snapshot.exists()) {
-            showNotice("Token Tidak Valid", "Token Ruangan tidak ditemukan! Pastikan kode studio sudah dibuat oleh Guru.");
+            showNotice("Token Tidak Valid", `Ruangan "${token}" tidak ditemukan! Pastikan Guru sudah membuka sesi di Master Control.`);
             return;
           }
 
@@ -263,9 +317,12 @@
 
           bukaTampilanPeran(token, name);
           listenRoles(token);
+        }).catch(err => {
+          console.error(err);
+          showNotice("Koneksi Bermasalah", "Gagal menghubungi database Firebase: " + err.message);
         });
       } else {
-        // Fallback untuk mode preview
+        // Fallback untuk mode preview tanpa database
         bukaTampilanPeran(token, name);
         renderRoleButtons(mockRoles);
       }
@@ -274,6 +331,7 @@
     function bukaTampilanPeran(token, name) {
       document.getElementById('tabContainer').classList.add('hidden');
       document.getElementById('viewSiswa').classList.add('hidden');
+      document.getElementById('viewWaitingRoom').classList.add('hidden');
       document.getElementById('viewRoleSelector').classList.remove('hidden');
       document.getElementById('displayRoomToken').innerText = token;
       document.getElementById('displaySiswaName').innerText = name;
@@ -291,6 +349,7 @@
 
     // 3. Listener & Render Tombol Peran Kru
     function listenRoles(token) {
+      if (!checkFirebaseReady()) return;
       db.ref(`rooms/${token}/roles`).on('value', snapshot => {
         const roles = snapshot.val() || {};
         renderRoleButtons(roles);
@@ -303,7 +362,8 @@
 
       Object.keys(roles).forEach(roleKey => {
         const occupant = roles[roleKey];
-        const isTaken = occupant !== null;
+        const isTaken = occupant !== null && occupant !== undefined;
+        const isMine = isTaken && occupant === currentSiswaName;
         
         let title = roleLabels[roleKey];
         if (!title && roleKey.startsWith('cam_')) {
@@ -313,19 +373,24 @@
 
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.disabled = isTaken;
+        btn.disabled = isTaken && !isMine;
         btn.onclick = () => ambilPeran(roleKey, title);
 
-        // Styling tombol bertema terang
-        btn.className = isTaken
-          ? "flex flex-col text-left p-3.5 rounded-xl border border-slate-200 bg-slate-100 opacity-60 cursor-not-allowed text-slate-400"
-          : "flex flex-col text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-red-500 hover:bg-red-50/50 text-slate-800 shadow-sm transition active:scale-[0.98]";
+        let cardClass = "flex flex-col text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-red-500 hover:bg-red-50/50 text-slate-800 shadow-sm transition active:scale-[0.98]";
+        let statusBadge = `<span class="text-xs mt-1.5 font-mono text-emerald-600 font-semibold">&bull; Posisi Kosong (Klik Ambil)</span>`;
 
+        if (isMine) {
+          cardClass = "flex flex-col text-left p-3.5 rounded-xl border-2 border-red-500 bg-red-50 text-red-900 shadow-sm";
+          statusBadge = `<span class="text-xs mt-1.5 font-mono text-red-600 font-bold">&bull; Posisi Pilihan Anda</span>`;
+        } else if (isTaken) {
+          cardClass = "flex flex-col text-left p-3.5 rounded-xl border border-slate-200 bg-slate-100 opacity-60 cursor-not-allowed text-slate-400";
+          statusBadge = `<span class="text-xs mt-1.5 font-mono text-amber-600 font-semibold">&bull; Terisi: ${occupant}</span>`;
+        }
+
+        btn.className = cardClass;
         btn.innerHTML = `
-          <span class="text-sm font-bold tracking-wide ${isTaken ? 'text-slate-400' : 'text-slate-900'}">${title}</span>
-          <span class="text-xs mt-1.5 font-mono ${isTaken ? 'text-amber-600 font-semibold' : 'text-emerald-600 font-semibold'}">
-            ${isTaken ? `&bull; Terisi: ${occupant}` : '&bull; Posisi Kosong (Klik Ambil)'}
-          </span>
+          <span class="text-sm font-bold tracking-wide ${isTaken && !isMine ? 'text-slate-400' : 'text-slate-900'}">${title}</span>
+          ${statusBadge}
         `;
 
         grid.appendChild(btn);
@@ -334,14 +399,15 @@
 
     // 4. Kunci Peran Terpilih Menggunakan Transaksi Atomik
     function ambilPeran(roleKey, roleTitle) {
-      if (isFirebaseReady) {
+      if (checkFirebaseReady()) {
         const roleRef = db.ref(`rooms/${currentRoomToken}/roles/${roleKey}`);
 
         roleRef.transaction(currentValue => {
-          if (currentValue === null) {
+          // Jika masih kosong atau sudah diisi oleh nama yang sama, izinkan
+          if (currentValue === null || currentValue === undefined || currentValue === currentSiswaName) {
             return currentSiswaName;
           } else {
-            return;
+            return; // Batalkan: slot diambil orang lain
           }
         }, (error, committed, snapshot) => {
           if (error) {
@@ -354,7 +420,7 @@
           }
         });
       } else {
-        // Fallback demo/preview
+        // Fallback mode demo
         mockRoles[roleKey] = currentSiswaName;
         prosesSuksesAmbilPeran(roleKey, roleTitle);
       }
@@ -362,33 +428,107 @@
 
     function prosesSuksesAmbilPeran(roleKey, roleTitle) {
       selectedRoleKey = roleKey;
+      selectedRoleTitle = roleTitle;
+
+      // Simpan di localStorage & sessionStorage agar persist saat refresh
+      localStorage.setItem('skawan_room', currentRoomToken);
+      localStorage.setItem('skawan_role', roleKey);
+      localStorage.setItem('skawan_role_title', roleTitle);
+      localStorage.setItem('skawan_user', currentSiswaName);
+
       sessionStorage.setItem('skawan_room', currentRoomToken);
       sessionStorage.setItem('skawan_role', roleKey);
       sessionStorage.setItem('skawan_user', currentSiswaName);
 
       document.getElementById('viewRoleSelector').classList.add('hidden');
       document.getElementById('viewWaitingRoom').classList.remove('hidden');
-      document.getElementById('badgeRoleSelected').innerText = `${roleTitle} - ${currentSiswaName}`;
+      document.getElementById('badgeRoleSelected').innerText = `${roleTitle} &bull; ${currentSiswaName}`;
     }
 
-    // 5. Menunggu Aba-aba Siaran Mulai dari Guru
+    // 5. Batal Pilih Peran / Lepaskan Slot
+    function batalPilihPeran() {
+      if (selectedRoleKey && currentRoomToken && checkFirebaseReady()) {
+        db.ref(`rooms/${currentRoomToken}/roles/${selectedRoleKey}`).transaction(currentValue => {
+          if (currentValue === currentSiswaName) return null;
+          return currentValue;
+        });
+      }
+
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_role_title');
+      sessionStorage.removeItem('skawan_role');
+      selectedRoleKey = '';
+
+      document.getElementById('viewWaitingRoom').classList.add('hidden');
+      document.getElementById('viewRoleSelector').classList.remove('hidden');
+    }
+
+    // 6. Menunggu Aba-aba Siaran Mulai dari Guru & Redirect
     function listenGameStart(token, roleKey) {
+      if (!checkFirebaseReady()) return;
       db.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
         if (snapshot.val() === 'live') {
-          const targetPages = {
-            creative: 'creative.html',
-            pd: 'pd.html',
-            switcher: 'switcher.html',
-            audio_vt: 'audio-vt.html',
-            cg: 'cg.html',
-            fd: 'fd.html'
-          };
-
-          const destination = targetPages[roleKey] || 'camera.html';
-          window.location.href = `${destination}?room=${token}&role=${roleKey}`;
+          alihkanKeWorkstation(token, roleKey);
         }
       });
     }
+
+    function alihkanKeWorkstation(token, roleKey) {
+      const targetPages = {
+        creative: 'creative.html',
+        pd: 'pd.html',
+        switcher: 'switcher.html',
+        audio_vt: 'audio-vt.html',
+        cg: 'cg.html',
+        fd: 'fd.html'
+      };
+
+      const destination = targetPages[roleKey] || 'camera.html';
+      window.location.href = `${destination}?room=${token}&role=${roleKey}`;
+    }
+
+    // 7. Auto-Restore Sesi Saat Halaman Dimuat / Di-Refresh
+    window.addEventListener('DOMContentLoaded', () => {
+      setupConnectionMonitor();
+
+      // Cek apakah ada sesi tersimpan dari localStorage
+      const savedRoom = localStorage.getItem('skawan_room') || sessionStorage.getItem('skawan_room');
+      const savedUser = localStorage.getItem('skawan_user') || sessionStorage.getItem('skawan_user');
+      const savedRole = localStorage.getItem('skawan_role') || sessionStorage.getItem('skawan_role');
+      const savedRoleTitle = localStorage.getItem('skawan_role_title') || savedRole;
+
+      if (savedRoom) {
+        document.getElementById('siswaRoomToken').value = savedRoom;
+      }
+      if (savedUser) {
+        document.getElementById('siswaName').value = savedUser;
+      }
+
+      // Jika siswa sudah terdaftar dan memilih peran sebelum refresh
+      if (savedRoom && savedUser && savedRole) {
+        currentRoomToken = savedRoom;
+        currentSiswaName = savedUser;
+        selectedRoleKey = savedRole;
+        selectedRoleTitle = savedRoleTitle;
+
+        document.getElementById('tabContainer').classList.add('hidden');
+        document.getElementById('viewSiswa').classList.add('hidden');
+        document.getElementById('viewRoleSelector').classList.add('hidden');
+        document.getElementById('viewWaitingRoom').classList.remove('hidden');
+        document.getElementById('badgeRoleSelected').innerText = `${savedRoleTitle} &bull; ${savedUser}`;
+
+        if (checkFirebaseReady()) {
+          // Periksa apakah siaran sudah berjalan, jika ya langsung redirect
+          db.ref(`rooms/${savedRoom}/meta/status`).once('value', snapshot => {
+            if (snapshot.val() === 'live') {
+              alihkanKeWorkstation(savedRoom, savedRole);
+            } else {
+              listenGameStart(savedRoom, savedRole);
+            }
+          });
+        }
+      }
+    });
   </script>
 </body>
 </html>
