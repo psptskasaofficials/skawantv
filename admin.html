@@ -184,8 +184,9 @@
           </button>
           
           <!-- Tombol Selesaikan Siaran -->
-          <button type="button" id="btnStopLive" onclick="triggerSelesaiSiaran()" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow flex items-center gap-1.5 active:scale-95">
-            <span>Selesaikan Siaran</span>
+          <button type="button" id="btnStopLive" onclick="bukaModalAkhiriSesi()" class="hidden bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow-lg shadow-rose-600/25 flex items-center gap-2 active:scale-95">
+            <span class="w-2 h-2 rounded-full bg-white"></span>
+            <span>AKHIRI SESI SIARAN</span>
           </button>
 
           <!-- Tombol Ganti / Buat Sesi Baru -->
@@ -426,6 +427,31 @@
     </div>
   </div>
 
+  <!-- MODAL KONFIRMASI AKHIRI SESI SIARAN -->
+  <div id="endSessionModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
+      <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl font-bold">
+        🛑
+      </div>
+      <div>
+        <h4 class="text-base font-brand font-black text-slate-900">Akhiri Sesi Siaran Studio?</h4>
+        <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+          Status siaran akan ditutup (<strong>ENDED</strong>). Seluruh workstation kru akan dinotifikasikan bahwa siaran resmi telah selesai.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button type="button" onclick="tutupModalAkhiriSesi()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
+          Batal
+        </button>
+        <button type="button" onclick="eksekusiAkhiriSesi()" class="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-sm">
+          Ya, Akhiri Siaran
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI BUAT SESI BARU -->
+  <div id="newSessionModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
   <!-- MODAL KONFIRMASI KELUAR GURU -->
   <div id="logoutConfirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
@@ -770,16 +796,28 @@
       }
     }
 
-    // 6. Guru Menyelesaikan Siaran
-    function triggerSelesaiSiaran() {
-      if (isFirebaseReady) {
-        db.ref(`rooms/${currentRoomToken}/meta/status`).set('ended').then(() => {
-          showNotice("Siaran Selesai", "Sesi siaran telah resmi ditutup.", true);
+    // 6. Guru Mengakhiri Sesi Siaran (Modal & Eksekusi)
+    function bukaModalAkhiriSesi() {
+      document.getElementById('endSessionModal').classList.remove('hidden');
+    }
+
+    function tutupModalAkhiriSesi() {
+      document.getElementById('endSessionModal').classList.add('hidden');
+    }
+
+    function eksekusiAkhiriSesi() {
+      tutupModalAkhiriSesi();
+      if (isFirebaseReady && currentRoomToken) {
+        db.ref(`rooms/${currentRoomToken}/meta`).update({
+          status: 'ended',
+          endedAt: Date.now()
+        }).then(() => {
+          showNotice("Siaran Selesai", `Sesi ruangan ${currentRoomToken} resmi diakhiri. Seluruh kru telah dinotifikasikan.`, true);
         });
       } else {
-        mockRoomState.meta.status = 'waiting';
+        mockRoomState.meta.status = 'ended';
         updateDashboardUI(mockRoomState);
-        showNotice("Siaran Selesai", "Sesi dikembalikan ke mode tunggu.", true);
+        showNotice("Siaran Selesai (Demo)", "Sesi siaran resmi diakhiri.", true);
       }
     }
 
