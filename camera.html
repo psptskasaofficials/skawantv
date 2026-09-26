@@ -31,6 +31,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+  <!-- PeerJS WebRTC Streamer -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="js/webrtc-stream.js"></script>
 
   <style>
     /* Bingkai Lampu Tally Layar Penuh */
@@ -165,6 +168,7 @@
     let currentStream = null;
     let usingFrontCamera = false;
     let wakeLock = null;
+    let streamerInstance = null;
 
     // Modal Helper
     function showNotice(title, message, isSuccess = false) {
@@ -229,6 +233,19 @@
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         const videoElement = document.getElementById('cameraVideo');
         videoElement.srcObject = currentStream;
+
+        if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
+          streamerInstance = new SkawanStreamer({
+            roomToken: currentRoomToken,
+            roleKey: currentRoleKey,
+            localStream: currentStream,
+            onStatusChange: (status, info) => {
+              console.log(`[WebRTC Cam] Status: ${status} - ${info}`);
+            }
+          });
+        } else if (streamerInstance) {
+          streamerInstance.updateLocalStream(currentStream);
+        }
       } catch (err) {
         console.warn("Gagal membuka kamera:", err);
         showNotice("Akses Kamera", "Tidak dapat membuka kamera HP: " + err.message + ". Pastikan Anda memberikan izin akses kamera.");
@@ -350,6 +367,10 @@
       }
       if (wakeLock) {
         wakeLock.release().catch(() => {});
+      }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
       }
       sessionStorage.removeItem('skawan_role');
       window.location.href = 'index.html';
