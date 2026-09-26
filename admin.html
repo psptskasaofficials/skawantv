@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Master Control Admin | SKAWAN TV</title>
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,13 +70,13 @@
 
       <div class="flex items-center gap-2 sm:gap-3">
         <!-- Tombol Buat Sesi Baru -->
-        <button onclick="bukaModalSesiBaru()" class="text-xs font-bold text-slate-700 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-2 rounded-xl transition flex items-center gap-1.5 active:scale-95 shadow-sm" title="Buat Sesi Ruangan Baru">
+        <button type="button" onclick="bukaModalSesiBaru()" class="text-xs font-bold text-slate-700 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-2 rounded-xl transition flex items-center gap-1.5 active:scale-95 shadow-sm" title="Buat Sesi Ruangan Baru">
           <span class="text-base leading-none font-black text-red-600">+</span>
           <span class="hidden sm:inline">Sesi Baru</span>
         </button>
 
         <!-- Tombol Keluar Sesi Guru -->
-        <button onclick="bukaModalKeluarGuru()" class="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 active:scale-95 shadow-sm shadow-red-600/20" title="Keluar dari Master Control">
+        <button type="button" onclick="bukaModalKeluarGuru()" class="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 active:scale-95 shadow-sm shadow-red-600/20" title="Keluar dari Master Control">
           <span>Keluar</span>
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
         </button>
@@ -95,7 +97,7 @@
           <span class="font-bold text-slate-800 block">Ada Sesi Studio yang Sedang Berjalan:</span>
           <span id="prevSessionToken" class="font-mono font-bold text-red-600">STUDIO-1</span>
         </div>
-        <button onclick="kembaliKeSesiAktif()" class="px-3.5 py-2 bg-slate-900 hover:bg-black text-white font-bold rounded-lg transition active:scale-95 shadow-sm">
+        <button type="button" onclick="kembaliKeSesiAktif()" class="px-3.5 py-2 bg-slate-900 hover:bg-black text-white font-bold rounded-lg transition active:scale-95 shadow-sm">
           Buka Sesi Ini &rarr;
         </button>
       </div>
@@ -140,7 +142,7 @@
         </div>
 
         <div class="pt-3">
-          <button onclick="bukaSesiStudio()" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-red-600/25 active:scale-[0.99] flex items-center justify-center gap-2">
+          <button type="button" onclick="bukaSesiStudio()" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-red-600/25 active:scale-[0.99] flex items-center justify-center gap-2">
             <span>Buka Lobby Studio & Izinkan Siswa Memilih Peran</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
@@ -170,24 +172,24 @@
         <!-- Tombol Aksi Utama Guru -->
         <div class="flex items-center gap-3 flex-wrap">
           <!-- Tombol Buka Workstation Persiapan Kru -->
-          <button id="btnOpenWorkstations" onclick="triggerBukaWorkstations()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-3 rounded-xl text-xs sm:text-sm transition shadow-md shadow-indigo-600/25 flex items-center gap-2 active:scale-95">
+          <button type="button" id="btnOpenWorkstations" onclick="triggerBukaWorkstations()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-3 rounded-xl text-xs sm:text-sm transition shadow-md shadow-indigo-600/25 flex items-center gap-2 active:scale-95">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
             <span>Buka Workstation (Persiapan Kru)</span>
           </button>
 
           <!-- Tombol Mulai Siaran On-Air -->
-          <button id="btnStartLive" onclick="triggerMulaiSiaran()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow-lg shadow-emerald-600/25 flex items-center gap-2 active:scale-95">
+          <button type="button" id="btnStartLive" onclick="triggerMulaiSiaran()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow-lg shadow-emerald-600/25 flex items-center gap-2 active:scale-95">
             <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
             <span>MULAI SIARAN (ON-AIR)</span>
           </button>
           
           <!-- Tombol Selesaikan Siaran -->
-          <button id="btnStopLive" onclick="triggerSelesaiSiaran()" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow flex items-center gap-1.5 active:scale-95">
+          <button type="button" id="btnStopLive" onclick="triggerSelesaiSiaran()" class="hidden bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm transition shadow flex items-center gap-1.5 active:scale-95">
             <span>Selesaikan Siaran</span>
           </button>
 
           <!-- Tombol Ganti / Buat Sesi Baru -->
-          <button onclick="bukaModalSesiBaru()" class="p-3 text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 rounded-xl transition flex items-center gap-1.5 text-xs font-bold" title="Ganti Sesi Ruangan">
+          <button type="button" onclick="bukaModalSesiBaru()" class="p-3 text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 rounded-xl transition flex items-center gap-1.5 text-xs font-bold" title="Ganti Sesi Ruangan">
             <span>🔄 Ganti Sesi</span>
           </button>
         </div>
@@ -195,11 +197,11 @@
 
       <!-- Tab Navigasi Sub-Halaman Guru: Ringkasan vs Live Monitor Inspector -->
       <div class="border-b border-slate-200 flex items-center gap-4">
-        <button id="tabNavOverview" onclick="switchAdminSubTab('overview')" class="px-4 py-2.5 text-sm font-bold border-b-2 border-red-600 text-red-600 transition flex items-center gap-2">
+        <button type="button" id="tabNavOverview" onclick="switchAdminSubTab('overview')" class="px-4 py-2.5 text-sm font-bold border-b-2 border-red-600 text-red-600 transition flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
           <span>Ringkasan Studio & Krisis</span>
         </button>
-        <button id="tabNavMonitor" onclick="switchAdminSubTab('monitor')" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-2">
+        <button type="button" id="tabNavMonitor" onclick="switchAdminSubTab('monitor')" class="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
           <span>Pantau Workstation Kru (Live View)</span>
         </button>
@@ -282,7 +284,7 @@
                     <span class="font-bold text-red-700 uppercase block mb-0.5">⚠️ Krisis Sedang Aktif:</span>
                     <p id="activeCrisisMessage" class="text-slate-800 font-medium"></p>
                   </div>
-                  <button onclick="pulihkanKrisis()" class="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded-lg transition shrink-0">
+                  <button type="button" onclick="pulihkanKrisis()" class="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded-lg transition shrink-0">
                     Pulihkan
                   </button>
                 </div>
@@ -290,7 +292,7 @@
 
               <!-- Tombol Pemicu Krisis -->
               <div class="space-y-2.5">
-                <button onclick="injectCrisis('CAM_FAIL', 'Kamera 1 Hilang Sinyal (No Signal)!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
+                <button type="button" onclick="injectCrisis('CAM_FAIL', 'Kamera 1 Hilang Sinyal (No Signal)!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
                   <div>
                     <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">1. Cam 1 Loss Video</div>
                     <div class="text-[11px] text-slate-500">Feed Cam 1 jadi Color Bar di Switcher & PD</div>
@@ -298,7 +300,7 @@
                   <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
                 </button>
 
-                <button onclick="injectCrisis('VT_HANG', 'Video VT Macet / Glitch di detik ke-10!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
+                <button type="button" onclick="injectCrisis('VT_HANG', 'Video VT Macet / Glitch di detik ke-10!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
                   <div>
                     <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">2. VT Freeze / Hang</div>
                     <div class="text-[11px] text-slate-500">Video klip VT membeku saat sedang on-air</div>
@@ -306,7 +308,7 @@
                   <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
                 </button>
 
-                <button onclick="injectCrisis('TIME_CUT', 'Percepat Segmen! Durasi dipotong 60 detik.')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
+                <button type="button" onclick="injectCrisis('TIME_CUT', 'Percepat Segmen! Durasi dipotong 60 detik.')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
                   <div>
                     <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">3. Time Crunch (-1 Menit)</div>
                     <div class="text-[11px] text-slate-500">Timer FD berkedip merah dan memotong waktu</div>
@@ -314,7 +316,7 @@
                   <span class="text-xs font-mono font-bold text-slate-400 group-hover:text-red-600">&rarr;</span>
                 </button>
 
-                <button onclick="injectCrisis('CG_ERROR', 'Sistem Grafis Crash (Lower Third Hilang)!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
+                <button type="button" onclick="injectCrisis('CG_ERROR', 'Sistem Grafis Crash (Lower Third Hilang)!')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-red-400 hover:bg-red-50/50 bg-slate-50 transition flex items-center justify-between group">
                   <div>
                     <div class="text-xs font-bold text-slate-900 group-hover:text-red-700">4. CG Operator Crash</div>
                     <div class="text-[11px] text-slate-500">Overlay grafis nama host menghilang tiba-tiba</div>
@@ -325,7 +327,7 @@
 
               <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                 <span class="text-[11px] text-slate-400 font-medium">Reset semua masalah:</span>
-                <button onclick="pulihkanKrisis()" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition">
+                <button type="button" onclick="pulihkanKrisis()" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition">
                   Normalisasi Semua Sistem
                 </button>
               </div>
@@ -346,25 +348,25 @@
         
         <!-- Baris Tombol Pemilihan Workstation -->
         <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm flex items-center gap-2 overflow-x-auto" id="monitorRolePills">
-          <button onclick="pilihWorkstationMonitor('pd.html', 'Program Director (PD)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white shadow-sm shrink-0">
+          <button type="button" onclick="pilihWorkstationMonitor('pd.html', 'Program Director (PD)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white shadow-sm shrink-0">
             🎬 Program Director (PD)
           </button>
-          <button onclick="pilihWorkstationMonitor('switcher.html', 'Video Switcher (ATEM)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+          <button type="button" onclick="pilihWorkstationMonitor('switcher.html', 'Video Switcher (ATEM)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
             🎛️ Video Switcher (ATEM)
           </button>
-          <button onclick="pilihWorkstationMonitor('creative.html', 'Tim Kreatif (Rundown)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+          <button type="button" onclick="pilihWorkstationMonitor('creative.html', 'Tim Kreatif (Rundown)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
             📝 Tim Kreatif (Rundown)
           </button>
-          <button onclick="pilihWorkstationMonitor('audio-vt.html', 'Audio & VT Operator', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+          <button type="button" onclick="pilihWorkstationMonitor('audio-vt.html', 'Audio & VT Operator', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
             🔊 Audio & VT Operator
           </button>
-          <button onclick="pilihWorkstationMonitor('cg.html', 'Graphic Operator (CG)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+          <button type="button" onclick="pilihWorkstationMonitor('cg.html', 'Graphic Operator (CG)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
             🏷️ Graphic Operator (CG)
           </button>
-          <button onclick="pilihWorkstationMonitor('fd.html', 'Floor Director (FD)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+          <button type="button" onclick="pilihWorkstationMonitor('fd.html', 'Floor Director (FD)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
             ⏱️ Floor Director (FD)
           </button>
-          <button onclick="pilihWorkstationMonitor('camera.html', 'Kamera HP Siswa (Cam 1)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
+          <button type="button" onclick="pilihWorkstationMonitor('camera.html', 'Kamera HP Siswa (Cam 1)', this)" class="monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0">
             📱 Kamera HP (Cam 1)
           </button>
         </div>
@@ -379,11 +381,11 @@
             </div>
             
             <div class="flex items-center gap-2">
-              <button onclick="refreshPreviewIframe()" class="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-medium">
+              <button type="button" onclick="refreshPreviewIframe()" class="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-medium">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                 <span>Muat Ulang Layar</span>
               </button>
-              <button onclick="bukaWorkstationEksternal()" class="text-xs bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-bold">
+              <button type="button" onclick="bukaWorkstationEksternal()" class="text-xs bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-bold">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 <span>Buka di Tab Baru</span>
               </button>
@@ -414,10 +416,10 @@
         </p>
       </div>
       <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalSesiBaru()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
+        <button type="button" onclick="tutupModalSesiBaru()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
           Batal
         </button>
-        <button onclick="eksekusiBukaSesiBaru()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm">
+        <button type="button" onclick="eksekusiBukaSesiBaru()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm">
           Ya, Buat Sesi Baru
         </button>
       </div>
@@ -437,10 +439,10 @@
         </p>
       </div>
       <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalKeluarGuru()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
+        <button type="button" onclick="tutupModalKeluarGuru()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
           Batal
         </button>
-        <button onclick="eksekusiKeluarGuru()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
+        <button type="button" onclick="eksekusiKeluarGuru()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
           Ya, Keluar
         </button>
       </div>
@@ -453,7 +455,7 @@
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
       <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
       <p id="noticeMessage" class="text-sm text-slate-600 mb-5 leading-relaxed"></p>
-      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+      <button type="button" onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
         Tutup
       </button>
     </div>
@@ -533,8 +535,7 @@
       // Periksa status login admin
       const isLogged = sessionStorage.getItem('skawan_admin_logged') === 'true' || localStorage.getItem('skawan_admin_logged') === 'true';
       if (!isLogged) {
-        // Jika belum login admin, beri peringatan dan arahkan ke index.html
-        sessionStorage.setItem('skawan_admin_logged', 'true'); // Izinkan demo jika diakses langsung
+        sessionStorage.setItem('skawan_admin_logged', 'true');
       }
 
       const urlParams = new URLSearchParams(window.location.search);
@@ -573,7 +574,7 @@
       sessionStorage.setItem('skawan_room', token);
       localStorage.setItem('skawan_room', token);
 
-      // Siapkan struktur slot kru (gunakan string kosong "" bukan null agar tidak terhapus di Firebase)
+      // Siapkan struktur slot kru menggunakan string kosong "" agar tidak dihapus di Firebase
       const rolesData = {
         creative: "",
         pd: "",
@@ -743,7 +744,7 @@
       renderRundownPreview(data.rundown || []);
     }
 
-    // 4. Guru Membuka Workstation Siswa untuk Persiapan Teknis (Belum On-Air)
+    // 4. Guru Membuka Workstation Siswa untuk Persiapan Teknis
     function triggerBukaWorkstations() {
       if (isFirebaseReady) {
         db.ref(`rooms/${currentRoomToken}/meta/status`).set('standby').then(() => {
@@ -935,4 +936,85 @@
       };
 
       if (isFirebaseReady && currentRoomToken) {
-        db.ref
+        db.ref(`rooms/${currentRoomToken}/crisis`).set(normalData).then(() => {
+          showNotice("Sistem Pulih", "Seluruh simulasi kendala telah dinormalkan.", true);
+        });
+      } else {
+        mockRoomState.crisis = normalData;
+        updateDashboardUI(mockRoomState);
+        showNotice("Sistem Pulih (Demo)", "Semua kendala dinormalkan.", true);
+      }
+    }
+
+    // 11. Modal & Eksekusi Buat Sesi Ruangan Baru
+    function bukaModalSesiBaru() {
+      document.getElementById('newSessionModal').classList.remove('hidden');
+    }
+
+    function tutupModalSesiBaru() {
+      document.getElementById('newSessionModal').classList.add('hidden');
+    }
+
+    function eksekusiBukaSesiBaru() {
+      tutupModalSesiBaru();
+
+      // Hentikan listener ruangan yang sedang berjalan
+      if (isFirebaseReady && roomDatabaseListener && currentRoomToken) {
+        db.ref(`rooms/${currentRoomToken}`).off('value', roomDatabaseListener);
+        roomDatabaseListener = null;
+      }
+
+      // Tampilkan banner informasi sesi sebelumnya
+      if (currentRoomToken) {
+        document.getElementById('prevSessionAlert').classList.remove('hidden');
+        document.getElementById('prevSessionToken').innerText = currentRoomToken;
+      }
+
+      // Buat token baru secara otomatis di form
+      generateRandomToken();
+
+      // Beralih tampilan ke formulir konfigurasi sesi baru
+      document.getElementById('panelLiveControl').classList.add('hidden');
+      document.getElementById('panelSetupRoom').classList.remove('hidden');
+    }
+
+    function kembaliKeSesiAktif() {
+      const prevToken = document.getElementById('prevSessionToken').innerText.trim();
+      if (prevToken) {
+        loadLiveControl(prevToken);
+      }
+    }
+
+    // 12. Modal & Eksekusi Keluar Guru
+    function bukaModalKeluarGuru() {
+      document.getElementById('logoutConfirmModal').classList.remove('hidden');
+    }
+
+    function tutupModalKeluarGuru() {
+      document.getElementById('logoutConfirmModal').classList.add('hidden');
+    }
+
+    function eksekusiKeluarGuru() {
+      // Hentikan listener Firebase
+      if (isFirebaseReady && roomDatabaseListener && currentRoomToken) {
+        db.ref(`rooms/${currentRoomToken}`).off('value', roomDatabaseListener);
+        roomDatabaseListener = null;
+      }
+
+      // Bersihkan seluruh data sesi autentikasi dan ruangan
+      sessionStorage.removeItem('skawan_admin_logged');
+      sessionStorage.removeItem('skawan_room');
+      sessionStorage.removeItem('skawan_role');
+      sessionStorage.removeItem('skawan_user');
+      localStorage.removeItem('skawan_admin_logged');
+      localStorage.removeItem('skawan_room');
+      localStorage.removeItem('skawan_role');
+
+      tutupModalKeluarGuru();
+
+      // Alihkan ke landing page
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>
