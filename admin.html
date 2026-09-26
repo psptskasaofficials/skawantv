@@ -317,6 +317,7 @@
     let currentRoomToken = '';
     let currentRoomData = null;
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let currentMonitorPage = 'pd.html';
 
     // Mock data untuk mode preview/demo tanpa database
     let mockRoomState = {
@@ -324,19 +325,19 @@
         programName: "Bincang Sore SKAWAN",
         episode: "Eps 01 - Pengenalan Studio Broadcast",
         totalCameras: 3,
-        status: "waiting", // "waiting" atau "live"
+        status: "waiting", // "waiting", "standby", atau "live"
         createdAt: Date.now()
       },
       roles: {
         creative: "Fajar (Kreatif)",
         pd: "Dimas (PD)",
-        switcher: null,
+        switcher: "",
         audio_vt: "Aulia (Audio)",
-        cg: null,
+        cg: "",
         fd: "Bagas (FD)",
         cam_1: "Andi (Kamerawan 1)",
-        cam_2: null,
-        cam_3: null
+        cam_2: "",
+        cam_3: ""
       },
       rundown: [
         { segment: 1, title: "Opening & Bumper Utama", duration: "01:30", note: "Roll VT Bumper, CG Title ON" },
@@ -524,21 +525,41 @@
       document.getElementById('liveDisplayProgramName').innerText = data.meta?.programName || 'Program Siaran';
       document.getElementById('liveDisplayEpisode').innerText = data.meta?.episode || '-';
 
-      // Update badge status siaran
+      // Update badge status siaran & tombol
       const statusBadge = document.getElementById('badgeLiveStatus');
       const btnStart = document.getElementById('btnStartLive');
       const btnStop = document.getElementById('btnStopLive');
+      const btnOpenWorkstations = document.getElementById('btnOpenWorkstations');
 
       if (data.meta?.status === 'live') {
         statusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-red-600 text-white shadow-sm";
         statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-white animate-ping"></span> ON-AIR / SIARAN LANGSUNG`;
         btnStart.classList.add('hidden');
         btnStop.classList.remove('hidden');
+        if (btnOpenWorkstations) btnOpenWorkstations.classList.add('hidden');
+      } else if (data.meta?.status === 'standby') {
+        statusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-300";
+        statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span> PERSIAPAN TEKNIS (WORKSTATION TERBUKA)`;
+        btnStart.classList.remove('hidden');
+        btnStop.classList.add('hidden');
+        if (btnOpenWorkstations) {
+          btnOpenWorkstations.classList.remove('hidden');
+          btnOpenWorkstations.innerHTML = `✓ Workstation Terbuka (Standby)`;
+          btnOpenWorkstations.className = "bg-indigo-50 border border-indigo-300 text-indigo-700 font-bold px-4 py-3 rounded-xl text-xs sm:text-sm cursor-default";
+        }
       } else {
         statusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300";
         statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> LOBBY TERBUKA (MENUNGGU KRU)`;
         btnStart.classList.remove('hidden');
         btnStop.classList.add('hidden');
+        if (btnOpenWorkstations) {
+          btnOpenWorkstations.classList.remove('hidden');
+          btnOpenWorkstations.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+            <span>Buka Workstation (Persiapan Kru)</span>
+          `;
+          btnOpenWorkstations.className = "bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-3 rounded-xl text-xs sm:text-sm transition shadow-md shadow-indigo-600/25 flex items-center gap-2 active:scale-95";
+        }
       }
 
       // Render daftar keterisian posisi kru
@@ -556,29 +577,97 @@
       // Render preview rundown
       renderRundownPreview(data.rundown || []);
     }
+    // 4. Guru Membuka Workstation Siswa untuk Persiapan Teknis (Belum On-Air)
+    function triggerBukaWorkstations() {
+      if (isFirebaseReady) {
+        db.ref(`rooms/${currentRoomToken}/meta/status`).set('standby').then(() => {
+          showNotice("Workstation Terbuka", "Status ruangan diubah ke Persiapan Teknis. Semua siswa yang sudah memilih peran langsung diarahkan ke layar kerjanya masing-masing untuk gladi bersih.", true);
+        });
+      } else {
+        mockRoomState.meta.status = 'standby';
+        updateDashboardUI(mockRoomState);
+        showNotice("Workstation Terbuka (Demo)", "Semua siswa langsung masuk ke workstation peran untuk persiapan teknis.", true);
+      }
+    }
 
-    function renderCrewGrid(roles) {
-      const grid = document.getElementById('crewStatusGrid');
-      grid.innerHTML = '';
+    // 5. Guru Menekan Tombol MULAI SIARAN (ON-AIR)
+    function triggerMulaiSiaran() {
+      if (isFirebaseReady) {
+        db.ref(`rooms/${currentRoomToken}/meta/status`).set('live').then(() => {
+          showNotice("ON-AIR Dimulai!", "Status siaran diaktifkan. Seluruh studio resmi siaran langsung (ON-AIR).", true);
+        });
+      } else {
+        mockRoomState.meta.status = 'live';
+        updateDashboardUI(mockRoomState);
+        showNotice("ON-AIR Dimulai! (Preview)", "Simulasi siaran resmi berjalan On-Air!", true);
+      }
+    }
 
-      let filledCount = 0;
-      const roleKeys = Object.keys(roles);
-      const totalRoles = roleKeys.length;
+    // 6. Guru Menyelesaikan Siaran
+    function triggerSelesaiSiaran() {
+      if (isFirebaseReady) {
+        db.ref(`rooms/${currentRoomToken}/meta/status`).set('ended').then(() => {
+          showNotice("Siaran Selesai", "Sesi siaran telah resmi ditutup.", true);
+        });
+      } else {
+        mockRoomState.meta.status = 'waiting';
+        updateDashboardUI(mockRoomState);
+        showNotice("Siaran Selesai", "Sesi dikembalikan ke mode tunggu.", true);
+      }
+    }
 
-      roleKeys.forEach(roleKey => {
-        const occupant = roles[roleKey];
-        // Posisi terisi jika bukan string kosong, bukan null, bukan undefined
-        const isFilled = Boolean(occupant && typeof occupant === 'string' && occupant.trim().length > 0);
-        if (isFilled) filledCount++;
+    // 7. Pengendali Sub-Tab Navigasi Admin (Overview vs Workstation Monitor)
+    function switchAdminSubTab(tab) {
+      const isOverview = tab === 'overview';
+      document.getElementById('subTabOverview').classList.toggle('hidden', !isOverview);
+      document.getElementById('subTabMonitor').classList.toggle('hidden', isOverview);
 
-        let title = roleDefinitions[roleKey]?.title;
-        let desc = roleDefinitions[roleKey]?.desc;
+      const navOverview = document.getElementById('tabNavOverview');
+      const navMonitor = document.getElementById('tabNavMonitor');
 
-        if (!title && roleKey.startsWith('cam_')) {
-          const camNum = roleKey.replace('cam_', '');
-          title = `Kamerawan ${camNum}`;
-          desc = `HP Live Feed Cam ${camNum}`;
+      navOverview.className = isOverview
+        ? "px-4 py-2.5 text-sm font-bold border-b-2 border-red-600 text-red-600 transition flex items-center gap-2"
+        : "px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-2";
+
+      navMonitor.className = !isOverview
+        ? "px-4 py-2.5 text-sm font-bold border-b-2 border-red-600 text-red-600 transition flex items-center gap-2"
+        : "px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-2";
+
+      // Jika membuka tab monitor dan iframe masih kosong, muat default
+      if (!isOverview) {
+        const iframe = document.getElementById('workstationInspectIframe');
+        if (!iframe.src || iframe.src === 'about:blank' || iframe.src === window.location.href) {
+          pilihWorkstationMonitor('pd.html', 'Program Director (PD)', document.querySelector('#monitorRolePills button'));
         }
+      }
+    }
+
+    function pilihWorkstationMonitor(page, title, el) {
+      currentMonitorPage = page;
+      document.getElementById('inspectingTargetTitle').innerText = title;
+      document.getElementById('inspectingTargetUrl').innerText = `${page}?room=${currentRoomToken}`;
+
+      const iframe = document.getElementById('workstationInspectIframe');
+      iframe.src = `${page}?room=${currentRoomToken}&role=inspector`;
+
+      // Update highlight pill
+      document.querySelectorAll('#monitorRolePills .monitor-pill').forEach(btn => {
+        btn.className = "monitor-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shrink-0";
+      });
+      if (el) {
+        el.className = "monitor-pill px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white shadow-sm shrink-0";
+      }
+    }
+
+    function bukaWorkstationEksternal() {
+      if (!currentMonitorPage) return;
+      window.open(`${currentMonitorPage}?room=${currentRoomToken}&role=inspector`, '_blank');
+    }
+
+    function refreshPreviewIframe() {
+      const iframe = document.getElementById('workstationInspectIframe');
+      if (iframe) iframe.src = iframe.src;
+    }
 
         const card = document.createElement('div');
         card.className = `p-3 rounded-xl border flex items-center justify-between transition ${
