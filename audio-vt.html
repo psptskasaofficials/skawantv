@@ -1,14 +1,193 @@
-<!-- ... existing code ... -->
-  <!-- Firebase SDK (Compat Version) -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio & VT Operator | SKAWAN TV</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            brand: ['Montserrat', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            skawan: {
+              red: '#E50914',
+              redHover: '#C70812',
+              lightBg: '#F8FAFC',
+              cardBg: '#FFFFFF',
+              borderLight: '#E2E8F0',
+              accentBlue: '#2563EB',
+              warningAmber: '#D97706',
+              mixerDark: '#1E232A',
+              mixerSlot: '#14181D'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    /* Styling Slider Fader Audio */
-<!-- ... existing code ... -->
-          <!-- Dropdown Pemilihan VT dari Drive -->
+    /* Styling Fader Slider Vertikal Khusus Mixer */
+    .fader-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      writing-mode: vertical-lr;
+      direction: rtl;
+      width: 32px;
+      height: 190px;
+      background: #0f172a;
+      border-radius: 8px;
+      outline: none;
+      padding: 0 4px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+      cursor: pointer;
+    }
+    .fader-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 30px;
+      height: 22px;
+      background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 50%, #94a3b8 100%);
+      border: 1px solid #475569;
+      border-radius: 4px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
+      cursor: ns-resize;
+    }
+    .fader-slider::-webkit-slider-thumb:active {
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      border-color: #b45309;
+    }
+    .fader-master::-webkit-slider-thumb {
+      background: linear-gradient(180deg, #ef4444 0%, #dc2626 50%, #991b1b 100%) !important;
+      border-color: #f87171 !important;
+    }
+    .fader-master::-webkit-slider-thumb:active {
+      background: linear-gradient(180deg, #ff6b6b 0%, #e11d48 100%) !important;
+    }
+    .vu-meter-bar {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 2px;
+      width: 6px;
+      height: 190px;
+      background: #090d16;
+      padding: 2px 1px;
+      border-radius: 3px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    }
+    .vu-led {
+      width: 100%;
+      height: 4px;
+      border-radius: 1px;
+      opacity: 0.15;
+      transition: opacity 0.08s ease;
+    }
+    .vu-green { background-color: #10b981; }
+    .vu-yellow { background-color: #f59e0b; }
+    .vu-red { background-color: #ef4444; }
+    .vu-lit { opacity: 1 !important; box-shadow: 0 0 4px currentColor; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-white">
+
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-red-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-sm">
+            SK
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-brand font-black tracking-wide text-slate-900 text-lg leading-none">SKAWAN</span>
+              <span class="font-brand font-black text-amber-500 text-lg leading-none">TV</span>
+            </div>
+            <span class="text-[10px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Control Room Audio & VT Desk</span>
+          </div>
+        </a>
+        <span class="hidden sm:inline-block h-5 w-px bg-slate-200 mx-2"></span>
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+          <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+          Audio & VT Operator
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg">
+          <span class="text-xs text-slate-500 font-medium">Ruangan:</span>
+          <span id="navDisplayToken" class="font-mono font-bold text-xs text-amber-600">STUDIO-1</span>
+        </div>
+        <button onclick="keluarSesi()" class="text-xs font-semibold text-slate-600 hover:text-amber-600 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+          <span>Keluar</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-1 space-y-5">
+
+    <!-- Banner Intercom Cue dari Program Director (PD) -->
+    <div id="directorCueBanner" class="bg-gradient-to-r from-amber-500 to-amber-600 text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between gap-3 transition">
+      <div class="flex items-center gap-3">
+        <div class="p-2 rounded-xl bg-white/20 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+        </div>
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-wider text-amber-100 block">INSTRUKSI DARI PROGRAM DIRECTOR (PD):</span>
+          <span id="directorCueMessage" class="text-sm font-brand font-black">Standby Video VT & Fader Musik Pembuka</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="directorCueTime" class="text-[11px] font-mono bg-black/20 px-2.5 py-1 rounded-lg">LIVE</span>
+      </div>
+    </div>
+
+    <!-- Banner Krisis Teknis jika diaktifkan Guru -->
+    <div id="crisisAlertBanner" class="hidden p-3.5 rounded-2xl bg-red-600 text-white shadow-md flex items-center justify-between animate-pulse">
+      <div class="flex items-center gap-2.5">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-wider block">⚠️ KENDALA TEKNIS AUDIO/VT:</span>
+          <span id="crisisAlertText" class="text-xs font-bold">Video VT Freeze / Audio glitch terdeteksi!</span>
+        </div>
+      </div>
+      <span class="text-[10px] font-mono font-bold bg-white/20 px-2 py-0.5 rounded">SIMULASI GURU</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+      <!-- Kolom Kiri: VT Media Player Deck (5 Kolom) -->
+      <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+        
+        <div class="space-y-4">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+              <h2 class="font-brand font-black text-sm uppercase tracking-wider text-slate-800">VT Media Player Deck</h2>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400">YouTube & Drive Ready</span>
+          </div>
+
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Pilih Judul Video (VT):</label>
             <div class="flex gap-2">
@@ -27,8 +206,8 @@
             </div>
           </div>
 
-          <!-- Layar Pemutar Video VT Mini Preview -->
           <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-slate-800 flex items-center justify-center shadow-inner group">
+            
             <!-- HTML5 Video Player untuk MP4 / Google Drive -->
             <video id="vtVideoElement" class="w-full h-full object-contain" preload="metadata" playsinline crossorigin="anonymous">
               <source id="vtVideoSource" src="" type="video/mp4">
@@ -52,9 +231,179 @@
             </div>
           </div>
 
-          <!-- Timecode & Progress Bar -->
-<!-- ... existing code ... -->
-  <!-- MODAL: Input Manual ID Google Drive / YouTube -->
+          <div class="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <div class="flex items-center justify-between text-xs font-mono">
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-400">POSISI:</span>
+                <span id="displayVtCurrentTime" class="font-bold text-slate-800 text-sm">00:00</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-400">TOTAL:</span>
+                <span id="displayVtDuration" class="font-bold text-slate-600">00:15</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-400">SISA:</span>
+                <span id="displayVtRemaining" class="font-bold text-amber-600">-00:15</span>
+              </div>
+            </div>
+            
+            <input type="range" id="vtProgressBar" min="0" max="100" value="0" step="0.1" oninput="seekVtProgress(this.value)" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-amber-500">
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <div class="grid grid-cols-3 gap-2">
+            <!-- Tombol CUE (Rewind & Standby) -->
+            <button onclick="cueVtVideo()" class="bg-slate-800 hover:bg-slate-900 text-white font-brand font-bold py-3 rounded-xl text-xs flex flex-col items-center justify-center gap-1 transition active:scale-95 shadow">
+              <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"></path></svg>
+              <span>CUE (STANDBY)</span>
+            </button>
+
+            <!-- Tombol ROLL VT (Play On-Air) -->
+            <button id="btnRollVt" onclick="rollPlayVtVideo()" class="bg-amber-500 hover:bg-amber-600 text-white font-brand font-black py-3 rounded-xl text-xs flex flex-col items-center justify-center gap-1 transition active:scale-95 shadow-md shadow-amber-500/25">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+              <span>ROLL VT!</span>
+            </button>
+
+            <!-- Tombol PAUSE -->
+            <button onclick="pauseVtVideo()" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-brand font-bold py-3 rounded-xl text-xs flex flex-col items-center justify-center gap-1 transition active:scale-95">
+              <svg class="w-4 h-4 text-slate-700" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+              <span>PAUSE</span>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono px-1">
+            <span>Tekan CUE sebelum memutar</span>
+            <span id="vtSourceTypeLabel" class="text-amber-600 font-bold">SOURCE: HTML5</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="lg:col-span-7 bg-slate-900 border-2 border-slate-800 rounded-2xl p-5 shadow-2xl text-slate-100 space-y-4 flex flex-col justify-between">
+        
+        <!-- Header Konsol Audio -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/80 animate-pulse"></div>
+            <div>
+              <h2 class="font-brand font-black text-sm uppercase tracking-wider text-white">Virtual Audio Console</h2>
+              <span class="text-[10px] font-mono text-slate-400 block -mt-0.5">6-Channel Broadcast Mixing Desk</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="resetAllFaders()" class="text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded border border-slate-700 transition">
+              Reset 0 dB
+            </button>
+            <button onclick="testBeepSound()" class="text-[10px] font-mono bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 px-2.5 py-1 rounded border border-amber-500/40 transition">
+              Test Tone
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-6 gap-2 sm:gap-3 py-2 overflow-x-auto">
+          
+          <!-- Channel 1: MIC 1 (Presenter) -->
+          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2 flex flex-col items-center justify-between space-y-2">
+            <span class="text-[10px] font-brand font-bold text-amber-400 truncate w-full text-center">CH 1</span>
+            <div class="flex items-center gap-1.5">
+              <input type="range" id="fader-mic1" min="0" max="100" value="80" class="fader-slider" oninput="updateAudioFader('mic1', this.value)">
+              <div id="vu-mic1" class="vu-meter-bar"></div>
+            </div>
+            <span id="val-mic1" class="text-[10px] font-mono font-bold text-slate-300">0 dB</span>
+            <button id="mute-mic1" onclick="toggleMute('mic1')" class="w-full py-1 text-[9px] font-mono font-bold rounded bg-slate-800 text-slate-300 hover:bg-red-600 hover:text-white transition">
+              MUTE
+            </button>
+            <span class="text-[9px] font-mono text-slate-400 truncate w-full text-center">MIC HOST</span>
+          </div>
+
+          <!-- Channel 2: MIC 2 (Narasumber) -->
+          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2 flex flex-col items-center justify-between space-y-2">
+            <span class="text-[10px] font-brand font-bold text-amber-400 truncate w-full text-center">CH 2</span>
+            <div class="flex items-center gap-1.5">
+              <input type="range" id="fader-mic2" min="0" max="100" value="75" class="fader-slider" oninput="updateAudioFader('mic2', this.value)">
+              <div id="vu-mic2" class="vu-meter-bar"></div>
+            </div>
+            <span id="val-mic2" class="text-[10px] font-mono font-bold text-slate-300">-2 dB</span>
+            <button id="mute-mic2" onclick="toggleMute('mic2')" class="w-full py-1 text-[9px] font-mono font-bold rounded bg-slate-800 text-slate-300 hover:bg-red-600 hover:text-white transition">
+              MUTE
+            </button>
+            <span class="text-[9px] font-mono text-slate-400 truncate w-full text-center">GUEST</span>
+          </div>
+
+          <!-- Channel 3: MIC 3 (Ambience Studio) -->
+          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2 flex flex-col items-center justify-between space-y-2">
+            <span class="text-[10px] font-brand font-bold text-amber-400 truncate w-full text-center">CH 3</span>
+            <div class="flex items-center gap-1.5">
+              <input type="range" id="fader-mic3" min="0" max="100" value="50" class="fader-slider" oninput="updateAudioFader('mic3', this.value)">
+              <div id="vu-mic3" class="vu-meter-bar"></div>
+            </div>
+            <span id="val-mic3" class="text-[10px] font-mono font-bold text-slate-300">-6 dB</span>
+            <button id="mute-mic3" onclick="toggleMute('mic3')" class="w-full py-1 text-[9px] font-mono font-bold rounded bg-slate-800 text-slate-300 hover:bg-red-600 hover:text-white transition">
+              MUTE
+            </button>
+            <span class="text-[9px] font-mono text-slate-400 truncate w-full text-center">FLOOR</span>
+          </div>
+
+          <!-- Channel 4: VT AUDIO (Video Tape Feed) -->
+          <div class="bg-slate-950/70 border border-amber-500/40 rounded-xl p-2 flex flex-col items-center justify-between space-y-2 shadow-inner">
+            <span class="text-[10px] font-brand font-black text-amber-400 truncate w-full text-center">VT IN</span>
+            <div class="flex items-center gap-1.5">
+              <input type="range" id="fader-vt" min="0" max="100" value="85" class="fader-slider" oninput="updateAudioFader('vt', this.value)">
+              <div id="vu-vt" class="vu-meter-bar"></div>
+            </div>
+            <span id="val-vt" class="text-[10px] font-mono font-bold text-amber-400">+1 dB</span>
+            <button id="mute-vt" onclick="toggleMute('vt')" class="w-full py-1 text-[9px] font-mono font-bold rounded bg-slate-800 text-slate-300 hover:bg-red-600 hover:text-white transition">
+              MUTE
+            </button>
+            <span class="text-[9px] font-mono text-amber-300 font-bold truncate w-full text-center">VT AUDIO</span>
+          </div>
+
+          <!-- Channel 5: BUMPER / SFX (Soundbite) -->
+          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2 flex flex-col items-center justify-between space-y-2">
+            <span class="text-[10px] font-brand font-bold text-blue-400 truncate w-full text-center">SFX</span>
+            <div class="flex items-center gap-1.5">
+              <input type="range" id="fader-sfx" min="0" max="100" value="70" class="fader-slider" oninput="updateAudioFader('sfx', this.value)">
+              <div id="vu-sfx" class="vu-meter-bar"></div>
+            </div>
+            <span id="val-sfx" class="text-[10px] font-mono font-bold text-slate-300">-4 dB</span>
+            <button id="mute-sfx" onclick="toggleMute('sfx')" class="w-full py-1 text-[9px] font-mono font-bold rounded bg-slate-800 text-slate-300 hover:bg-red-600 hover:text-white transition">
+              MUTE
+            </button>
+            <span class="text-[9px] font-mono text-slate-400 truncate w-full text-center">MUSIC BED</span>
+          </div>
+
+          <!-- Channel 6: MASTER OUTPUT (Program Bus) -->
+          <div class="bg-red-950/30 border border-red-500/40 rounded-xl p-2 flex flex-col items-center justify-between space-y-2 shadow-md">
+            <span class="text-[10px] font-brand font-black text-red-400 truncate w-full text-center">MASTER</span>
+            <div class="flex items-center gap-1.5">
+              <input type="range" id="fader-master" min="0" max="100" value="90" class="fader-slider fader-master" oninput="updateAudioFader('master', this.value)">
+              <div id="vu-master" class="vu-meter-bar"></div>
+            </div>
+            <span id="val-master" class="text-[10px] font-mono font-black text-red-400">+2 dB</span>
+            <button id="mute-master" onclick="toggleMute('master')" class="w-full py-1 text-[9px] font-mono font-black rounded bg-red-900/60 text-red-200 hover:bg-red-600 hover:text-white transition">
+              MUTE
+            </button>
+            <span class="text-[9px] font-mono text-red-400 font-bold truncate w-full text-center">PGM OUT</span>
+          </div>
+
+        </div>
+
+        <div class="border-t border-slate-800 pt-3 flex items-center justify-between text-xs font-mono text-slate-400">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Audio Bus Sinkron Realtime</span>
+          </div>
+          <span class="text-[11px] text-slate-500">Peak Limiter: -0.1 dBTP</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
   <div id="customDriveModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -96,10 +445,18 @@
     </div>
   </div>
 
-  <!-- Dialog Notifikasi Modal -->
-<!-- ... existing code ... -->
+  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
+      <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
+      <p id="noticeMessage" class="text-sm text-slate-600 mb-5"></p>
+      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+        Tutup
+      </button>
+    </div>
+  </div>
+
   <script>
-    // State Aplikasi Audio + VT
     let currentRoomToken = 'STUDIO-1';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
 
@@ -108,7 +465,7 @@
     let currentSourceType = 'html5'; // 'html5' atau 'youtube'
     let ytTimeInterval = null;
 
-    // Katalog Video VT (Mendukung HTML5, Google Drive, dan YouTube)
+    // Katalog Video VT Awal
     const vtCatalog = {
       bumper_intro: {
         type: "html5",
@@ -145,11 +502,26 @@
     let activeVtKey = 'bumper_intro';
     let isVtPlaying = false;
     let isMutedState = { mic1: false, mic2: false, mic3: false, vt: false, sfx: false, master: false };
-
-    // Audio Context bawaan browser untuk efek bunyi lokal
     let audioCtx = null;
 
-    // YouTube IFrame API Callback Global
+    function showNotice(title, message, isSuccess = false) {
+      document.getElementById('noticeTitle').innerText = title;
+      document.getElementById('noticeMessage').innerText = message;
+      const icon = document.getElementById('noticeIcon');
+      if (isSuccess) {
+        icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.innerText = "✓";
+      } else {
+        icon.className = "w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.innerText = "!";
+      }
+      document.getElementById('noticeModal').classList.remove('hidden');
+    }
+
+    function closeNotice() {
+      document.getElementById('noticeModal').classList.add('hidden');
+    }
+
     window.onYouTubeIframeAPIReady = function() {
       isYtApiReady = true;
       initYouTubePlayer();
@@ -182,13 +554,10 @@
           }
         });
       } catch (err) {
-        console.warn("YouTube player init delay:", err);
+        console.warn("YouTube player init wait:", err);
       }
     }
 
-    // Modal Helper
-<!-- ... existing code ... -->
-    // Inisialisasi awal
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
@@ -199,14 +568,57 @@
 
       initAudioVtSystem(currentRoomToken);
       setupVideoListeners();
+      buildVuMeters();
       gantiKlipVt();
       startVuSimulation();
       startYtTimeUpdater();
     });
 
     function initAudioVtSystem(token) {
-<!-- ... existing code ... -->
-    // 1. Logika Pemutar Video VT
+      if (isFirebaseReady) {
+        // Dengarkan komando langsung dari Program Director (PD)
+        db.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const cue = snapshot.val();
+          if (cue.targetRole === 'AUDIO_VT' || cue.targetRole === 'ALL') {
+            document.getElementById('directorCueMessage').innerText = cue.message;
+            const now = new Date(cue.timestamp || Date.now());
+            document.getElementById('directorCueTime').innerText = now.toTimeString().split(' ')[0];
+
+            // Highlight visual banner
+            const banner = document.getElementById('directorCueBanner');
+            banner.classList.add('ring-4', 'ring-amber-300');
+            setTimeout(() => banner.classList.remove('ring-4', 'ring-amber-300'), 2000);
+          }
+        });
+
+        // Dengarkan krisis guru
+        db.ref(`rooms/${token}/crisis`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const crisis = snapshot.val();
+          const banner = document.getElementById('crisisAlertBanner');
+          if (crisis.isActive && (crisis.type === 'VT_HANG' || crisis.type === 'ALL')) {
+            banner.classList.remove('hidden');
+            document.getElementById('crisisAlertText').innerText = crisis.message;
+          } else {
+            banner.classList.add('hidden');
+          }
+        });
+
+        // Pantau status On-Air dari Switcher
+        db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const live = snapshot.val();
+          const badge = document.getElementById('vtOnAirBadge');
+          if (live.programSource === 'vt') {
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        });
+      }
+    }
+
     function gantiKlipVt() {
       const select = document.getElementById('selectVtItem');
       const val = select.value;
@@ -226,14 +638,16 @@
       const durTimeDisplay = document.getElementById('displayVtDuration');
       const remTimeDisplay = document.getElementById('displayVtRemaining');
       const progressBar = document.getElementById('vtProgressBar');
+      const srcLabel = document.getElementById('vtSourceTypeLabel');
 
       if (vt.type === 'youtube') {
         currentSourceType = 'youtube';
+        srcLabel.innerText = "SOURCE: YOUTUBE";
         video.pause();
         video.classList.add('hidden');
         ytWrapper.classList.remove('hidden');
 
-        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+        if (ytPlayer && typeof ytPlayer.cueVideoById === 'function') {
           ytPlayer.cueVideoById(vt.youtubeId);
           setTimeout(() => {
             const dur = ytPlayer.getDuration() || vt.durationSec || 0;
@@ -243,6 +657,7 @@
         }
       } else {
         currentSourceType = 'html5';
+        srcLabel.innerText = "SOURCE: HTML5 / DRIVE";
         if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
           ytPlayer.pauseVideo();
         }
@@ -281,7 +696,6 @@
           progressBar.value = (video.currentTime / video.duration) * 100;
         }
 
-        // Sinkronisasi timecode ke Firebase berkala jika sedang live
         if (isVtPlaying && isFirebaseReady && Math.floor(video.currentTime) % 2 === 0) {
           syncVtStateToFirebase('playing');
         }
@@ -294,7 +708,6 @@
       });
     }
 
-    // Interval pembacaan waktu untuk YouTube Player
     function startYtTimeUpdater() {
       if (ytTimeInterval) clearInterval(ytTimeInterval);
       ytTimeInterval = setInterval(() => {
@@ -405,7 +818,12 @@
     }
 
     function formatTimecode(sec) {
-<!-- ... existing code ... -->
+      const s = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(s / 60);
+      const remSec = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(remSec).padStart(2, '0')}`;
+    }
+
     function syncVtStateToFirebase(status) {
       if (!isFirebaseReady) return;
       const video = document.getElementById('vtVideoElement');
@@ -428,7 +846,6 @@
       });
     }
 
-    // 2. Logika Virtual Audio Mixing Console
     function updateAudioFader(channel, val) {
       const valDisplay = document.getElementById(`val-${channel}`);
       let dbVal = "-∞";
@@ -481,8 +898,81 @@
     }
 
     function resetAllFaders() {
-<!-- ... existing code ... -->
-    // 3. Modal Input Custom Google Drive File ID / YouTube URL
+      const channels = ['mic1', 'mic2', 'mic3', 'vt', 'sfx', 'master'];
+      channels.forEach(ch => {
+        const slider = document.getElementById(`fader-${ch}`);
+        if (slider) {
+          slider.value = ch === 'master' ? 90 : (ch === 'vt' ? 85 : 75);
+          updateAudioFader(ch, slider.value);
+        }
+      });
+    }
+
+    const TOTAL_LEDS = 18;
+    function buildVuMeters() {
+      const channels = ['mic1', 'mic2', 'mic3', 'vt', 'sfx', 'master'];
+      channels.forEach(ch => {
+        const bar = document.getElementById(`vu-${ch}`);
+        if (!bar) return;
+        bar.innerHTML = '';
+        for (let i = 0; i < TOTAL_LEDS; i++) {
+          const led = document.createElement('div');
+          let colorClass = 'vu-green';
+          if (i >= 12 && i < 15) colorClass = 'vu-yellow';
+          else if (i >= 15) colorClass = 'vu-red';
+          led.className = `vu-led ${colorClass}`;
+          led.id = `led-${ch}-${i}`;
+          bar.appendChild(led);
+        }
+      });
+    }
+
+    function startVuSimulation() {
+      const channels = ['mic1', 'mic2', 'mic3', 'vt', 'sfx', 'master'];
+      setInterval(() => {
+        channels.forEach(ch => {
+          const faderVal = parseInt(document.getElementById(`fader-${ch}`).value) || 0;
+          const isMuted = isMutedState[ch];
+          
+          let activityFactor = (ch === 'vt' && !isVtPlaying) ? 0.05 : 1;
+          let targetLit = 0;
+
+          if (!isMuted && faderVal > 0) {
+            const normalized = (faderVal / 100) * activityFactor;
+            const variance = (Math.random() * 0.3) - 0.15;
+            targetLit = Math.round(Math.max(0, Math.min(TOTAL_LEDS, (normalized + variance) * TOTAL_LEDS)));
+          }
+
+          for (let i = 0; i < TOTAL_LEDS; i++) {
+            const led = document.getElementById(`led-${ch}-${i}`);
+            if (led) {
+              if (i < targetLit) led.classList.add('vu-lit');
+              else led.classList.remove('vu-lit');
+            }
+          }
+        });
+      }, 100);
+    }
+
+    function testBeepSound() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, audioCtx.currentTime); // 1 kHz reference tone
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      } catch (e) {
+        console.warn("Audio Context:", e);
+      }
+    }
+
     function bukaModalCustomDrive() {
       document.getElementById('inputCustomVtTitle').value = '';
       document.getElementById('inputCustomDriveId').value = '';
@@ -493,7 +983,6 @@
       document.getElementById('customDriveModal').classList.add('hidden');
     }
 
-    // Helper untuk mengekstrak Video ID dari tautan YouTube
     function extractYouTubeId(url) {
       if (!url) return null;
       const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|live\/|watch\?.+&v=))([\w-]{11})/;
@@ -518,7 +1007,6 @@
       let itemConfig = null;
 
       if (ytId) {
-        // Mode Video YouTube
         itemConfig = {
           type: "youtube",
           title: title,
@@ -526,7 +1014,6 @@
           durationSec: durationSec
         };
       } else {
-        // Mode Video Google Drive / MP4
         let fileId = rawInput;
         const match = rawInput.match(/[-\w]{25,}/);
         if (match) fileId = match[0];
@@ -540,10 +1027,8 @@
         };
       }
 
-      // Simpan ke katalog lokal
       vtCatalog[uniqueKey] = itemConfig;
 
-      // Tambahkan item baru ke dropdown select secara dinamis
       const select = document.getElementById('selectVtItem');
       const newOption = document.createElement('option');
       newOption.value = uniqueKey;
@@ -555,7 +1040,6 @@
       activeVtKey = uniqueKey;
       gantiKlipVt();
 
-      // Sinkronkan ke Firebase jika database aktif
       if (isFirebaseReady) {
         db.ref(`rooms/${currentRoomToken}/vt_catalog/${uniqueKey}`).set({
           ...itemConfig,
