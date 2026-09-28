@@ -373,12 +373,15 @@
 
     function muatDataRundown(token) {
       if (isFirebaseReady) {
-        // Tarik metadata acara
+        // Tarik metadata acara & pantau jika sesi diakhiri Guru
         db.ref(`rooms/${token}/meta`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const meta = snapshot.val();
           currentProgramInfo.programName = meta.programName || currentProgramInfo.programName;
           currentProgramInfo.episode = meta.episode || currentProgramInfo.episode;
+          if (meta.status === 'ended') {
+            tanganiSesiDiakhiriGuru();
+          }
           renderHeaderInfo();
         });
 
@@ -621,6 +624,16 @@
 
     function tutupModalKeluar() {
       document.getElementById('exitConfirmModal').classList.add('hidden');
+    }
+
+    function tanganiSesiDiakhiriGuru() {
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_role_title');
+      sessionStorage.removeItem('skawan_role');
+      sessionStorage.removeItem('skawan_role_title');
+
+      alert("Sesi Siaran Telah Diakhiri oleh Guru. Mengalihkan ke pemilihan peran...");
+      window.location.href = `index.html?room=${currentRoomToken}`;
     }
 
     function eksekusiKeluarSesi() {
