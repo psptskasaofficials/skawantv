@@ -212,8 +212,8 @@
 
               <!-- Ticker Bar Dinamis di Layar PD -->
               <div id="pdTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-4 bg-red-700 text-white z-20 overflow-hidden flex items-center border-t border-red-500 pointer-events-none">
-                <div class="bg-slate-900 px-1.5 h-full flex items-center font-mono font-black text-[7px] text-amber-400 shrink-0">
-                  INFO
+                <div id="pdTickerWibHeader" class="bg-slate-900 px-1.5 h-full flex items-center font-mono font-black text-[7px] text-amber-400 shrink-0">
+                  00:00:00 WIB
                 </div>
                 <div class="w-full overflow-hidden text-[8px] truncate px-1">
                   <span id="pdTickerText">Siaran Simulasi SKAWAN TV</span>
@@ -592,10 +592,28 @@
       const userBadge = document.getElementById('navDisplayUser');
       if (userBadge) userBadge.innerText = currentSiswaUser;
 
+      startWibLiveClock();
       initDirectorSystem(currentRoomToken);
       startMasterOnAirClock();
       startSegmentTimer();
     });
+
+    // Jam WIB Real-Time Live Ticker
+    function startWibLiveClock() {
+      setInterval(() => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        const wibStr = `${formatter.format(now)} WIB`;
+        const clockEl = document.getElementById('pdTickerWibHeader');
+        if (clockEl) clockEl.innerText = wibStr;
+      }, 1000);
+    }
 
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
