@@ -1,42 +1,74 @@
 /**
  * js/webrtc-stream.js
- * Modul Streaming WebRTC Peer-to-Peer Teroptimasi SKAWAN TV
- * SMK Negeri 1 Pacitan (SKASA)
+ * Modul Streaming WebRTC Peer-to-Peer dengan Firebase Auto-Discovery
+ * SKAWAN TV - SMK Negeri 1 Pacitan
  * 
- * Arsitektur: Camera Push Stream -> Switcher & Program Director Receiver
+ * Mengalirkan feed kamera HP (camera.html) secara langsung ke Switcher, PD, & Live Viewer.
  */
 
 class SkawanStreamer {
   constructor(options = {}) {
     this.rawRoomToken = options.roomToken || 'STUDIO-1';
-    this.roomToken = this.rawRoomToken.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+    this.roomToken = this.rawRoomToken.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     this.roleKey = options.roleKey || 'cam_1';
     this.localStream = options.localStream || null;
     this.onRemoteStream = options.onRemoteStream || (() => {});
     this.onStatusChange = options.onStatusChange || (() => {});
-
+    
     this.peer = null;
     this.peerId = null;
     this.activeCalls = new Map();
-    this.isReceiver = ['switcher', 'pd', 'admin'].includes(this.roleKey);
+    // Mendukung role receiver: Switcher, Program Director, Admin Inspector, dan Publik Viewer
+    this.isReceiver = ['switcher', 'pd', 'admin', 'viewer'].includes(this.roleKey);
     this.dbRef = null;
-    this.reconnectTimer = null;
+    this.isDestroyed = false;
 
     this._initPeer();
   }
 
   _getDb() {
-    if (typeof window !== 'undefined' && window.db) return window.db;
-    if (typeof db !== 'undefined' && db) return db;
+    if (window.db) return window.db;
     if (typeof firebase !== 'undefined' && firebase.database) {
-      try { return firebase.database(); } catch (e) {}
+      window.db = firebase.database();
+      return window.db;
     }
     return null;
   }
 
   _generatePeerId() {
+    // Gunakan pemisah aman '---' agar underscore pada 'cam_1' tidak terpotong
+    const cleanToken = this.roomToken;
+    const cleanRole = this.roleKey.toLowerCase();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    return `skawan-${this.roomToken}-${this.roleKey}-${randomSuffix}`;
+    return `skawan---${cleanToken}---${cleanRole}---${randomSuffix}`;
+  }
+
+  _extractRoleFromPeerId(peerId) {
+    if (typeof peerId !== 'string') return 'cam_1';
+    
+    // 1. Ekstraksi format baru dengan pemisah '---'
+    if (peerId.includes('---')) {
+      const parts = peerId.split('---');
+      if (parts.length >= 3) {
+        let role = parts[2].toLowerCase();
+        // Normalisasi format cam1 -> cam_1
+        const numMatch = role.match(/cam_?([0-9]+)/);
+        if (numMatch) return `cam_${numMatch[1]}`;
+        return role;
+      }
+    }
+
+    // 2. Ekstraksi fallback jika format lain digunakan
+    const camMatch = peerId.match(/cam_?([0-9]+)/i);
+    if (camMatch) {
+      return `cam_${camMatch[1]}`;
+    }
+
+    if (peerId.includes('switcher')) return 'switcher';
+    if (peerId.includes('pd')) return 'pd';
+    if (peerId.includes('viewer')) return 'viewer';
+
+    return peerId;
   }
 
   _initPeer() {
@@ -45,7 +77,8 @@ class SkawanStreamer {
       script.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
       script.onload = () => this._createPeerInstance();
       script.onerror = () => {
-        this.onStatusChange('error', 'Gagal memuat pustaka PeerJS');
+        console.warn('[WebRTC] Gagal memuat CDN PeerJS.');
+        this.onStatusChange('error', 'Gagal memuat pustaka WebRTC');
       };
       document.head.appendChild(script);
     } else {
@@ -54,36 +87,31 @@ class SkawanStreamer {
   }
 
   _createPeerInstance() {
+    if (this.isDestroyed) return;
     this.peerId = this._generatePeerId();
 
-    try {
-      this.peer = new Peer(this.peerId, {
-        debug: 1,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
-          ]
-        }
-      });
-    } catch (err) {
-      console.warn('[WebRTC] Gagal membuat instance Peer:', err);
-      this.onStatusChange('error', 'Browser tidak mendukung WebRTC');
-      return;
-    }
+    this.peer = new Peer(this.peerId, {
+      debug: 1,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
+        ]
+      }
+    });
 
     this.peer.on('open', (id) => {
-      console.log(`[WebRTC] Peer terdaftar: ${id}`);
+      console.log(`[WebRTC Streamer] Peer terdaftar: ${id} (${this.roleKey})`);
       this.peerId = id;
-      this.onStatusChange('peer_ready', `ID: ${id}`);
+      this.onStatusChange('ready', `ID: ${id}`);
 
       this._registerToFirebase(id);
-      this._startPeerDiscovery();
+      this._listenTargetPeers();
     });
 
     this.peer.on('error', (err) => {
-      console.warn('[WebRTC Error]:', err.type, err.message);
+      console.warn('[WebRTC Streamer Error]:', err.type, err.message);
       if (err.type === 'peer-unavailable') {
         this.activeCalls.forEach((call, targetRole) => {
           if (call.peer === err.peer) this.activeCalls.delete(targetRole);
@@ -92,33 +120,32 @@ class SkawanStreamer {
       this.onStatusChange('error', err.type);
     });
 
-    // Receiver (Switcher / PD) mendengarkan panggilan video masuk dari Kamera HP
+    // Menangani panggilan video masuk (Untuk Receiver: Switcher / PD / Viewer)
     this.peer.on('call', (call) => {
-      console.log('[WebRTC] Menerima panggilan video dari:', call.peer);
+      console.log('[WebRTC Streamer] Menerima panggilan video masuk dari:', call.peer);
 
-      // Jawab panggilan
-      if (this.localStream) {
-        call.answer(this.localStream);
+      // Jawab panggilan dengan stream asli jika ada, atau dummy stream aktif agar handshake tuntas
+      const streamToAnswer = this.localStream || this._createActiveCanvasStream();
+      if (streamToAnswer) {
+        call.answer(streamToAnswer);
       } else {
-        call.answer(); // Switcher/PD cukup menjawab tanpa mengirim video balik
+        call.answer();
       }
 
       call.on('stream', (remoteStream) => {
-        console.log('[WebRTC] Stream video diterima dari:', call.peer);
+        console.log('[WebRTC Streamer] Video stream masuk dari:', call.peer);
         const role = this._extractRoleFromPeerId(call.peer);
         this.activeCalls.set(role, call);
         this.onRemoteStream(role, remoteStream);
-        this.onStatusChange('connected', `Streaming dari ${role.toUpperCase()}`);
       });
 
       call.on('close', () => {
         const role = this._extractRoleFromPeerId(call.peer);
         this.activeCalls.delete(role);
-        this.onStatusChange('disconnected', `${role.toUpperCase()} terputus`);
       });
 
       call.on('error', (err) => {
-        console.warn('[WebRTC] Call stream error:', err);
+        console.warn('[WebRTC Streamer] Call error:', err);
         const role = this._extractRoleFromPeerId(call.peer);
         this.activeCalls.delete(role);
       });
@@ -128,81 +155,114 @@ class SkawanStreamer {
   _registerToFirebase(id) {
     const activeDb = this._getDb();
     if (!activeDb) {
-      // Coba kembali jika database belum terinisialisasi
-      setTimeout(() => this._registerToFirebase(id), 800);
+      setTimeout(() => this._registerToFirebase(id), 1000);
       return;
     }
 
-    this.dbRef = activeDb.ref(`rooms/${this.rawRoomToken}/peers/${this.roleKey}`);
+    // Registrasi unik untuk setiap peer (viewer dapat memiliki banyak instance)
+    const registerKey = this.roleKey === 'viewer' ? `viewer_${this.peerId.split('---').pop()}` : this.roleKey;
+    this.dbRef = activeDb.ref(`rooms/${this.rawRoomToken}/peers/${registerKey}`);
     this.dbRef.set({
       peerId: id,
       role: this.roleKey,
-      isCamera: !this.isReceiver,
       online: true,
       updatedAt: Date.now()
     });
 
-    // Bersihkan node saat browser ditutup
     this.dbRef.onDisconnect().remove();
   }
 
-  _startPeerDiscovery() {
+  _listenTargetPeers() {
     const activeDb = this._getDb();
     if (!activeDb) {
-      setTimeout(() => this._startPeerDiscovery(), 1000);
+      setTimeout(() => this._listenTargetPeers(), 1000);
       return;
     }
 
-    // Pantau keberadaan perangkat lain di ruangan yang sama
     activeDb.ref(`rooms/${this.rawRoomToken}/peers`).on('value', (snapshot) => {
-      if (!snapshot.exists()) return;
+      if (!snapshot.exists() || this.isDestroyed) return;
       const peers = snapshot.val();
 
-      // HANYA KAMERA HP yang melakukan inisiasi panggilan (*Push Video*) ke Switcher & PD
+      // PUSH STREAM DARI KAMERA HP KE SWITCHER, PD, DAN VIEWER
       if (!this.isReceiver && this.localStream) {
-        if (peers.switcher && peers.switcher.peerId && !this.activeCalls.has('switcher')) {
-          this._pushStreamToTarget('switcher', peers.switcher.peerId);
+        if (peers.switcher && peers.switcher.peerId) {
+          this._callTargetPeer('switcher', peers.switcher.peerId);
         }
-        if (peers.pd && peers.pd.peerId && !this.activeCalls.has('pd')) {
-          this._pushStreamToTarget('pd', peers.pd.peerId);
+        if (peers.pd && peers.pd.peerId) {
+          this._callTargetPeer('pd', peers.pd.peerId);
         }
+        // Hubungi seluruh viewer yang sedang online
+        Object.keys(peers).forEach(key => {
+          if (key.startsWith('viewer_') && peers[key] && peers[key].peerId) {
+            this._callTargetPeer(key, peers[key].peerId);
+          }
+        });
+      }
+
+      // RECEIVER (SWITCHER / PD / VIEWER): Panggil kamera jika belum terhubung
+      if (this.isReceiver) {
+        Object.keys(peers).forEach((key) => {
+          if (key.startsWith('cam_') && peers[key] && peers[key].peerId) {
+            if (!this.activeCalls.has(key)) {
+              this._callTargetPeer(key, peers[key].peerId);
+            }
+          }
+        });
       }
     });
   }
 
-  _pushStreamToTarget(targetRole, targetPeerId) {
-    if (!this.peer || this.peer.disconnected || !this.localStream) return;
+  _callTargetPeer(targetRole, targetPeerId) {
+    if (!this.peer || this.peer.disconnected || this.isDestroyed) return;
     if (this.activeCalls.has(targetRole)) return; // Sudah terhubung
 
     try {
-      console.log(`[WebRTC] Kamera mengirimkan video ke ${targetRole} (${targetPeerId})...`);
-      this.onStatusChange('connecting', `Menghubungkan ke ${targetRole.toUpperCase()}...`);
-
-      const call = this.peer.call(targetPeerId, this.localStream);
+      console.log(`[WebRTC Streamer] Menghubungi ${targetRole} (${targetPeerId})...`);
+      
+      const streamToSend = this.localStream || this._createActiveCanvasStream();
+      const call = this.peer.call(targetPeerId, streamToSend);
       if (!call) return;
 
       this.activeCalls.set(targetRole, call);
 
+      call.on('stream', (remoteStream) => {
+        console.log(`[WebRTC Streamer] Stream diterima dari ${targetRole}`);
+        this.onRemoteStream(targetRole, remoteStream);
+        this.onStatusChange('connected', `Terhubung ke ${targetRole}`);
+      });
+
       call.on('close', () => {
         this.activeCalls.delete(targetRole);
-        this.onStatusChange('disconnected', `Terputus dari ${targetRole.toUpperCase()}`);
       });
 
       call.on('error', (err) => {
-        console.warn(`[WebRTC] Call error to ${targetRole}:`, err);
+        console.warn(`[WebRTC Streamer] Panggilan ke ${targetRole} gagal:`, err);
         this.activeCalls.delete(targetRole);
       });
-
-      this.onStatusChange('connected', `Live Feed terkirim ke ${targetRole.toUpperCase()}`);
     } catch (err) {
-      console.warn(`[WebRTC] Gagal push stream ke ${targetRole}:`, err);
+      console.warn('[WebRTC Streamer] Exception saat memanggil target:', err);
       this.activeCalls.delete(targetRole);
+    }
+  }
+
+  _createActiveCanvasStream() {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 4;
+      canvas.height = 4;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 4, 4);
+      }
+      return canvas.captureStream ? canvas.captureStream(1) : null;
+    } catch (e) {
+      return null;
     }
   }
 
   updateLocalStream(newStream) {
     this.localStream = newStream;
-    // Update track video pada panggilan yang sedang aktif
     this.activeCalls.forEach((call) => {
       if (call.peerConnection) {
         const senders = call.peerConnection.getSenders();
@@ -213,22 +273,10 @@ class SkawanStreamer {
         }
       }
     });
-
-    // Panggil ulang jika sebelumnya belum terhubung
-    this._startPeerDiscovery();
-  }
-
-  _extractRoleFromPeerId(peerId) {
-    const prefix = `skawan-${this.roomToken}-`;
-    if (peerId.startsWith(prefix)) {
-      const rest = peerId.substring(prefix.length);
-      const parts = rest.split('-');
-      return parts[0];
-    }
-    return peerId;
   }
 
   destroy() {
+    this.isDestroyed = true;
     if (this.dbRef) {
       this.dbRef.remove().catch(() => {});
     }
