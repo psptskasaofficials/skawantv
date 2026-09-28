@@ -625,9 +625,15 @@
         if (existingStream) {
           setTimeout(() => {
             const vid = document.getElementById(`mv-video-${src.key}`);
+            const lbl = document.getElementById(`mv-label-${src.key}`);
             if (vid) {
-              vid.srcObject = existingStream;
+              if (vid.srcObject !== existingStream) vid.srcObject = existingStream;
               vid.classList.remove('hidden');
+              vid.play().catch(() => {});
+            }
+            if (lbl) {
+              lbl.innerText = "● LIVE FEED";
+              lbl.className = "text-center font-mono font-black text-xs text-emerald-400 relative z-10 animate-pulse";
             }
           }, 50);
         }
@@ -724,7 +730,7 @@
       document.getElementById('badgePvwSource').innerText = pvwLabel;
       document.getElementById('pvwScreenLabel').innerText = pvwLabel;
 
-      // 1. Render Layar Program (PGM)
+      // 1. Render Layar Program (PGM) - Tangani transisi bebas freeze
       const pgmVideo = document.getElementById('pgmCamVideo');
       const pgmFallback = document.getElementById('pgmFallbackBox');
       const pgmVtWrap = document.getElementById('pgmVtWrapper');
@@ -737,9 +743,12 @@
         pgmVtWrap.classList.add('hidden');
         const stream = getCameraStream(liveState.programSource);
         if (stream) {
-          pgmVideo.srcObject = stream;
+          if (pgmVideo.srcObject !== stream) {
+            pgmVideo.srcObject = stream;
+          }
           pgmVideo.classList.remove('hidden');
           pgmFallback.classList.add('hidden');
+          // Pastikan video kamera langsung terputar dan tidak membeku
           pgmVideo.play().catch(() => {});
         } else {
           pgmVideo.classList.add('hidden');
@@ -747,7 +756,7 @@
         }
       }
 
-      // 2. Render Layar Preview (PVW)
+      // 2. Render Layar Preview (PVW) - Bebas freeze
       const pvwVideo = document.getElementById('pvwCamVideo');
       const pvwFallback = document.getElementById('pvwFallbackBox');
       const pvwVtWrap = document.getElementById('pvwVtWrapper');
@@ -760,7 +769,9 @@
         pvwVtWrap.classList.add('hidden');
         const stream = getCameraStream(liveState.previewSource);
         if (stream) {
-          pvwVideo.srcObject = stream;
+          if (pvwVideo.srcObject !== stream) {
+            pvwVideo.srcObject = stream;
+          }
           pvwVideo.classList.remove('hidden');
           pvwFallback.classList.add('hidden');
           pvwVideo.play().catch(() => {});
