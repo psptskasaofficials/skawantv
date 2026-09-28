@@ -504,9 +504,9 @@
       sessionStorage.removeItem('skawan_role');
       sessionStorage.removeItem('skawan_role_title');
 
-      // 4. Alihkan ke pemilihan peran
+      // 4. Alihkan ke pemilihan peran di login.html
       setTimeout(() => {
-        window.location.href = `index.html?room=${currentRoomToken}`;
+        window.location.href = `login.html?room=${currentRoomToken}`;
       }, 2000);
     }
 
@@ -539,7 +539,7 @@
         });
       }
 
-      // 5. Bersihkan penanda role di storage agar index.html TIDAK melakukan auto-redirect kembali ke camera.html
+      // 5. Bersihkan penanda role di storage agar tidak auto-redirect kembali ke camera.html
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
@@ -547,14 +547,14 @@
 
       tutupModalKeluar();
 
-      // 6. Arahkan kembali ke lobby index.html
+      // 6. Arahkan kembali ke portal login.html
       if (pendingExitType === 'keluar') {
         localStorage.removeItem('skawan_user');
         sessionStorage.removeItem('skawan_user');
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
       } else {
         // Ganti peran: pertahankan token & nama agar langsung melihat daftar peran
-        window.location.href = `index.html?room=${currentRoomToken}`;
+        window.location.href = `login.html?room=${currentRoomToken}`;
       }
     }
   </script>
