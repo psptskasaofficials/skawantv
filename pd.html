@@ -101,12 +101,10 @@
           <span>👤</span>
           <span id="navDisplayUser">PD</span>
         </div>
-        <!-- Tombol Ganti Peran Cepat -->
         <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-600 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Ganti Posisi Kru">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
           <span class="hidden sm:inline">Ganti Peran</span>
         </button>
-        <!-- Tombol Keluar Sesi Cepat -->
         <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Keluar Sesi">
           <span>Keluar</span>
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -155,15 +153,15 @@
               </span>
             </div>
             <div class="aspect-video feed-screen rounded-xl overflow-hidden border-2 border-emerald-500 flex flex-col items-center justify-center relative shadow-inner">
-              <!-- Video Nyata Kamera HP jika terpilih di PVW -->
               <video id="pvwLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
 
               <!-- Video VT Preview jika terpilih -->
               <div id="pvwVtBox" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10">
-                <video id="pvwVtHtml5" class="w-full h-full object-contain" muted playsinline></video>
+                <video id="pvwVtHtml5" class="w-full h-full object-contain hidden" muted playsinline></video>
                 <div id="pvwVtYtWrap" class="w-full h-full hidden">
                   <div id="pvwVtYtEl" class="w-full h-full pointer-events-none"></div>
                 </div>
+                <iframe id="pvwVtGdrive" class="w-full h-full border-0 hidden pointer-events-none"></iframe>
               </div>
 
               <div class="scanline absolute inset-0 pointer-events-none"></div>
@@ -187,15 +185,15 @@
               </span>
             </div>
             <div class="aspect-video feed-screen rounded-xl overflow-hidden border-2 border-red-600 flex flex-col items-center justify-center relative shadow-inner" id="pgmScreenBox">
-              <!-- Video Nyata Kamera HP jika On-Air -->
               <video id="pgmLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
 
               <!-- Video VT Program jika On-Air -->
               <div id="pgmVtBox" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10">
-                <video id="pgmVtHtml5" class="w-full h-full object-contain" playsinline muted></video>
+                <video id="pgmVtHtml5" class="w-full h-full object-contain hidden" playsinline muted></video>
                 <div id="pgmVtYtWrap" class="w-full h-full hidden">
                   <div id="pgmVtYtEl" class="w-full h-full pointer-events-none"></div>
                 </div>
+                <iframe id="pgmVtGdrive" class="w-full h-full border-0 hidden pointer-events-none"></iframe>
               </div>
 
               <div class="scanline absolute inset-0 pointer-events-none"></div>
@@ -231,7 +229,7 @@
 
         </div>
 
-        <!-- Baris Multiview Feeds Input (Kamera 1..N & VT Drive) -->
+        <!-- Baris Multiview Feeds Input -->
         <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
           <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
             <span class="text-xs font-brand font-bold text-slate-800 uppercase tracking-wider">Multi-Camera & VT Feeds</span>
@@ -245,6 +243,7 @@
 
       </div>
 
+      <!-- Kolom Kanan: Rundown & Timer Segmen (4 Kolom) -->
       <div class="lg:col-span-4 space-y-4">
 
         <!-- Kartu Timer Segmen Rundown -->
@@ -321,6 +320,7 @@
 
     </div>
 
+    <!-- Quick Cues Panel -->
     <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
@@ -472,7 +472,7 @@
   <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN PD -->
   <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
-      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">
+      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl font-bold">
         🔄
       </div>
       <div>
@@ -493,18 +493,19 @@
   </div>
 
   <script>
-    // State Aplikasi Program Director
     let currentRoomToken = 'STUDIO-1';
     let currentRoleKey = 'pd';
     let currentSiswaUser = '';
-    let pendingExitType = 'ganti'; // 'ganti' atau 'keluar'
+    let pendingExitType = 'ganti';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
     let streamerInstance = null;
     const remoteCamStreams = new Map();
-    let latestVtState = { status: 'stopped', currentTime: 0, url: '', youtubeId: '', sourceType: 'html5' };
+    let latestVtState = { status: 'stopped', currentTime: 0, url: '', youtubeId: '', sourceType: 'youtube' };
     let pdPgmYt = null;
     let pdPvwYt = null;
     let isYtReady = false;
+    let currentPgmYtId = '';
+    let currentPvwYtId = '';
 
     let totalCameras = 3;
     let liveState = {
@@ -542,7 +543,6 @@
     let timerInterval = null;
     let onAirStartTime = Date.now();
 
-    // Utilitas Modal Notifikasi
     function showNotice(title, message, isSuccess = false) {
       document.getElementById('noticeTitle').innerText = title;
       document.getElementById('noticeMessage').innerText = message;
@@ -584,26 +584,22 @@
       try {
         pdPgmYt = new YT.Player('pgmVtYtEl', {
           height: '100%', width: '100%', videoId: 'ysz5S6PUM-U',
-          playerVars: { playsinline: 1, controls: 0, rel: 0, mute: 1 }
+          playerVars: { playsinline: 1, controls: 0, rel: 0, mute: 1, modestbranding: 1, disablekb: 1 }
         });
         pdPvwYt = new YT.Player('pvwVtYtEl', {
           height: '100%', width: '100%', videoId: 'ysz5S6PUM-U',
-          playerVars: { playsinline: 1, controls: 0, rel: 0, mute: 1 }
+          playerVars: { playsinline: 1, controls: 0, rel: 0, mute: 1, modestbranding: 1, disablekb: 1 }
         });
       } catch (e) { console.warn(e); }
     };
 
     function initDirectorSystem(token) {
       if (isFirebaseReady) {
-        // Tarik metadata ruangan
         db.ref(`rooms/${token}/meta`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const meta = snapshot.val();
           if (meta.totalCameras) {
             totalCameras = meta.totalCameras;
-            if (streamerInstance) {
-              streamerInstance.discoverAndConnectCameras(totalCameras);
-            }
           }
           if (meta.programName) {
             document.getElementById('metaProgName').innerText = meta.programName;
@@ -614,14 +610,13 @@
           renderMultiviewCards();
         });
 
-        // Tarik data sinkronisasi pemutar VT dari Audio Operator
+        // Sinkronisasi Video VT dari Audio Operator
         db.ref(`rooms/${token}/vt_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           latestVtState = snapshot.val();
           syncPdVtDisplay();
         });
 
-        // Tarik data rundown live dari Tim Kreatif
         db.ref(`rooms/${token}/rundown`).on('value', snapshot => {
           const val = snapshot.val();
           if (val) {
@@ -631,7 +626,6 @@
           }
         });
 
-        // Tarik sinkronisasi live switching (PGM / PVW / Tally)
         db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const live = snapshot.val();
@@ -642,7 +636,6 @@
           syncPdVtDisplay();
         });
 
-        // Dengarkan pemicu krisis dari Guru
         db.ref(`rooms/${token}/crisis`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const crisis = snapshot.val();
@@ -659,7 +652,6 @@
           }
         });
 
-        // Dengarkan status CG Lower Third & Ticker
         db.ref(`rooms/${token}/cg_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const cg = snapshot.val();
@@ -684,14 +676,12 @@
             tickerBar.classList.add('hidden');
           }
         });
-      } else {
-        // Fallback mode demo lokal
-        renderMultiviewCards();
-        updateMonitorsAndTally();
-        updateSegmentDisplay();
       }
 
-      // Inisialisasi penerima WebRTC feed kamera HP siswa
+      renderMultiviewCards();
+      updateMonitorsAndTally();
+      updateSegmentDisplay();
+
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -700,7 +690,6 @@
             console.log(`[WebRTC PD] Menerima feed kamera ${camKey}`);
             remoteCamStreams.set(camKey, stream);
 
-            // Tampilkan pada kartu thumbnail Multiview
             const mvVideo = document.getElementById(`mv-pd-video-${camKey}`);
             if (mvVideo) {
               mvVideo.srcObject = stream;
@@ -723,6 +712,8 @@
       const pvwHtml5 = document.getElementById('pvwVtHtml5');
       const pgmYtWrap = document.getElementById('pgmVtYtWrap');
       const pvwYtWrap = document.getElementById('pvwVtYtWrap');
+      const pgmGdrive = document.getElementById('pgmVtGdrive');
+      const pvwGdrive = document.getElementById('pvwVtGdrive');
 
       const isPgmVt = liveState.programSource === 'vt';
       const isPvwVt = liveState.previewSource === 'vt';
@@ -730,30 +721,72 @@
       if (isPgmVt) pgmVtBox.classList.remove('hidden'); else pgmVtBox.classList.add('hidden');
       if (isPvwVt) pvwVtBox.classList.remove('hidden'); else pvwVtBox.classList.add('hidden');
 
-      if (latestVtState.sourceType === 'youtube') {
+      const ytId = latestVtState.youtubeId || (latestVtState.sourceType === 'youtube' ? latestVtState.url : '');
+      const isPlaying = latestVtState.status === 'playing';
+
+      if (latestVtState.sourceType === 'youtube' && ytId) {
         pgmHtml5.classList.add('hidden');
         pvwHtml5.classList.add('hidden');
+        pgmGdrive.classList.add('hidden');
+        pvwGdrive.classList.add('hidden');
         pgmYtWrap.classList.remove('hidden');
         pvwYtWrap.classList.remove('hidden');
-        if (isYtReady && latestVtState.youtubeId) {
-          if (isPgmVt && pdPgmYt && pdPgmYt.playVideo) {
-            if (latestVtState.status === 'playing') pdPgmYt.playVideo(); else pdPgmYt.pauseVideo();
+
+        if (isYtReady) {
+          if (pdPgmYt && typeof pdPgmYt.loadVideoById === 'function') {
+            if (currentPgmYtId !== ytId) {
+              currentPgmYtId = ytId;
+              if (isPlaying) pdPgmYt.loadVideoById(ytId, latestVtState.currentTime || 0);
+              else pdPgmYt.cueVideoById(ytId, latestVtState.currentTime || 0);
+            } else {
+              if (isPlaying) {
+                pdPgmYt.playVideo();
+                const cur = pdPgmYt.getCurrentTime() || 0;
+                if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
+                  pdPgmYt.seekTo(latestVtState.currentTime, true);
+                }
+              } else {
+                pdPgmYt.pauseVideo();
+              }
+            }
           }
-          if (isPvwVt && pdPvwYt && pdPvwYt.playVideo) {
-            if (latestVtState.status === 'playing') pdPvwYt.playVideo(); else pdPvwYt.pauseVideo();
+
+          if (pdPvwYt && typeof pdPvwYt.loadVideoById === 'function') {
+            if (currentPvwYtId !== ytId) {
+              currentPvwYtId = ytId;
+              pdPvwYt.cueVideoById(ytId, latestVtState.currentTime || 0);
+            } else {
+              if (isPlaying && isPvwVt) pdPvwYt.playVideo(); else pdPvwYt.pauseVideo();
+            }
           }
+        }
+      } else if (latestVtState.sourceType === 'gdrive') {
+        pgmHtml5.classList.add('hidden');
+        pvwHtml5.classList.add('hidden');
+        pgmYtWrap.classList.add('hidden');
+        pvwYtWrap.classList.add('hidden');
+        pgmGdrive.classList.remove('hidden');
+        pvwGdrive.classList.remove('hidden');
+
+        if (latestVtState.url && pgmGdrive.src !== latestVtState.url) {
+          pgmGdrive.src = latestVtState.url;
+          pvwGdrive.src = latestVtState.url;
         }
       } else {
         pgmYtWrap.classList.add('hidden');
         pvwYtWrap.classList.add('hidden');
+        pgmGdrive.classList.add('hidden');
+        pvwGdrive.classList.add('hidden');
         pgmHtml5.classList.remove('hidden');
         pvwHtml5.classList.remove('hidden');
+
         if (latestVtState.url && pgmHtml5.src !== latestVtState.url) {
           pgmHtml5.src = latestVtState.url;
           pvwHtml5.src = latestVtState.url;
         }
-        if (isPgmVt && latestVtState.status === 'playing') pgmHtml5.play().catch(()=>{}); else pgmHtml5.pause();
-        if (isPvwVt && latestVtState.status === 'playing') pvwHtml5.play().catch(()=>{}); else pvwHtml5.pause();
+
+        if (isPgmVt && isPlaying) pgmHtml5.play().catch(()=>{}); else pgmHtml5.pause();
+        if (isPvwVt && isPlaying) pvwHtml5.play().catch(()=>{}); else pvwHtml5.pause();
       }
     }
 
@@ -765,14 +798,13 @@
       for (let i = 1; i <= totalCameras; i++) {
         sources.push({ key: `cam_${i}`, label: `CAM ${i}`, name: `Kamera ${i} HP` });
       }
-      sources.push({ key: 'vt', label: 'VT / MEDIA', name: 'Drive Video Player' });
+      sources.push({ key: 'vt', label: 'VT / MEDIA', name: 'Drive / YouTube Player' });
 
       sources.forEach(src => {
         const card = document.createElement('div');
         card.id = `mv-pd-card-${src.key}`;
         card.className = "bg-slate-900 border-2 border-slate-300 rounded-xl p-2.5 flex flex-col justify-between aspect-video relative overflow-hidden transition shadow-sm";
         card.innerHTML = `
-          <!-- Video WebRTC kamera HP jika tersedia -->
           <video id="mv-pd-video-${src.key}" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
 
           <div class="flex items-center justify-between relative z-10">
@@ -788,7 +820,6 @@
         `;
         grid.appendChild(card);
 
-        // Jika stream sudah diterima sebelumnya, pasang kembali
         if (remoteCamStreams.has(src.key)) {
           setTimeout(() => {
             const mvVid = document.getElementById(`mv-pd-video-${src.key}`);
@@ -813,7 +844,6 @@
       document.getElementById('badgePvwSource').innerText = pvwLabel;
       document.getElementById('pvwScreenLabel').innerText = pvwLabel;
 
-      // Render stream pada layar Program PD
       const pgmVideoEl = document.getElementById('pgmLiveCamVideo');
       const pgmStream = remoteCamStreams.get(liveState.programSource);
       if (pgmStream && pgmVideoEl && liveState.programSource.startsWith('cam_')) {
@@ -823,7 +853,6 @@
         pgmVideoEl.classList.add('hidden');
       }
 
-      // Render stream pada layar Preview PD
       const pvwVideoEl = document.getElementById('pvwLiveCamVideo');
       const pvwStream = remoteCamStreams.get(liveState.previewSource);
       if (pvwStream && pvwVideoEl && liveState.previewSource.startsWith('cam_')) {
@@ -895,7 +924,6 @@
       timerRemainingSeconds = totalSec;
       renderTimerUI();
 
-      // Siarkan nomor segmen dan waktu sisa ke Firebase agar Floor Director sinkron seketika
       if (isFirebaseReady) {
         db.ref(`rooms/${currentRoomToken}/timer_rundown`).update({
           currentSegmentIndex: currentSegmentIndex,
@@ -982,7 +1010,6 @@
       }
     }
 
-    // Modal Konfirmasi Keluar / Ganti Peran PD
     function bukaModalKeluar(type) {
       pendingExitType = type;
       const modal = document.getElementById('exitConfirmModal');
@@ -1015,23 +1042,18 @@
     }
 
     function eksekusiKeluarSesi() {
-      // 1. Putuskan WebRTC
       if (streamerInstance) {
         streamerInstance.destroy();
         streamerInstance = null;
       }
 
-      // 2. Kosongkan kembali slot peran di Firebase secara atomik
       if (isFirebaseReady && currentRoomToken && currentSiswaUser) {
         db.ref(`rooms/${currentRoomToken}/roles/pd`).transaction(currentVal => {
-          if (currentVal === currentSiswaUser) {
-            return "";
-          }
+          if (currentVal === currentSiswaUser) return "";
           return currentVal;
         });
       }
 
-      // 3. Bersihkan penanda role di storage agar index.html TIDAK melakukan auto-redirect kembali
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
@@ -1039,7 +1061,6 @@
 
       tutupModalKeluar();
 
-      // 4. Arahkan kembali ke lobby index.html
       if (pendingExitType === 'keluar') {
         localStorage.removeItem('skawan_user');
         sessionStorage.removeItem('skawan_user');
