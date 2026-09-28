@@ -71,12 +71,15 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-blue-600 selection:text-white">
 
+  <!-- ============================================== -->
+  <!-- HEADER & NAVIGASI GRAPHIC OPERATOR            -->
+  <!-- ============================================== -->
   <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="index.html" class="flex items-center gap-2.5">
           <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-sm">
-            SK
+            CG
           </div>
           <div>
             <div class="flex items-center gap-1.5">
@@ -96,7 +99,7 @@
       <div class="flex items-center gap-3">
         <div class="hidden sm:flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg">
           <span class="text-xs text-slate-500 font-medium">Ruangan:</span>
-          <span id="navDisplayToken" class="font-mono font-bold text-xs text-blue-600">STUDIO-1</span>
+          <span id="navDisplayToken" class="font-mono font-bold text-xs text-blue-600">SKASA</span>
         </div>
         <div class="hidden md:flex items-center gap-1.5 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg text-blue-800 text-xs font-semibold">
           <span>👤</span>
@@ -104,13 +107,13 @@
         </div>
         <!-- Tombol Ganti Peran Cepat -->
         <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Ganti Posisi Kru">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+          <span>🔄</span>
           <span class="hidden sm:inline">Ganti Peran</span>
         </button>
         <!-- Tombol Keluar Sesi Cepat -->
         <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Keluar Sesi">
           <span>Keluar</span>
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          <span>🚪</span>
         </button>
       </div>
     </div>
@@ -118,7 +121,7 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-1 space-y-5">
 
-    <!-- Banner Intercom Instruksi dari Program Director (PD) -->
+    <!-- Banner Intercom Komando Sutradara (PD) -->
     <div id="directorCueBanner" class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between gap-3 transition">
       <div class="flex items-center gap-3">
         <div class="p-2 rounded-xl bg-white/20 shrink-0">
@@ -148,7 +151,9 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-      <!-- Kolom Kiri: Layar Program Live Preview dengan Overlay Grafis (5 Kolom) -->
+      <!-- ============================================== -->
+      <!-- KOLOM KIRI: LAYAR LIVE PREVIEW PGM (5 Kolom)   -->
+      <!-- ============================================== -->
       <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
         
         <div class="space-y-3">
@@ -202,7 +207,7 @@
               </div>
             </div>
 
-            <!-- LAPISAN 3: Running Text / Ticker Bar di Dasar Layar (Header Waktu WIB Live) -->
+            <!-- LAPISAN 3: Running Text / Ticker Bar di Dasar Layar (Header Waktu WIB Live: HH:mm) -->
             <div id="previewTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 bg-red-700 text-white z-20 overflow-hidden flex items-center border-t border-red-500 shadow-md">
               <div id="cgTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] uppercase tracking-wider text-amber-400 shrink-0 z-10 border-r border-red-800">
                 00:00 WIB
@@ -238,13 +243,16 @@
         </div>
 
         <!-- Tombol Aksi Darurat Bersihkan Semua Grafis -->
-        <button onclick="clearAllGraphics()" class="w-full py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+        <button onclick="clearAllGraphics()" class="w-full py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
           <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
           <span>Hapus Semua Grafis dari Layar (CLEAR DSK)</span>
         </button>
 
       </div>
 
+      <!-- ============================================== -->
+      <!-- KOLOM KANAN: KONSOL KONTROL CG (7 Kolom)       -->
+      <!-- ============================================== -->
       <div class="lg:col-span-7 space-y-4">
 
         <!-- 1. KONTROL LOWER THIRD (SUPER TITLE) -->
@@ -312,10 +320,10 @@
             </div>
             
             <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-              <button id="btnLogoOn" onclick="toggleLogo(true)" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition">
+              <button id="btnLogoOn" onclick="toggleLogo(true)" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition active:scale-95">
                 LOGO ON
               </button>
-              <button id="btnLogoOff" onclick="toggleLogo(false)" class="py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-xs transition">
+              <button id="btnLogoOff" onclick="toggleLogo(false)" class="py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-xs transition active:scale-95">
                 LOGO OFF
               </button>
             </div>
@@ -332,10 +340,10 @@
             </div>
 
             <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-              <button id="btnTickerOn" onclick="toggleTicker(true)" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition">
+              <button id="btnTickerOn" onclick="toggleTicker(true)" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition active:scale-95">
                 TICKER ON
               </button>
-              <button id="btnTickerOff" onclick="toggleTicker(false)" class="py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-xs transition">
+              <button id="btnTickerOff" onclick="toggleTicker(false)" class="py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-xs transition active:scale-95">
                 TICKER OFF
               </button>
             </div>
@@ -351,7 +359,7 @@
           </div>
           <div class="flex gap-2">
             <input type="text" id="inputTickerContent" value="Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan • SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast" oninput="updateTickerContent(this.value)" class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none">
-            <button onclick="simpanTicker()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition shadow-sm">
+            <button onclick="simpanTicker()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition shadow-sm active:scale-95">
               Update
             </button>
           </div>
@@ -363,12 +371,15 @@
 
   </main>
 
+  <!-- ============================================== -->
+  <!-- MODAL DIALOG NOTIFIKASI & KONFIRMASI KELUAR   -->
+  <!-- ============================================== -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">✓</div>
       <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
-      <p id="noticeMessage" class="text-sm text-slate-600 mb-5"></p>
-      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+      <p id="noticeMessage" class="text-sm text-slate-600 mb-5 leading-relaxed"></p>
+      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition active:scale-95">
         Tutup
       </button>
     </div>
@@ -390,15 +401,18 @@
         <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
           Batal
         </button>
-        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
+        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm active:scale-95">
           Ya, Lepaskan Slot
         </button>
       </div>
     </div>
   </div>
 
+  <!-- ============================================== -->
+  <!-- SKRIP LOGIKA WORKSPACE GRAPHIC OPERATOR (CG)   -->
+  <!-- ============================================== -->
   <script>
-    let currentRoomToken = 'STUDIO-1';
+    let currentRoomToken = 'SKASA';
     let currentRoleKey = 'cg';
     let currentSiswaUser = '';
     let pendingExitType = 'ganti'; // 'ganti' atau 'keluar'
@@ -431,7 +445,16 @@
       preset_4: { title: "Aulia Rahma", subtitle: "Laporan Langsung dari Lantai Studio 1" }
     };
 
-    // Jam WIB Real-Time Live Ticker (Hanya Jam dan Menit)
+    function getDatabase() {
+      if (window.db) return window.db;
+      if (typeof firebase !== 'undefined' && firebase.database) {
+        window.db = firebase.database();
+        return window.db;
+      }
+      return null;
+    }
+
+    // Jam WIB Real-Time Live Ticker (HANYA JAM DAN MENIT: HH:mm WIB)
     function startWibLiveClock() {
       const updateClock = () => {
         const now = new Date();
@@ -500,7 +523,7 @@
       const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
       const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
       
-      currentRoomToken = roomParam || sessionRoom || 'SKASA';
+      currentRoomToken = (roomParam || sessionRoom || 'SKASA').toUpperCase();
       currentSiswaUser = sessionUser || 'Graphic Operator';
 
       document.getElementById('navDisplayToken').innerText = currentRoomToken;
@@ -513,17 +536,19 @@
     });
 
     function initCgSystem(token) {
-      if (isFirebaseReady) {
-        // Pantau jika Guru mengakhiri sesi siaran
-        db.ref(`rooms/${token}/meta/status`).on('value', snap => {
+      const activeDb = getDatabase();
+
+      if (activeDb) {
+        // Pantau jika Guru mengakhiri sesi siaran (SKASA terkunci kebal)
+        activeDb.ref(`rooms/${token}/meta/status`).on('value', snap => {
           if (!snap.exists()) return;
-          if (snap.val() === 'ended') {
+          if (snap.val() === 'ended' && token !== 'SKASA') {
             tanganiSesiDiakhiriGuru();
           }
         });
 
         // 1. Pantau Live State dari Switcher (Sumber Kamera PGM Aktif)
-        db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
+        activeDb.ref(`rooms/${token}/live_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const live = snapshot.val();
           currentLiveState.programSource = live.programSource || currentLiveState.programSource;
@@ -532,14 +557,14 @@
         });
 
         // 2. Pantau Playback VT dari Audio-VT
-        db.ref(`rooms/${token}/vt_state`).on('value', snapshot => {
+        activeDb.ref(`rooms/${token}/vt_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           latestVtState = snapshot.val();
           syncCgVtPlayback();
         });
 
         // Dengarkan instruksi komando langsung dari Program Director (PD)
-        db.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
+        activeDb.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const cue = snapshot.val();
           if (cue.targetRole === 'CG' || cue.targetRole === 'ALL') {
@@ -555,7 +580,7 @@
         });
 
         // Dengarkan status simulasi krisis dari Guru
-        db.ref(`rooms/${token}/crisis`).on('value', snapshot => {
+        activeDb.ref(`rooms/${token}/crisis`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const crisis = snapshot.val();
           const banner = document.getElementById('crisisAlertBanner');
@@ -569,7 +594,7 @@
         });
 
         // Tarik state CG yang tersimpan
-        db.ref(`rooms/${token}/cg_state`).on('value', snapshot => {
+        activeDb.ref(`rooms/${token}/cg_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const remoteCg = snapshot.val();
           cgState = { ...cgState, ...remoteCg };
@@ -734,7 +759,7 @@
 
     function simpanTicker() {
       syncCgKeFirebase();
-      showNotice("Ticker Diperbarui", "Isi teks berjalan berhasil disinkronkan ke layar siaran.");
+      showNotice("Ticker Diperbarui", "Isi teks berjalan berhasil disinkronkan ke layar siaran.", true);
     }
 
     function clearAllGraphics() {
@@ -757,14 +782,14 @@
         ltBox.classList.remove('hidden');
         statLt.className = "p-2 rounded-xl bg-red-50 border border-red-300 text-red-700 font-bold";
         statLtText.innerText = "ON-AIR";
-        btnIn.className = "py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-brand font-black text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-md shadow-red-600/30 animate-pulse";
-        btnOut.className = "py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-brand font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5";
+        btnIn.className = "py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-brand font-black text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-md shadow-red-600/30 animate-pulse active:scale-95";
+        btnOut.className = "py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-brand font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 active:scale-95";
       } else {
         ltBox.classList.add('hidden');
         statLt.className = "p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-500";
         statLtText.innerText = "OFF";
-        btnIn.className = "py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-brand font-black text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/25";
-        btnOut.className = "py-3 px-4 rounded-xl bg-slate-200 border border-slate-300 text-slate-800 font-brand font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5";
+        btnIn.className = "py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-brand font-black text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/25 active:scale-95";
+        btnOut.className = "py-3 px-4 rounded-xl bg-slate-200 border border-slate-300 text-slate-800 font-brand font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 active:scale-95";
       }
 
       // 2. Tampilan Bug Logo
@@ -781,16 +806,16 @@
         logoPill.innerText = "ON-AIR";
         statLogo.className = "p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-700 font-bold";
         statLogoText.innerText = "ON-AIR";
-        btnLogoOn.className = "py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow";
-        btnLogoOff.className = "py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-xs transition";
+        btnLogoOn.className = "py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow active:scale-95";
+        btnLogoOff.className = "py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-xs transition active:scale-95";
       } else {
         logoBox.classList.add('hidden');
         logoPill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold";
         logoPill.innerText = "OFF";
         statLogo.className = "p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-500";
         statLogoText.innerText = "OFF";
-        btnLogoOn.className = "py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition";
-        btnLogoOff.className = "py-2 rounded-xl bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs transition";
+        btnLogoOn.className = "py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition active:scale-95";
+        btnLogoOff.className = "py-2 rounded-xl bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs transition active:scale-95";
       }
 
       // 3. Tampilan Running Text
@@ -807,16 +832,16 @@
         tickerPill.innerText = "ON-AIR";
         statTicker.className = "p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-700 font-bold";
         statTickerText.innerText = "ON-AIR";
-        btnTickerOn.className = "py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow";
-        btnTickerOff.className = "py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-xs transition";
+        btnTickerOn.className = "py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow active:scale-95";
+        btnTickerOff.className = "py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-xs transition active:scale-95";
       } else {
         tickerBox.classList.add('hidden');
         tickerPill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold";
         tickerPill.innerText = "OFF";
         statTicker.className = "p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-500";
         statTickerText.innerText = "OFF";
-        btnTickerOn.className = "py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition";
-        btnTickerOff.className = "py-2 rounded-xl bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs transition";
+        btnTickerOn.className = "py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition active:scale-95";
+        btnTickerOff.className = "py-2 rounded-xl bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs transition active:scale-95";
       }
 
       // Badge umum On-Air CG
@@ -831,8 +856,9 @@
     }
 
     function syncCgKeFirebase() {
-      if (!isFirebaseReady) return;
-      db.ref(`rooms/${currentRoomToken}/cg_state`).set({
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref(`rooms/${currentRoomToken}/cg_state`).set({
         lowerThirdActive: cgState.lowerThirdActive,
         title: cgState.title,
         subtitle: cgState.subtitle,
@@ -858,14 +884,14 @@
         title.innerText = "Ganti Peran Kru?";
         message.innerHTML = `Slot posisi <strong>Graphic Operator (CG)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.`;
         btn.innerText = "Ya, Ganti Peran";
-        btn.className = "w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm";
+        btn.className = "w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm active:scale-95";
       } else {
         icon.innerText = "🚪";
         icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold";
         title.innerText = "Keluar dari Sesi Siaran?";
         message.innerHTML = `Slot posisi <strong>Graphic Operator (CG)</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.`;
         btn.innerText = "Ya, Keluar Sesi";
-        btn.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm";
+        btn.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm active:scale-95";
       }
 
       modal.classList.remove('hidden');
@@ -876,19 +902,21 @@
     }
 
     function tanganiSesiDiakhiriGuru() {
+      if (currentRoomToken === 'SKASA') return;
+
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
       sessionStorage.removeItem('skawan_role_title');
 
       alert("Sesi Siaran Telah Diakhiri oleh Guru. Mengalihkan ke pemilihan peran...");
-      window.location.href = `index.html?room=${currentRoomToken}`;
+      window.location.href = `login.html?room=${currentRoomToken}`;
     }
 
     function eksekusiKeluarSesi() {
-      // 1. Kosongkan kembali slot peran di Firebase secara atomik
-      if (isFirebaseReady && currentRoomToken && currentSiswaUser) {
-        db.ref(`rooms/${currentRoomToken}/roles/cg`).transaction(currentVal => {
+      const activeDb = getDatabase();
+      if (activeDb && currentRoomToken && currentSiswaUser) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/cg`).transaction(currentVal => {
           if (currentVal === currentSiswaUser) {
             return "";
           }
@@ -896,7 +924,6 @@
         });
       }
 
-      // 2. Bersihkan penanda role di storage agar index.html TIDAK melakukan auto-redirect kembali
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
@@ -904,13 +931,12 @@
 
       tutupModalKeluar();
 
-      // 3. Arahkan kembali ke lobby index.html
       if (pendingExitType === 'keluar') {
         localStorage.removeItem('skawan_user');
         sessionStorage.removeItem('skawan_user');
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
       } else {
-        window.location.href = `index.html?room=${currentRoomToken}`;
+        window.location.href = `login.html?room=${currentRoomToken}`;
       }
     }
   </script>
