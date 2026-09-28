@@ -3,15 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Switcher (ATEM Desk) | SKAWAN TV</title>
-  
+  <title>SKAWAN TV | SKASA WAHANA TELEVISI</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
+  <!-- Google Fonts: Montserrat & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -26,13 +24,10 @@
             skawan: {
               red: '#E50914',
               redHover: '#C70812',
-              lightBg: '#F8FAFC',
+              lightBg: '#F1F5F9',
               cardBg: '#FFFFFF',
               borderLight: '#E2E8F0',
-              accentBlue: '#2563EB',
-              warningAmber: '#D97706',
-              atemDark: '#12161F',
-              atemPanel: '#1E232F'
+              accentBlue: '#2563EB'
             }
           }
         }
@@ -45,960 +40,578 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
-  <!-- PeerJS WebRTC Streamer & YouTube API -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <script src="js/webrtc-stream.js"></script>
-  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- AUTO-FALLBACK: Menjamin Firebase SELALU aktif meski file eksternal belum di-commit/ter-cache -->
+  <script>
+    (function ensureFirebaseConnection() {
+      const config = {
+        apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
+        authDomain: "skawan-tv.firebaseapp.com",
+        databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "skawan-tv",
+        storageBucket: "skawan-tv.firebasestorage.app",
+        messagingSenderId: "501619282826",
+        appId: "1:501619282826:web:81e624ac35e9798062ae73"
+      };
 
-  <style>
-    .atem-btn {
-      transition: all 0.12s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .atem-btn:active {
-      transform: scale(0.96);
-    }
-    .btn-pgm-active {
-      background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%) !important;
-      color: #ffffff !important;
-      border-color: #f87171 !important;
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
-    }
-    .btn-pvw-active {
-      background: linear-gradient(180deg, #10b981 0%, #047857 100%) !important;
-      color: #ffffff !important;
-      border-color: #34d399 !important;
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
-    }
-    .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-      background-size: 100% 2px, 3px 100%;
-      pointer-events: none;
-    }
-    @keyframes ticker-anim {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-    .marquee-text {
-      display: inline-block;
-      white-space: nowrap;
-      animation: ticker-anim 16s linear infinite;
-    }
-  </style>
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || !firebase.apps.length) {
+          try {
+            firebase.initializeApp(config);
+          } catch (e) {
+            console.warn("Init fallback:", e);
+          }
+        }
+        if (!window.db && firebase.database) {
+          window.db = firebase.database();
+        }
+      }
+    })();
+    var db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
+  </script>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center p-4 selection:bg-red-600 selection:text-white">
 
-  <!-- Top Navigation Bar -->
-  <nav class="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <a href="index.html" class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-base text-white shadow-sm">
-            SW
-          </div>
-          <div>
-            <div class="flex items-center gap-1">
-              <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
-              <span class="font-brand font-black text-red-500 text-base leading-none">TV</span>
-            </div>
-            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">ATEM Mini Pro Video Switcher</span>
-          </div>
-        </a>
-        <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
-        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-950/60 text-red-400 border border-red-800">
-          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-          Master Switching Desk
-        </span>
+  <!-- Header Branding SKAWAN TV (Tema Cerah) -->
+  <header class="text-center mb-6">
+    <div class="flex items-center justify-center gap-2 mb-3 flex-wrap">
+      <div class="inline-flex items-center gap-2 bg-red-100 border border-red-200 text-red-700 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+        ON-AIR SIMULATION SYSTEM
       </div>
-
-      <div class="flex items-center gap-2 sm:gap-3">
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
-          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
-          <span id="navRoomToken" class="font-mono font-bold text-xs text-red-400">STUDIO-1</span>
-        </div>
-        <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
-          <span>👤</span>
-          <span id="navUserName">Switcher Operator</span>
-        </div>
-        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
-          <span>🔄</span>
-          <span class="hidden sm:inline">Ganti Peran</span>
-        </button>
-        <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
-          <span>🚪</span>
-          <span class="hidden sm:inline">Keluar</span>
-        </button>
+      
+      <!-- Indikator Status Koneksi Real-Time Interaktif -->
+      <div id="connStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm transition-all duration-300">
+        <span id="connStatusDot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+        <span id="connStatusText">Menghubungkan Database...</span>
       </div>
     </div>
-  </nav>
+    
+    <div class="flex items-center justify-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-xl text-white shadow-md shadow-red-500/20">
+        SK
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-brand font-black tracking-wider text-slate-900">
+        SKAWAN <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600">TV</span>
+      </h1>
+    </div>
+    <p class="text-xs sm:text-sm tracking-widest uppercase font-semibold text-slate-500 mt-1">
+      SKASA WAHANA TELEVISI &bull; SMK NEGERI 1 PACITAN
+    </p>
+  </header>
 
-  <!-- Banner Instruksi dari Sutradara (PD) -->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
-    <div id="directorCueBanner" class="bg-gradient-to-r from-red-600 via-rose-600 to-indigo-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition">
-      <div class="flex items-center gap-2.5">
-        <div class="p-1.5 rounded-xl bg-white/20 shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+  <!-- Container Utama Form & Panel -->
+  <main class="w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 relative overflow-hidden space-y-5">
+    <!-- Garis Aksen Dekoratif Atas -->
+    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-rose-500 to-blue-600"></div>
+
+    <!-- BANNER KHUSUS: Akses Penonton Publik (Bebas Login) -->
+    <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl p-4 shadow-md flex items-center justify-between gap-3 border border-slate-700">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-red-600/30 border border-red-500/50 flex items-center justify-center text-xl shrink-0">
+          📺
         </div>
         <div>
-          <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-rose-200 block">INSTRUKSI SUTRADARA (PD):</span>
-          <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby Cam 1 & Siapkan Dissolve ke Cam 2</span>
+          <span class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold block">PENONTON DI LUAR KRU:</span>
+          <span class="text-xs sm:text-sm font-brand font-black text-white">Nonton Siaran Langsung (PGM Viewer)</span>
         </div>
       </div>
-      <span id="directorCueTime" class="text-[10px] font-mono bg-black/30 px-2 py-0.5 rounded font-bold shrink-0">LIVE</span>
-    </div>
-  </div>
-
-  <!-- Kontainer Utama Switcher -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
-
-    <!-- 1. MONITOR UTAMA (PREVIEW vs PROGRAM) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-      <!-- Layar PREVIEW (PVW) -->
-      <div class="bg-slate-950 border-2 border-emerald-500 rounded-2xl p-3 shadow-xl space-y-2 relative overflow-hidden">
-        <div class="flex items-center justify-between pb-1 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="font-brand font-black text-xs uppercase tracking-wider text-emerald-400">PREVIEW (PVW)</span>
-          </div>
-          <span id="badgePvwSource" class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700">
-            CAM 2
-          </span>
-        </div>
-
-        <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="pvwScreenContainer">
-          <!-- Video Kamera HP jika PVW adalah Kamera -->
-          <video id="pvwCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
-
-          <!-- Video VT Player Preview jika PVW adalah VT -->
-          <div id="pvwVtWrapper" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center">
-            <video id="pvwVtHtml5" class="w-full h-full object-contain hidden" playsinline muted></video>
-            <div id="pvwVtYtWrap" class="w-full h-full hidden pointer-events-none">
-              <div id="pvwVtYtEl" class="w-full h-full"></div>
-            </div>
-            <iframe id="pvwVtGdrive" class="w-full h-full border-0 hidden pointer-events-none"></iframe>
-          </div>
-
-          <!-- Fallback Text jika belum ada sinyal -->
-          <div id="pvwFallbackBox" class="text-center space-y-1 relative z-10">
-            <span id="pvwScreenLabel" class="font-brand font-black text-3xl sm:text-4xl text-slate-300 tracking-wider">CAM 2</span>
-            <span class="text-[10px] font-mono text-emerald-400 block uppercase">STANDBY FOR CUT / AUTO</span>
-          </div>
-
-          <div class="scanline absolute inset-0 pointer-events-none"></div>
-          <div class="absolute bottom-2 left-2 bg-emerald-600/90 text-white font-mono text-[9px] px-2 py-0.5 rounded font-bold z-10">
-            PREVIEW BUS
-          </div>
-        </div>
-      </div>
-
-      <!-- Layar PROGRAM (PGM ON-AIR) -->
-      <div class="bg-slate-950 border-2 border-red-600 rounded-2xl p-3 shadow-2xl space-y-2 relative overflow-hidden" id="pgmMainCard">
-        <div class="flex items-center justify-between pb-1 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
-            <span class="font-brand font-black text-xs uppercase tracking-wider text-red-500">PROGRAM (PGM) &bull; ON-AIR</span>
-          </div>
-          <span id="badgePgmSource" class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-700 animate-pulse">
-            CAM 1
-          </span>
-        </div>
-
-        <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 transition-opacity duration-300" id="pgmScreenContainer">
-          <!-- Video Kamera HP jika PGM adalah Kamera -->
-          <video id="pgmCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
-
-          <!-- Video VT Player Program jika PGM adalah VT -->
-          <div id="pgmVtWrapper" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center">
-            <video id="pgmVtHtml5" class="w-full h-full object-contain hidden" playsinline muted></video>
-            <div id="pgmVtYtWrap" class="w-full h-full hidden pointer-events-none">
-              <div id="pgmVtYtEl" class="w-full h-full"></div>
-            </div>
-            <iframe id="pgmVtGdrive" class="w-full h-full border-0 hidden pointer-events-none"></iframe>
-          </div>
-
-          <!-- Fallback Text jika belum ada sinyal video -->
-          <div id="pgmFallbackBox" class="text-center space-y-1 relative z-10">
-            <span id="pgmScreenLabel" class="font-brand font-black text-3xl sm:text-4xl text-red-500 tracking-wider">CAM 1</span>
-            <span class="text-[10px] font-mono text-red-400 block uppercase">LIVE BROADCAST</span>
-          </div>
-
-          <!-- LAPISAN GRAFIS 1: Lower Third Dinamis dari CG -->
-          <div id="pgmLowerThirdBox" class="hidden absolute bottom-7 left-3 right-3 z-30 transition-all duration-300">
-            <div id="pgmLtTitle" class="bg-gradient-to-r from-red-600 to-rose-600 text-white font-brand font-black text-xs sm:text-sm px-3 py-1 rounded-t-lg shadow-md inline-block">
-              NAMA PRESENTER
-            </div>
-            <div id="pgmLtSubtitle" class="bg-slate-950/95 border-l-4 border-red-500 text-slate-100 text-[11px] font-medium px-3 py-1 rounded-b-lg shadow-lg flex items-center justify-between">
-              <span>Keterangan Jabatan</span>
-              <span class="text-[9px] font-mono text-red-400 font-bold ml-2">LIVE</span>
-            </div>
-          </div>
-
-          <!-- LAPISAN GRAFIS 2: Bug Logo SKAWAN TV Pojok Kanan Atas -->
-          <div id="pgmBugLogo" class="hidden absolute top-3 right-3 z-30 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded border border-white/20">
-            <div class="w-3.5 h-3.5 rounded bg-red-600 flex items-center justify-center text-[8px] font-black text-white">SK</div>
-            <span class="text-[9px] font-brand font-black text-white uppercase tracking-widest">SKAWAN <span class="text-red-500">TV</span></span>
-          </div>
-
-          <!-- LAPISAN GRAFIS 3: Running Text / Ticker di Dasar Layar -->
-          <div id="pgmTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-5 bg-red-700 text-white z-30 overflow-hidden flex items-center border-t border-red-500">
-            <div class="bg-slate-950 px-2 h-full flex items-center font-mono font-black text-[8px] text-amber-400 shrink-0">
-              INFO KILAT
-            </div>
-            <div class="w-full overflow-hidden text-[9px] font-medium px-1">
-              <span id="pgmTickerText" class="marquee-text">Siaran Simulasi SKAWAN TV</span>
-            </div>
-          </div>
-
-          <div class="scanline absolute inset-0 pointer-events-none"></div>
-
-          <!-- On-Air Bug Badge -->
-          <div class="absolute top-2 left-2 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded flex items-center gap-1 shadow z-30">
-            <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> ON-AIR
-          </div>
-        </div>
-      </div>
-
+      <button onclick="bukaLiveViewerLangsung()" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-3.5 py-2 rounded-lg text-xs transition shadow-md shadow-red-600/30 flex items-center gap-1.5 shrink-0">
+        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+        <span>Tonton Live</span>
+      </button>
     </div>
 
-    <!-- 2. MULTIVIEW FEEDS BARIS BAWAH -->
-    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 shadow-md">
-      <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs">
-        <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">Multi-Camera & Media Inputs</span>
-        <span class="font-mono text-[10px] text-slate-500">Klik sumber untuk menetapkan ke bus Preview</span>
+    <!-- Tab Navigasi (Siswa Kru vs Guru) -->
+    <div id="tabContainer" class="flex border-b border-slate-200 pt-1">
+      <button id="tabSiswaBtn" onclick="switchTab('siswa')" class="flex-1 pb-3 text-sm font-bold border-b-2 border-red-600 text-red-600 focus:outline-none transition">
+        Masuk Sebagai Kru
+      </button>
+      <button id="tabGuruBtn" onclick="switchTab('guru')" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition">
+        Master Control (Guru)
+      </button>
+    </div>
+
+    <!-- VIEW 1: Form Siswa Masuk Sesi Kru -->
+    <section id="viewSiswa" class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Token Ruangan Studio</label>
+        <input type="text" id="siswaRoomToken" placeholder="Ketik token dari Guru (misal: STUDIO-1)" class="w-full uppercase bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-mono text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-100 focus:bg-white outline-none transition placeholder-slate-400">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Nama Lengkap Siswa</label>
+        <input type="text" id="siswaName" placeholder="Masukkan nama Anda" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-100 focus:bg-white outline-none transition placeholder-slate-400">
+      </div>
+      <button onclick="masukLobbySiswa()" class="w-full mt-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-red-600/25 active:scale-[0.99]">
+        Buka Daftar Peran Produksi
+      </button>
+    </section>
+
+    <!-- VIEW 2: Login Master Control (Guru) -->
+    <section id="viewGuru" class="hidden space-y-4">
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-xs text-blue-800 leading-relaxed">
+        <span class="font-bold">Akses Instruktur:</span> Halaman ini khusus untuk Guru / Pembina Studio dalam mengelola sesi, memantau kru, dan menyuntikkan simulasi krisis siaran.
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Kata Sandi Master Control</label>
+        <div class="relative">
+          <input type="password" id="guruPassword" placeholder="Masukkan kata sandi guru" onkeydown="if(event.key==='Enter') loginGuru()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:bg-white outline-none transition placeholder-slate-400">
+        </div>
+      </div>
+      <button onclick="loginGuru()" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-blue-600/25 active:scale-[0.99]">
+        Masuk ke Master Control (Admin)
+      </button>
+    </section>
+
+    <!-- VIEW 3: Pemilihan Posisi Kru (Real-time Slot Locking) -->
+    <section id="viewRoleSelector" class="hidden space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div>
+          <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Ruangan:</span>
+          <span id="displayRoomToken" class="font-mono font-bold text-red-600 ml-1"></span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Kru:</span>
+          <span id="displaySiswaName" class="font-bold text-slate-800 ml-1"></span>
+        </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="multiviewCardsGrid">
+      <p class="text-xs text-slate-600">Pilih salah satu peran kru di bawah. Posisi yang sudah diambil kru lain akan otomatis terkunci:</p>
+
+      <!-- Grid Daftar Tombol Peran -->
+      <div id="roleGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
         <!-- Render otomatis via JavaScript -->
       </div>
-    </div>
+    </section>
 
-    <!-- 3. KONSOL ATEM MINI PRO CONTROL DESK -->
-    <div class="bg-slate-950 border-2 border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
-      
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <div class="w-3 h-3 rounded-full bg-red-500 shadow"></div>
-          <span class="font-brand font-black text-sm uppercase tracking-wider text-white">ATEM Mini Pro Control Surface</span>
-        </div>
-        <div class="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-          <span>Keyboard: <strong class="text-white">SPACE = CUT</strong>, <strong class="text-white">ENTER = AUTO</strong></span>
-        </div>
+    <!-- VIEW 4: Ruang Tunggu (Waiting Room Kru) -->
+    <section id="viewWaitingRoom" class="hidden text-center py-6 space-y-4">
+      <div class="w-14 h-14 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <h3 class="text-lg font-bold text-slate-900">Posisi Terdaftar:</h3>
+      <div id="badgeRoleSelected" class="inline-block bg-red-50 border border-red-200 text-red-700 text-sm font-mono px-4 py-1.5 rounded-full font-bold shadow-sm"></div>
+      <p class="text-sm text-slate-600 max-w-sm mx-auto leading-relaxed">
+        Standby di posisi Anda. Menunggu Guru menekan tombol <span class="text-red-600 font-bold">"Mulai Siaran"</span>. Layar Anda akan berpindah otomatis ke workstation peran Anda.
+      </p>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-center gap-2">
+        <button onclick="batalPilihPeran()" class="text-xs text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 px-3 py-1.5 rounded-lg transition">
+          Ganti Peran / Keluar Sesi
+        </button>
       </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-
-        <!-- Bus Pemilihan Sumber (8 Kolom) -->
-        <div class="lg:col-span-8 space-y-3">
-          
-          <!-- Baris 1: PROGRAM BUS (MERAH) -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-1.5">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-red-400">PROGRAM BUS (DIRECT CUT ON-AIR)</span>
-              <span class="text-[10px] font-mono text-slate-500">Live Out</span>
-            </div>
-            <div class="grid grid-cols-4 gap-2" id="pgmBusButtons">
-              <!-- Render via JS -->
-            </div>
-          </div>
-
-          <!-- Baris 2: PREVIEW BUS (HIJAU) -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-1.5">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400">PREVIEW BUS (NEXT TRANSITION)</span>
-              <span class="text-[10px] font-mono text-slate-500">Standby</span>
-            </div>
-            <div class="grid grid-cols-4 gap-2" id="pvwBusButtons">
-              <!-- Render via JS -->
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Tombol Transisi CUT, AUTO, & FTB (4 Kolom) -->
-        <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between space-y-3">
-          
-          <div class="grid grid-cols-2 gap-2.5">
-            <!-- Tombol CUT Instan -->
-            <button onclick="eksekusiCut()" id="btnAtemCut" class="atem-btn py-5 rounded-xl bg-gradient-to-b from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-brand font-black text-lg tracking-wider shadow-lg shadow-red-600/30 border border-red-400 flex flex-col items-center justify-center">
-              <span>CUT</span>
-              <span class="text-[9px] font-mono text-red-200 tracking-normal">[SPACE]</span>
-            </button>
-
-            <!-- Tombol AUTO Dissolve -->
-            <button onclick="eksekusiAuto()" id="btnAtemAuto" class="atem-btn py-5 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-emerald-400 font-brand font-black text-lg tracking-wider shadow-lg border border-emerald-500/40 flex flex-col items-center justify-center">
-              <span>AUTO</span>
-              <span class="text-[9px] font-mono text-emerald-300 tracking-normal">[ENTER]</span>
-            </button>
-          </div>
-
-          <!-- Slider Kecepatan Transisi & Tombol FTB -->
-          <div class="space-y-2 pt-1 border-t border-slate-800">
-            <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
-              <span>Transisi Rate:</span>
-              <span id="lblTransitionRate" class="font-bold text-white">0.5s Dissolve</span>
-            </div>
-            <input type="range" id="sliderTransitionRate" min="200" max="1500" value="500" step="100" oninput="document.getElementById('lblTransitionRate').innerText = (this.value/1000).toFixed(1) + 's Dissolve'" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
-
-            <!-- Tombol Fade to Black (FTB) -->
-            <button onclick="toggleFtb()" id="btnFtb" class="atem-btn w-full py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs tracking-wider transition">
-              FTB (FADE TO BLACK)
-            </button>
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
+    </section>
 
   </main>
 
-  <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN SWITCHER -->
-  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
-      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">
-        🔄
-      </div>
-      <div>
-        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Video Switcher?</h4>
-        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Slot posisi <strong>Video Switcher</strong> akan dilepaskan di sistem studio agar siswa lain dapat mengambilnya.
-        </p>
-      </div>
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
-          Batal
-        </button>
-        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
-          Ya, Lepaskan Slot
-        </button>
-      </div>
+  <!-- Notification Dialog Modal -->
+  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
+      <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
+      <p id="noticeMessage" class="text-sm text-slate-600 mb-5"></p>
+      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+        Tutup
+      </button>
     </div>
   </div>
 
+  <footer class="mt-6 text-center text-xs text-slate-500 font-medium">
+    SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026
+  </footer>
+
   <script>
-    let currentRoomToken = 'STUDIO-1';
-    let currentRoleKey = 'switcher';
-    let currentSiswaUser = '';
-    let pendingExitType = 'ganti';
-    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let currentRoomToken = '';
+    let currentSiswaName = '';
+    let selectedRoleKey = '';
+    let selectedRoleTitle = '';
+    let isFirebaseReady = false;
 
-    let totalCameras = 3;
-    let liveState = {
-      programSource: 'cam_1',
-      previewSource: 'cam_2',
-      tally: { cam_1: 'red', cam_2: 'green', cam_3: 'off' },
-      isFtb: false
-    };
-
-    let latestVtState = { status: 'stopped', currentTime: 0, url: '', youtubeId: '', sourceType: 'youtube' };
-    let switcherPgmYt = null;
-    let switcherPvwYt = null;
-    let isYtReady = false;
-    let currentPgmYtId = '';
-    let currentPvwYtId = '';
-
-    const remoteCamStreams = new Map();
-    let streamerInstance = null;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
-      const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
-
-      currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
-      currentSiswaUser = sessionUser || 'Video Switcher';
-
-      document.getElementById('navRoomToken').innerText = currentRoomToken;
-      const userBadge = document.getElementById('navUserName');
-      if (userBadge) userBadge.innerText = currentSiswaUser;
-
-      initSwitcherSystem(currentRoomToken);
-      setupKeyboardShortcuts();
-    });
-
-    window.onYouTubeIframeAPIReady = function() {
-      isYtReady = true;
-      try {
-        switcherPgmYt = new YT.Player('pgmVtYtEl', {
-          height: '100%', width: '100%',
-          videoId: 'ysz5S6PUM-U',
-          playerVars: {
-            playsinline: 1,
-            controls: 0,
-            rel: 0,
-            mute: 1,
-            modestbranding: 1,
-            disablekb: 1,
-            cc_load_policy: 0, // Matikan takarir/CC bawaan
-            iv_load_policy: 3  // Matikan anotasi pop-up
-          }
-        });
-        switcherPvwYt = new YT.Player('pvwVtYtEl', {
-          height: '100%', width: '100%',
-          videoId: 'ysz5S6PUM-U',
-          playerVars: {
-            playsinline: 1,
-            controls: 0,
-            rel: 0,
-            mute: 1,
-            modestbranding: 1,
-            disablekb: 1,
-            cc_load_policy: 0, // Matikan takarir/CC bawaan
-            iv_load_policy: 3  // Matikan anotasi pop-up
-          }
-        });
-      } catch (e) {
-        console.warn(e);
+    function getDatabase() {
+      if (window.db) return window.db;
+      if (typeof firebase !== 'undefined' && firebase.database) {
+        window.db = firebase.database();
+        return window.db;
       }
-    };
-
-    function initSwitcherSystem(token) {
-      if (isFirebaseReady) {
-        db.ref(`rooms/${token}/meta`).on('value', snap => {
-          if (!snap.exists()) return;
-          const meta = snap.val();
-          if (meta.totalCameras && meta.totalCameras !== totalCameras) {
-            totalCameras = meta.totalCameras;
-            renderMultiviewCards();
-          }
-        });
-
-        db.ref(`rooms/${token}/live_state`).on('value', snap => {
-          if (!snap.exists()) return;
-          const remoteLive = snap.val();
-          liveState.programSource = remoteLive.programSource || liveState.programSource;
-          liveState.previewSource = remoteLive.previewSource || liveState.previewSource;
-          liveState.tally = remoteLive.tally || liveState.tally;
-          updateBusButtons();
-          updateMonitors();
-        });
-
-        // Sinkronisasi Video VT dari Audio Operator
-        db.ref(`rooms/${token}/vt_state`).on('value', snap => {
-          if (!snap.exists()) return;
-          latestVtState = snap.val();
-          syncVtDisplay();
-        });
-
-        db.ref(`rooms/${token}/cg_state`).on('value', snap => {
-          if (!snap.exists()) return;
-          const cg = snap.val();
-          applyCgOverlay(cg);
-        });
-
-        db.ref(`rooms/${token}/director_cues`).on('value', snap => {
-          if (!snap.exists()) return;
-          const cue = snap.val();
-          if (cue.targetRole === 'SWITCHER' || cue.targetRole === 'ALL') {
-            document.getElementById('directorCueText').innerText = cue.message;
-            const now = new Date(cue.timestamp || Date.now());
-            document.getElementById('directorCueTime').innerText = now.toTimeString().split(' ')[0];
-
-            const banner = document.getElementById('directorCueBanner');
-            banner.classList.add('ring-4', 'ring-red-400');
-            setTimeout(() => banner.classList.remove('ring-4', 'ring-red-400'), 1500);
-          }
-        });
-      }
-
-      renderMultiviewCards();
-      updateBusButtons();
-      updateMonitors();
-
-      if (typeof SkawanStreamer !== 'undefined') {
-        streamerInstance = new SkawanStreamer({
-          roomToken: token,
-          roleKey: 'switcher',
-          onRemoteStream: (camKey, stream) => {
-            console.log(`[WebRTC Switcher] Feed diterima dari ${camKey}`);
-            remoteCamStreams.set(camKey, stream);
-
-            const mvVideo = document.getElementById(`mv-video-${camKey}`);
-            if (mvVideo) {
-              mvVideo.srcObject = stream;
-              mvVideo.classList.remove('hidden');
-            }
-
-            updateMonitors();
-          },
-          onStatusChange: (status, info) => {
-            console.log(`[WebRTC Switcher] Status: ${status} - ${info}`);
-          }
-        });
-      }
-    }
-
-    function getCameraStream(key) {
-      if (!key) return null;
-      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
-      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
-      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
       return null;
     }
 
-    function renderMultiviewCards() {
-      const grid = document.getElementById('multiviewCardsGrid');
+    function checkFirebaseReady() {
+      const activeDb = getDatabase();
+      return Boolean(typeof firebase !== 'undefined' && activeDb && firebase.apps && firebase.apps.length > 0);
+    }
+
+    function setupConnectionMonitor() {
+      const badge = document.getElementById('connStatusBadge');
+      const dot = document.getElementById('connStatusDot');
+      const text = document.getElementById('connStatusText');
+
+      const activeDb = getDatabase();
+
+      if (!activeDb) {
+        isFirebaseReady = false;
+        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-600 border border-slate-300 shadow-sm";
+        dot.className = "w-2 h-2 rounded-full bg-slate-400";
+        text.innerText = "Mode Demo / Offline";
+        return;
+      }
+
+      isFirebaseReady = true;
+
+      activeDb.ref('.info/connected').on('value', snap => {
+        if (snap.val() === true) {
+          badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm";
+          dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+          text.innerText = "🟢 Firebase Terhubung";
+        } else {
+          badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm";
+          dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+          text.innerText = "Menghubungkan Server...";
+        }
+      }, err => {
+        console.warn("Connection monitor error:", err);
+        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-sm";
+        dot.className = "w-2 h-2 rounded-full bg-rose-500";
+        text.innerText = "Periksa Security Rules";
+      });
+    }
+
+    function showNotice(title, message, isSuccess = false) {
+      document.getElementById('noticeTitle').innerText = title;
+      document.getElementById('noticeMessage').innerText = message;
+      const icon = document.getElementById('noticeIcon');
+      if (isSuccess) {
+        icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.innerText = "✓";
+      } else {
+        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.innerText = "!";
+      }
+      document.getElementById('noticeModal').classList.remove('hidden');
+    }
+
+    function closeNotice() {
+      document.getElementById('noticeModal').classList.add('hidden');
+    }
+
+    // Navigasi langsung ke Layar Penonton Publik PGM
+    function bukaLiveViewerLangsung() {
+      const tokenInput = document.getElementById('siswaRoomToken').value.trim().toUpperCase();
+      const savedToken = localStorage.getItem('skawan_room') || sessionStorage.getItem('skawan_room');
+      const targetToken = tokenInput || savedToken || 'STUDIO-1';
+      window.location.href = `live.html?room=${targetToken}`;
+    }
+
+    function switchTab(role) {
+      const isSiswa = role === 'siswa';
+      document.getElementById('viewSiswa').classList.toggle('hidden', !isSiswa);
+      document.getElementById('viewGuru').classList.toggle('hidden', isSiswa);
+      
+      document.getElementById('tabSiswaBtn').className = isSiswa 
+        ? "flex-1 pb-3 text-sm font-bold border-b-2 border-red-600 text-red-600 focus:outline-none transition"
+        : "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition";
+
+      document.getElementById('tabGuruBtn').className = !isSiswa 
+        ? "flex-1 pb-3 text-sm font-bold border-b-2 border-blue-600 text-blue-600 focus:outline-none transition"
+        : "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition";
+    }
+
+    let mockRoles = {
+      creative: "",
+      pd: "Rian (Contoh)",
+      switcher: "",
+      audio_vt: "",
+      cg: "",
+      fd: "",
+      cam_1: "",
+      cam_2: "",
+      cam_3: ""
+    };
+
+    function loginGuru() {
+      const pass = document.getElementById('guruPassword').value;
+
+      if (!pass) {
+        showNotice("Peringatan", "Harap masukkan kata sandi Master Control!");
+        return;
+      }
+
+      if (pass === "admin") {
+        sessionStorage.setItem('skawan_role', 'admin');
+        sessionStorage.setItem('skawan_admin_logged', 'true');
+        showNotice("Akses Diterima", "Berhasil login! Mengalihkan ke Halaman Master Control Guru...", true);
+        
+        setTimeout(() => {
+          window.location.href = "admin.html";
+        }, 800);
+      } else {
+        showNotice("Akses Ditolak", "Kata sandi salah! Pastikan memasukkan kata sandi yang benar.");
+      }
+    }
+
+    function masukLobbySiswa() {
+      const token = document.getElementById('siswaRoomToken').value.trim().toUpperCase();
+      const name = document.getElementById('siswaName').value.trim();
+
+      if (!token || !name) {
+        showNotice("Peringatan", "Harap masukkan Token Ruangan dan Nama Anda!");
+        return;
+      }
+
+      currentRoomToken = token;
+      currentSiswaName = name;
+
+      localStorage.setItem('skawan_room', token);
+      localStorage.setItem('skawan_user', name);
+
+      const activeDb = getDatabase();
+
+      if (activeDb) {
+        activeDb.ref(`rooms/${token}`).once('value', snapshot => {
+          if (!snapshot.exists()) {
+            showNotice("Token Tidak Valid", `Ruangan "${token}" tidak ditemukan! Pastikan Guru sudah membuka sesi di Master Control.`);
+            return;
+          }
+
+          const roomData = snapshot.val();
+          if (roomData.meta && roomData.meta.status === 'ended') {
+            showNotice("Sesi Berakhir", "Sesi produksi studio ini sudah selesai.");
+            return;
+          }
+
+          bukaTampilanPeran(token, name);
+          listenRoles(token);
+        }).catch(err => {
+          console.error(err);
+          showNotice("Koneksi Bermasalah", "Gagal menghubungi database Firebase: " + err.message);
+        });
+      } else {
+        bukaTampilanPeran(token, name);
+        renderRoleButtons(mockRoles);
+      }
+    }
+
+    function bukaTampilanPeran(token, name) {
+      document.getElementById('tabContainer').classList.add('hidden');
+      document.getElementById('viewSiswa').classList.add('hidden');
+      document.getElementById('viewWaitingRoom').classList.add('hidden');
+      document.getElementById('viewRoleSelector').classList.remove('hidden');
+      document.getElementById('displayRoomToken').innerText = token;
+      document.getElementById('displaySiswaName').innerText = name;
+    }
+
+    const roleLabels = {
+      creative: "Tim Kreatif (Rundown & Script)",
+      pd: "Program Director (PD)",
+      switcher: "Video Switcher (ATEM Desk)",
+      audio_vt: "Audio & VT Operator (Drive)",
+      cg: "Graphic Operator (CG & Lower Third)",
+      fd: "Floor Director (FD / Studio Floor)"
+    };
+
+    function listenRoles(token) {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref(`rooms/${token}`).on('value', snapshot => {
+        if (!snapshot.exists()) return;
+        const roomData = snapshot.val();
+        let roles = roomData.roles || {};
+
+        if (Object.keys(roles).length === 0) {
+          const totalCams = roomData.meta?.totalCameras || 3;
+          roles = {
+            creative: "",
+            pd: "",
+            switcher: "",
+            audio_vt: "",
+            cg: "",
+            fd: ""
+          };
+          for (let i = 1; i <= totalCams; i++) roles[`cam_${i}`] = "";
+          activeDb.ref(`rooms/${token}/roles`).set(roles);
+        }
+
+        renderRoleButtons(roles);
+      });
+    }
+
+    function renderRoleButtons(roles) {
+      const grid = document.getElementById('roleGrid');
       grid.innerHTML = '';
 
-      const sources = [];
-      for (let i = 1; i <= totalCameras; i++) {
-        sources.push({ key: `cam_${i}`, label: `CAM ${i}`, sub: `Kamera HP ${i}` });
-      }
-      sources.push({ key: 'vt', label: 'VT / MEDIA', sub: 'Pemutar YouTube/Drive' });
-
-      sources.forEach(src => {
-        const card = document.createElement('div');
-        card.id = `mv-card-${src.key}`;
-        card.onclick = () => pilihBusLangsung('pvw', src.key);
-        card.className = "bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow";
+      Object.keys(roles).forEach(roleKey => {
+        const occupant = roles[roleKey];
+        const isTaken = Boolean(occupant && typeof occupant === 'string' && occupant.trim().length > 0);
+        const isMine = isTaken && occupant === currentSiswaName;
         
-        card.innerHTML = `
-          <video id="mv-video-${src.key}" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+        let title = roleLabels[roleKey];
+        if (!title && roleKey.startsWith('cam_')) {
+          const camNum = roleKey.replace('cam_', '');
+          title = `Kamerawan ${camNum} (HP Live)`;
+        }
 
-          <div class="flex items-center justify-between relative z-10">
-            <span class="font-brand font-black text-xs text-white drop-shadow">${src.label}</span>
-            <span id="mv-badge-${src.key}" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
-              OFF
-            </span>
-          </div>
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.disabled = isTaken && !isMine;
+        btn.onclick = () => ambilPeran(roleKey, title);
 
-          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-${src.key}">
-            FEED READY
-          </div>
+        let cardClass = "flex flex-col text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-red-500 hover:bg-red-50/50 text-slate-800 shadow-sm transition active:scale-[0.98]";
+        let statusBadge = `<span class="text-xs mt-1.5 font-mono text-emerald-600 font-semibold">&bull; Posisi Kosong (Klik Ambil)</span>`;
 
-          <div class="text-[9px] text-slate-400 font-mono truncate relative z-10 drop-shadow">${src.sub}</div>
+        if (isMine) {
+          cardClass = "flex flex-col text-left p-3.5 rounded-xl border-2 border-red-500 bg-red-50 text-red-900 shadow-sm";
+          statusBadge = `<span class="text-xs mt-1.5 font-mono text-red-600 font-bold">&bull; Posisi Pilihan Anda</span>`;
+        } else if (isTaken) {
+          cardClass = "flex flex-col text-left p-3.5 rounded-xl border border-slate-200 bg-slate-100 opacity-60 cursor-not-allowed text-slate-400";
+          statusBadge = `<span class="text-xs mt-1.5 font-mono text-amber-600 font-semibold">&bull; Terisi: ${occupant}</span>`;
+        }
+
+        btn.className = cardClass;
+        btn.innerHTML = `
+          <span class="text-sm font-bold tracking-wide ${isTaken && !isMine ? 'text-slate-400' : 'text-slate-900'}">${title}</span>
+          ${statusBadge}
         `;
 
-        grid.appendChild(card);
-
-        const existingStream = getCameraStream(src.key);
-        if (existingStream) {
-          setTimeout(() => {
-            const vid = document.getElementById(`mv-video-${src.key}`);
-            if (vid) {
-              vid.srcObject = existingStream;
-              vid.classList.remove('hidden');
-            }
-          }, 50);
-        }
-      });
-
-      renderBusButtons();
-      updateTallyVisuals();
-    }
-
-    function renderBusButtons() {
-      const pgmContainer = document.getElementById('pgmBusButtons');
-      const pvwContainer = document.getElementById('pvwBusButtons');
-      pgmContainer.innerHTML = '';
-      pvwContainer.innerHTML = '';
-
-      const sources = [];
-      for (let i = 1; i <= totalCameras; i++) sources.push(`cam_${i}`);
-      sources.push('vt');
-
-      sources.forEach(src => {
-        const label = src === 'vt' ? 'VT / MEDIA' : src.toUpperCase().replace('_', ' ');
-
-        const btnPgm = document.createElement('button');
-        btnPgm.id = `btn-pgm-${src}`;
-        btnPgm.onclick = () => pilihBusLangsung('pgm', src);
-        btnPgm.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700";
-        btnPgm.innerText = label;
-        pgmContainer.appendChild(btnPgm);
-
-        const btnPvw = document.createElement('button');
-        btnPvw.id = `btn-pvw-${src}`;
-        btnPvw.onclick = () => pilihBusLangsung('pvw', src);
-        btnPvw.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700";
-        btnPvw.innerText = label;
-        pvwContainer.appendChild(btnPvw);
-      });
-
-      updateBusButtons();
-    }
-
-    function updateBusButtons() {
-      const sources = [];
-      for (let i = 1; i <= totalCameras; i++) sources.push(`cam_${i}`);
-      sources.push('vt');
-
-      sources.forEach(src => {
-        const btnPgm = document.getElementById(`btn-pgm-${src}`);
-        const btnPvw = document.getElementById(`btn-pvw-${src}`);
-        if (btnPgm) {
-          if (src === liveState.programSource) btnPgm.className = "atem-btn py-3 rounded-xl border font-brand font-black text-xs sm:text-sm btn-pgm-active";
-          else btnPgm.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-300 hover:bg-slate-700";
-        }
-        if (btnPvw) {
-          if (src === liveState.previewSource) btnPvw.className = "atem-btn py-3 rounded-xl border font-brand font-black text-xs sm:text-sm btn-pvw-active";
-          else btnPvw.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-300 hover:bg-slate-700";
-        }
-      });
-
-      updateTallyVisuals();
-    }
-
-    function updateTallyVisuals() {
-      const sources = [];
-      for (let i = 1; i <= totalCameras; i++) sources.push(`cam_${i}`);
-      sources.push('vt');
-
-      sources.forEach(src => {
-        const card = document.getElementById(`mv-card-${src}`);
-        const badge = document.getElementById(`mv-badge-${src}`);
-        if (!card || !badge) return;
-
-        if (src === liveState.programSource) {
-          card.className = "bg-slate-900 border-2 border-red-500 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer shadow-lg";
-          badge.className = "text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse";
-          badge.innerText = "PGM";
-        } else if (src === liveState.previewSource) {
-          card.className = "bg-slate-900 border-2 border-emerald-500 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer shadow-md";
-          badge.className = "text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white";
-          badge.innerText = "PVW";
-        } else {
-          card.className = "bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow";
-          badge.className = "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400";
-          badge.innerText = "OFF";
-        }
+        grid.appendChild(btn);
       });
     }
 
-    function updateMonitors() {
-      const pgmLabel = liveState.programSource.toUpperCase().replace('_', ' ');
-      const pvwLabel = liveState.previewSource.toUpperCase().replace('_', ' ');
+    function ambilPeran(roleKey, roleTitle) {
+      const activeDb = getDatabase();
+      if (activeDb) {
+        const roleRef = activeDb.ref(`rooms/${currentRoomToken}/roles/${roleKey}`);
 
-      document.getElementById('badgePgmSource').innerText = pgmLabel;
-      document.getElementById('pgmScreenLabel').innerText = pgmLabel;
-      document.getElementById('badgePvwSource').innerText = pvwLabel;
-      document.getElementById('pvwScreenLabel').innerText = pvwLabel;
-
-      // 1. Render Layar Program (PGM)
-      const pgmVideo = document.getElementById('pgmCamVideo');
-      const pgmFallback = document.getElementById('pgmFallbackBox');
-      const pgmVtWrap = document.getElementById('pgmVtWrapper');
-
-      if (liveState.programSource === 'vt') {
-        pgmVideo.classList.add('hidden');
-        pgmFallback.classList.add('hidden');
-        pgmVtWrap.classList.remove('hidden');
-      } else {
-        pgmVtWrap.classList.add('hidden');
-        const stream = getCameraStream(liveState.programSource);
-        if (stream) {
-          pgmVideo.srcObject = stream;
-          pgmVideo.classList.remove('hidden');
-          pgmFallback.classList.add('hidden');
-        } else {
-          pgmVideo.classList.add('hidden');
-          pgmFallback.classList.remove('hidden');
-        }
-      }
-
-      // 2. Render Layar Preview (PVW)
-      const pvwVideo = document.getElementById('pvwCamVideo');
-      const pvwFallback = document.getElementById('pvwFallbackBox');
-      const pvwVtWrap = document.getElementById('pvwVtWrapper');
-
-      if (liveState.previewSource === 'vt') {
-        pvwVideo.classList.add('hidden');
-        pvwFallback.classList.add('hidden');
-        pvwVtWrap.classList.remove('hidden');
-      } else {
-        pvwVtWrap.classList.add('hidden');
-        const stream = getCameraStream(liveState.previewSource);
-        if (stream) {
-          pvwVideo.srcObject = stream;
-          pvwVideo.classList.remove('hidden');
-          pvwFallback.classList.add('hidden');
-        } else {
-          pvwVideo.classList.add('hidden');
-          pvwFallback.classList.remove('hidden');
-        }
-      }
-
-      syncVtDisplay();
-    }
-
-    // SINKRONISASI VT DENGAN PENANGANAN YOUTUBE & GOOGLE DRIVE LENGKAP
-    function syncVtDisplay() {
-      const isPgmVt = liveState.programSource === 'vt';
-      const isPvwVt = liveState.previewSource === 'vt';
-
-      const pgmHtml5 = document.getElementById('pgmVtHtml5');
-      const pvwHtml5 = document.getElementById('pvwVtHtml5');
-      const pgmYtWrap = document.getElementById('pgmVtYtWrap');
-      const pvwYtWrap = document.getElementById('pvwVtYtWrap');
-      const pgmGdrive = document.getElementById('pgmVtGdrive');
-      const pvwGdrive = document.getElementById('pvwVtGdrive');
-
-      const ytId = latestVtState.youtubeId || (latestVtState.sourceType === 'youtube' ? latestVtState.url : '');
-      const isPlaying = latestVtState.status === 'playing';
-
-      if (latestVtState.sourceType === 'youtube' && ytId) {
-        // Mode YouTube
-        pgmHtml5.classList.add('hidden');
-        pvwHtml5.classList.add('hidden');
-        pgmGdrive.classList.add('hidden');
-        pvwGdrive.classList.add('hidden');
-        pgmYtWrap.classList.remove('hidden');
-        pvwYtWrap.classList.remove('hidden');
-
-        if (isYtReady) {
-          // Sinkronkan Program Player
-          if (switcherPgmYt && typeof switcherPgmYt.loadVideoById === 'function') {
-            if (currentPgmYtId !== ytId) {
-              currentPgmYtId = ytId;
-              if (isPlaying) {
-                switcherPgmYt.loadVideoById(ytId, latestVtState.currentTime || 0);
-              } else {
-                switcherPgmYt.cueVideoById(ytId, latestVtState.currentTime || 0);
-              }
-            } else {
-              if (isPlaying) {
-                switcherPgmYt.playVideo();
-                // Koreksi desinkronisasi waktu jika selisih > 2 detik
-                const cur = switcherPgmYt.getCurrentTime() || 0;
-                if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
-                  switcherPgmYt.seekTo(latestVtState.currentTime, true);
-                }
-              } else {
-                switcherPgmYt.pauseVideo();
-              }
-            }
+        roleRef.transaction(currentValue => {
+          if (!currentValue || currentValue === "" || currentValue === currentSiswaName) {
+            return currentSiswaName;
+          } else {
+            return;
           }
-
-          // Sinkronkan Preview Player
-          if (switcherPvwYt && typeof switcherPvwYt.loadVideoById === 'function') {
-            if (currentPvwYtId !== ytId) {
-              currentPvwYtId = ytId;
-              switcherPvwYt.cueVideoById(ytId, latestVtState.currentTime || 0);
-            } else {
-              if (isPlaying && isPvwVt) switcherPvwYt.playVideo(); else switcherPvwYt.pauseVideo();
-            }
+        }, (error, committed, snapshot) => {
+          if (error) {
+            showNotice("Kesalahan", "Gagal memilih peran: " + error.message);
+          } else if (!committed) {
+            showNotice("Slot Terisi", "Maaf, peran ini baru saja diambil oleh siswa lain! Silakan pilih posisi lain.");
+          } else {
+            prosesSuksesAmbilPeran(roleKey, roleTitle);
+            listenGameStart(currentRoomToken, roleKey);
           }
-        }
-      } else if (latestVtState.sourceType === 'gdrive') {
-        // Mode Google Drive Preview Iframe
-        pgmHtml5.classList.add('hidden');
-        pvwHtml5.classList.add('hidden');
-        pgmYtWrap.classList.add('hidden');
-        pvwYtWrap.classList.add('hidden');
-        pgmGdrive.classList.remove('hidden');
-        pvwGdrive.classList.remove('hidden');
-
-        if (latestVtState.url && pgmGdrive.src !== latestVtState.url) {
-          pgmGdrive.src = latestVtState.url;
-          pvwGdrive.src = latestVtState.url;
-        }
+        });
       } else {
-        // Mode HTML5 Native MP4
-        pgmYtWrap.classList.add('hidden');
-        pvwYtWrap.classList.add('hidden');
-        pgmGdrive.classList.add('hidden');
-        pvwGdrive.classList.add('hidden');
-        pgmHtml5.classList.remove('hidden');
-        pvwHtml5.classList.remove('hidden');
-
-        if (latestVtState.url && pgmHtml5.src !== latestVtState.url) {
-          pgmHtml5.src = latestVtState.url;
-          pvwHtml5.src = latestVtState.url;
-        }
-
-        if (isPgmVt && isPlaying) pgmHtml5.play().catch(()=>{}); else pgmHtml5.pause();
-        if (isPvwVt && isPlaying) pvwHtml5.play().catch(()=>{}); else pvwHtml5.pause();
+        mockRoles[roleKey] = currentSiswaName;
+        prosesSuksesAmbilPeran(roleKey, roleTitle);
       }
     }
 
-    function applyCgOverlay(cg) {
-      const ltBox = document.getElementById('pgmLowerThirdBox');
-      const ltTitle = document.getElementById('pgmLtTitle');
-      const ltSub = document.getElementById('pgmLtSubtitle');
-      const logoBox = document.getElementById('pgmBugLogo');
-      const tickerBox = document.getElementById('pgmTickerBar');
-      const tickerText = document.getElementById('pgmTickerText');
+    function prosesSuksesAmbilPeran(roleKey, roleTitle) {
+      selectedRoleKey = roleKey;
+      selectedRoleTitle = roleTitle;
 
-      if (cg.lowerThirdActive) {
-        ltBox.classList.remove('hidden');
-        if (ltTitle) ltTitle.innerText = cg.title || 'NAMA PRESENTER';
-        if (ltSub) ltSub.firstElementChild.innerText = cg.subtitle || 'Keterangan';
-      } else {
-        ltBox.classList.add('hidden');
-      }
+      localStorage.setItem('skawan_room', currentRoomToken);
+      localStorage.setItem('skawan_role', roleKey);
+      localStorage.setItem('skawan_role_title', roleTitle);
+      localStorage.setItem('skawan_user', currentSiswaName);
 
-      if (cg.logoActive) logoBox.classList.remove('hidden');
-      else logoBox.classList.add('hidden');
+      sessionStorage.setItem('skawan_room', currentRoomToken);
+      sessionStorage.setItem('skawan_role', roleKey);
+      sessionStorage.setItem('skawan_user', currentSiswaName);
 
-      if (cg.tickerActive) {
-        tickerBox.classList.remove('hidden');
-        if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live Broadcast';
-      } else {
-        tickerBox.classList.add('hidden');
-      }
+      document.getElementById('viewRoleSelector').classList.add('hidden');
+      document.getElementById('viewWaitingRoom').classList.remove('hidden');
+      document.getElementById('badgeRoleSelected').innerText = `${roleTitle} &bull; ${currentSiswaName}`;
     }
 
-    function eksekusiCut() {
-      if (liveState.isFtb) toggleFtb();
-
-      const temp = liveState.programSource;
-      liveState.programSource = liveState.previewSource;
-      liveState.previewSource = temp;
-
-      calculateTallyState();
-      updateBusButtons();
-      updateMonitors();
-      broadcastLiveState();
-    }
-
-    function eksekusiAuto() {
-      if (liveState.isFtb) toggleFtb();
-
-      const rateMs = parseInt(document.getElementById('sliderTransitionRate').value) || 500;
-      const pgmContainer = document.getElementById('pgmScreenContainer');
-
-      pgmContainer.style.transition = `opacity ${rateMs / 2}ms ease-in-out`;
-      pgmContainer.style.opacity = '0.3';
-
-      setTimeout(() => {
-        const temp = liveState.programSource;
-        liveState.programSource = liveState.previewSource;
-        liveState.previewSource = temp;
-
-        calculateTallyState();
-        updateBusButtons();
-        updateMonitors();
-        broadcastLiveState();
-
-        pgmContainer.style.opacity = '1';
-        setTimeout(() => {
-          pgmContainer.style.transition = '';
-        }, rateMs / 2);
-      }, rateMs / 2);
-    }
-
-    function toggleFtb() {
-      liveState.isFtb = !liveState.isFtb;
-      const pgmCard = document.getElementById('pgmMainCard');
-      const btnFtb = document.getElementById('btnFtb');
-
-      if (liveState.isFtb) {
-        pgmCard.classList.add('opacity-10');
-        btnFtb.className = "atem-btn w-full py-2.5 rounded-xl border border-red-500 bg-red-600 text-white font-brand font-black text-xs tracking-wider animate-pulse";
-      } else {
-        pgmCard.classList.remove('opacity-10');
-        btnFtb.className = "atem-btn w-full py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs tracking-wider transition";
-      }
-    }
-
-    function pilihBusLangsung(busType, key) {
-      if (busType === 'pgm') {
-        liveState.programSource = key;
-      } else {
-        liveState.previewSource = key;
-      }
-
-      calculateTallyState();
-      updateBusButtons();
-      updateMonitors();
-      broadcastLiveState();
-    }
-
-    function calculateTallyState() {
-      const tally = {};
-      for (let i = 1; i <= totalCameras; i++) {
-        const key = `cam_${i}`;
-        if (key === liveState.programSource) tally[key] = 'red';
-        else if (key === liveState.previewSource) tally[key] = 'green';
-        else tally[key] = 'off';
-      }
-      liveState.tally = tally;
-    }
-
-    function broadcastLiveState() {
-      if (!isFirebaseReady) return;
-      db.ref(`rooms/${currentRoomToken}/live_state`).set({
-        programSource: liveState.programSource,
-        previewSource: liveState.previewSource,
-        tally: liveState.tally,
-        updatedAt: Date.now()
-      });
-    }
-
-    function setupKeyboardShortcuts() {
-      window.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        if (e.code === 'Space') {
-          e.preventDefault();
-          eksekusiCut();
-        } else if (e.code === 'Enter') {
-          e.preventDefault();
-          eksekusiAuto();
-        } else if (e.key >= '1' && e.key <= '4') {
-          const idx = parseInt(e.key);
-          const key = idx === 4 ? 'vt' : `cam_${idx}`;
-          pilihBusLangsung(e.shiftKey ? 'pgm' : 'pvw', key);
-        }
-      });
-    }
-
-    function bukaModalKeluar(type) {
-      pendingExitType = type;
-      const modal = document.getElementById('exitConfirmModal');
-      const title = document.getElementById('exitModalTitle');
-      const message = document.getElementById('exitModalMessage');
-      const btn = document.getElementById('btnConfirmExitAction');
-
-      if (type === 'ganti') {
-        title.innerText = "Ganti Peran Video Switcher?";
-        message.innerHTML = "Slot posisi <strong>Video Switcher</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.";
-        btn.innerText = "Ya, Ganti Peran";
-        btn.className = "w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-sm";
-      } else {
-        title.innerText = "Keluar dari Sesi Siaran?";
-        message.innerHTML = "Slot posisi <strong>Video Switcher</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.";
-        btn.innerText = "Ya, Keluar Sesi";
-        btn.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm";
-      }
-
-      modal.classList.remove('hidden');
-    }
-
-    function tutupModalKeluar() {
-      document.getElementById('exitConfirmModal').classList.add('hidden');
-    }
-
-    function eksekusiKeluarSesi() {
-      if (streamerInstance) {
-        streamerInstance.destroy();
-        streamerInstance = null;
-      }
-
-      if (isFirebaseReady && currentRoomToken && currentSiswaUser) {
-        db.ref(`rooms/${currentRoomToken}/roles/switcher`).transaction(currentVal => {
-          if (currentVal === currentSiswaUser) return "";
-          return currentVal;
+    function batalPilihPeran() {
+      const activeDb = getDatabase();
+      if (selectedRoleKey && currentRoomToken && activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/${selectedRoleKey}`).transaction(currentValue => {
+          if (currentValue === currentSiswaName) return "";
+          return currentValue;
         });
       }
 
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
-      sessionStorage.removeItem('skawan_role_title');
+      selectedRoleKey = '';
 
-      tutupModalKeluar();
-
-      if (pendingExitType === 'keluar') {
-        localStorage.removeItem('skawan_user');
-        sessionStorage.removeItem('skawan_user');
-        window.location.href = 'index.html';
-      } else {
-        window.location.href = `index.html?room=${currentRoomToken}`;
-      }
+      document.getElementById('viewWaitingRoom').classList.add('hidden');
+      document.getElementById('viewRoleSelector').classList.remove('hidden');
     }
+
+    function listenGameStart(token, roleKey) {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
+        const status = snapshot.val();
+        if (status === 'standby' || status === 'live') {
+          alihkanKeWorkstation(token, roleKey);
+        }
+      });
+    }
+
+    function alihkanKeWorkstation(token, roleKey) {
+      const targetPages = {
+        creative: 'creative.html',
+        pd: 'pd.html',
+        switcher: 'switcher.html',
+        audio_vt: 'audio-vt.html',
+        cg: 'cg.html',
+        fd: 'fd.html'
+      };
+
+      const destination = targetPages[roleKey] || 'camera.html';
+      window.location.href = `${destination}?room=${token}&role=${roleKey}`;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setupConnectionMonitor();
+
+      const savedRoom = localStorage.getItem('skawan_room') || sessionStorage.getItem('skawan_room');
+      const savedUser = localStorage.getItem('skawan_user') || sessionStorage.getItem('skawan_user');
+      const savedRole = localStorage.getItem('skawan_role') || sessionStorage.getItem('skawan_role');
+      const savedRoleTitle = localStorage.getItem('skawan_role_title') || savedRole;
+
+      if (savedRoom) {
+        document.getElementById('siswaRoomToken').value = savedRoom;
+      }
+      if (savedUser) {
+        document.getElementById('siswaName').value = savedUser;
+      }
+
+      if (savedRoom && savedUser && !savedRole) {
+        currentRoomToken = savedRoom;
+        currentSiswaName = savedUser;
+        bukaTampilanPeran(savedRoom, savedUser);
+        if (checkFirebaseReady()) {
+          listenRoles(savedRoom);
+        } else {
+          renderRoleButtons(mockRoles);
+        }
+        return;
+      }
+
+      if (savedRoom && savedUser && savedRole) {
+        currentRoomToken = savedRoom;
+        currentSiswaName = savedUser;
+        selectedRoleKey = savedRole;
+        selectedRoleTitle = savedRoleTitle;
+
+        document.getElementById('tabContainer').classList.add('hidden');
+        document.getElementById('viewSiswa').classList.add('hidden');
+        document.getElementById('viewRoleSelector').classList.add('hidden');
+        document.getElementById('viewWaitingRoom').classList.remove('hidden');
+        document.getElementById('badgeRoleSelected').innerText = `${savedRoleTitle} • ${savedUser}`;
+
+        if (checkFirebaseReady()) {
+          db.ref(`rooms/${savedRoom}/meta/status`).once('value', snapshot => {
+            const status = snapshot.val();
+            if (status === 'standby' || status === 'live') {
+              alihkanKeWorkstation(savedRoom, savedRole);
+            } else {
+              listenGameStart(savedRoom, savedRole);
+            }
+          });
+        }
+      }
+    });
   </script>
 </body>
 </html>
