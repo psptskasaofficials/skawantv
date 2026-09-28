@@ -371,11 +371,6 @@
           }
 
           const roomData = snapshot.val();
-          if (roomData.meta && roomData.meta.status === 'ended') {
-            showNotice("Sesi Berakhir", "Sesi produksi studio ini sudah selesai.");
-            return;
-          }
-
           bukaTampilanPeran(token, name);
           listenRoles(token);
         }).catch(err => {
