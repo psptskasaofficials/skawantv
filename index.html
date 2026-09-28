@@ -192,8 +192,8 @@
 
       <!-- Running Text / Ticker Bar (Dasar Layar Siaran) -->
       <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 sm:h-7 bg-red-700 text-white z-30 overflow-hidden flex items-center border-t border-red-500 shadow-md">
-        <div class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] sm:text-[10px] text-amber-400 shrink-0 border-r border-red-900 tracking-wider">
-          INFO KILAT
+        <div id="pgmTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] sm:text-[10px] text-amber-400 shrink-0 border-r border-red-900 tracking-wider">
+          00:00:00 WIB
         </div>
         <div class="w-full overflow-hidden text-[10px] sm:text-xs font-medium px-2">
           <span id="cgTickerText" class="marquee-text">Siaran Simulasi SKAWAN TV &bull; SMK Negeri 1 Pacitan</span>
@@ -291,9 +291,27 @@
       currentRoomToken = (roomParam || 'SKASA').trim().toUpperCase();
       document.getElementById('navRoomToken').innerText = currentRoomToken;
 
+      startWibLiveClock();
       initLiveViewer(currentRoomToken);
       listenActiveRooms();
     });
+
+    // Jam WIB Real-Time Live Ticker
+    function startWibLiveClock() {
+      setInterval(() => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        const wibStr = `${formatter.format(now)} WIB`;
+        const clockEl = document.getElementById('pgmTickerWibHeader');
+        if (clockEl) clockEl.innerText = wibStr;
+      }, 1000);
+    }
 
     // Inisialisasi YouTube API dengan Default Video Standby Reel
     window.onYouTubeIframeAPIReady = function() {
@@ -359,16 +377,22 @@
         // 1. Pantau Metadata Ruangan Terpilih
         db.ref(`rooms/${token}/meta`).on('value', snap => {
           if (!snap.exists()) {
-            updateRoomStatusUI('waiting', 'Ruangan Belum Dibuka', 'Menunggu Guru membuka sesi studio ini...');
+            if (token === 'SKASA') {
+              ensureDefaultSkasaRoom();
+              updateRoomStatusUI('live', 'SKASA TV Live Broadcast', 'Siaran Utama Sekolah SMKN 1 Pacitan');
+            } else {
+              updateRoomStatusUI('waiting', 'Ruangan Belum Dibuka', 'Menunggu Guru membuka sesi studio ini...');
+            }
             return;
           }
           const meta = snap.val();
-          const progTitle = meta.programName || 'Bincang Sore SKAWAN';
-          const epDesc = meta.episode || 'Pengenalan Studio Broadcast';
+          const progTitle = meta.programName || (token === 'SKASA' ? 'SKASA TV Live Broadcast' : 'Bincang Sore SKAWAN');
+          const epDesc = meta.episode || (token === 'SKASA' ? 'Siaran Utama Sekolah SMKN 1 Pacitan' : 'Pengenalan Studio Broadcast');
           document.getElementById('standbyProgramTitle').innerText = progTitle;
           document.getElementById('standbyEpisodeDesc').innerText = epDesc;
           
-          currentRoomStatus = meta.status || 'waiting';
+          // Ruangan SKASA selalu On-Air (live)
+          currentRoomStatus = token === 'SKASA' ? 'live' : (meta.status || 'waiting');
           updateRoomStatusUI(currentRoomStatus, progTitle, epDesc);
         });
 
@@ -417,12 +441,7 @@
             console.log(`[WebRTC Viewer] Status: ${status} - ${info}`);
           }
         });
-      }
-
-      renderPgmDisplay();
-    }
-
-    // Memastikan ruangan "SKASA" selalu aktif di Firebase
+    // Memastikan ruangan "SKASA" selalu aktif di Firebase dan berstatus ON-AIR (live)
     function ensureDefaultSkasaRoom() {
       if (!isFirebaseReady) return;
       db.ref('rooms/SKASA/meta').once('value', snap => {
@@ -432,7 +451,7 @@
               programName: "SKASA TV Live Broadcast",
               episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
               totalCameras: 3,
-              status: "waiting",
+              status: "live",
               pin: "123456",
               creatorRole: "guru",
               createdAt: Date.now()
@@ -441,9 +460,14 @@
               creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "",
               cam_1: "", cam_2: "", cam_3: ""
             },
-            live_state: { programSource: "cam_1", previewSource: "cam_2" },
-            vt_state: { status: "stopped", currentTime: 0, youtubeId: DEFAULT_STANDBY_YT_ID }
+            live_state: { programSource: "vt", previewSource: "cam_1" },
+            vt_state: { status: "playing", currentTime: 0, youtubeId: DEFAULT_STANDBY_YT_ID, sourceType: "youtube" }
           });
+        } else {
+          const meta = snap.val();
+          if (meta.status !== 'live') {
+            db.ref('rooms/SKASA/meta').update({ status: 'live' });
+          }
         }
       });
     }
@@ -452,7 +476,7 @@
     function listenActiveRooms() {
       if (!isFirebaseReady) {
         renderActiveRoomsList({
-          'SKASA': { meta: { programName: 'SKASA TV Live Broadcast', episode: 'Siaran Utama Sekolah', status: 'waiting' } }
+          'SKASA': { meta: { programName: 'SKASA TV Live Broadcast', episode: 'Siaran Utama Sekolah', status: 'live' } }
         });
         return;
       }
@@ -600,7 +624,7 @@
         return;
       }
 
-      const activeSrc = liveState.programSource || 'cam_1';
+      const activeSrc = liveState.programSource || 'vt';
       document.getElementById('lblActivePgmSource').innerText = activeSrc.toUpperCase().replace('_', ' ');
 
       const camVideo = document.getElementById('pgmCamVideo');
@@ -611,13 +635,19 @@
         vtWrapper.classList.remove('hidden');
         syncVtPlayback();
       } else {
-        vtWrapper.classList.add('hidden');
         const stream = getCameraStream(activeSrc);
         if (stream) {
+          vtWrapper.classList.add('hidden');
           camVideo.srcObject = stream;
           camVideo.classList.remove('hidden');
         } else {
+          // Jika belum ada feed kamera aktif, tayangkan feed VT siaran agar layar selalu live
           camVideo.classList.add('hidden');
+          vtWrapper.classList.remove('hidden');
+          if (latestVtState.sourceType === 'youtube' && !latestVtState.youtubeId) {
+            latestVtState.youtubeId = DEFAULT_STANDBY_YT_ID;
+          }
+          syncVtPlayback();
         }
       }
     }
