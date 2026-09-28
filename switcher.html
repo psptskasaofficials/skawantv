@@ -1018,7 +1018,7 @@
       sessionStorage.removeItem('skawan_role_title');
 
       setTimeout(() => {
-        window.location.href = `index.html?room=${currentRoomToken}`;
+        window.location.href = `login.html?room=${currentRoomToken}`;
       }, 2000);
     }
 
@@ -1045,9 +1045,9 @@
       if (pendingExitType === 'keluar') {
         localStorage.removeItem('skawan_user');
         sessionStorage.removeItem('skawan_user');
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
       } else {
-        window.location.href = `index.html?room=${currentRoomToken}`;
+        window.location.href = `login.html?room=${currentRoomToken}`;
       }
     }
   </script>
