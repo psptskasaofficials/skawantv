@@ -131,6 +131,23 @@
       </div>
     </div>
 
+    <!-- MODAL KHUSUS: Sesi Diakhiri oleh Guru -->
+    <div id="sessionEndedOverlay" class="hidden absolute inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
+      <div class="w-16 h-16 rounded-full bg-red-600/30 border-2 border-red-500 flex items-center justify-center text-3xl animate-bounce">
+        🛑
+      </div>
+      <div>
+        <h3 class="text-xl font-brand font-black text-white">Sesi Siaran Telah Diakhiri</h3>
+        <p class="text-xs text-slate-300 mt-1 max-w-xs mx-auto">
+          Guru telah menyelesaikan sesi siaran studio. Mengalihkan Anda kembali ke pemilihan peran...
+        </p>
+      </div>
+      <div class="font-mono text-xs text-amber-400 font-bold bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        <span id="sessionEndedCountdown">Mengalihkan dalam 2 detik...</span>
+      </div>
+    </div>
+
     <footer class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center justify-between gap-3">
       
       <!-- Tombol Balik Kamera (Depan / Belakang) -->
@@ -327,6 +344,15 @@
 
     function initFirebaseTallyListener(token, camKey) {
       if (isFirebaseReady) {
+        // Pantau jika Guru mengakhiri sesi (status === 'ended')
+        db.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const status = snapshot.val();
+          if (status === 'ended') {
+            tanganiSesiDiakhiriGuru();
+          }
+        });
+
         // Pantau status Tally langsung dari Switcher
         db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
@@ -449,6 +475,39 @@
 
     function tutupModalKeluar() {
       document.getElementById('exitConfirmModal').classList.add('hidden');
+    }
+
+    // Fungsi otomatis saat Guru mengakhiri sesi siaran di admin.html
+    function tanganiSesiDiakhiriGuru() {
+      const overlay = document.getElementById('sessionEndedOverlay');
+      if (overlay) overlay.classList.remove('hidden');
+
+      // 1. Matikan track kamera HP
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+
+      // 2. Lepaskan WakeLock & WebRTC
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
+      }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+
+      // 3. Bersihkan role agar saat kembali ke index.html langsung muncul form pemilihan peran
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_role_title');
+      sessionStorage.removeItem('skawan_role');
+      sessionStorage.removeItem('skawan_role_title');
+
+      // 4. Alihkan ke pemilihan peran
+      setTimeout(() => {
+        window.location.href = `index.html?room=${currentRoomToken}`;
+      }, 2000);
     }
 
     function eksekusiKeluarSesi() {
