@@ -1,1194 +1,334 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Graphic Operator (CG) | SKAWAN TV</title>
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+/**
+ * js/webrtc-stream.js
+ * Modul Streaming WebRTC Peer-to-Peer SKAWAN TV
+ * SMK Negeri 1 Pacitan
+ * 
+ * Arsitektur: Camera Push Stream (Publisher -> Receiver) dengan metadata peran eksplisit.
+ */
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            brand: ['Montserrat', 'sans-serif'],
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            skawan: {
-              red: '#E50914',
-              redHover: '#C70812',
-              darkBg: '#090D14',
-              cardDark: '#121824',
-              borderDark: '#1E293B',
-              accentBlue: '#3B82F6',
-              warningAmber: '#F59E0B'
-            }
-          }
-        }
-      }
+class SkawanStreamer {
+  constructor(options = {}) {
+    this.rawRoomToken = (options.roomToken || 'STUDIO-1').trim().toUpperCase();
+    this.roomToken = this.rawRoomToken.replace(/[^A-Z0-9]/g, '').toLowerCase() || 'studio1';
+    this.roleKey = options.roleKey || 'cam_1';
+    this.localStream = options.localStream || null;
+    this.onRemoteStream = options.onRemoteStream || (() => {});
+    this.onStatusChange = options.onStatusChange || (() => {});
+    
+    this.peer = null;
+    this.peerId = null;
+    this.activeCalls = new Map();
+    // Penerima stream murni: Switcher, PD, Admin Inspector, dan Penonton Publik
+    this.isReceiver = ['switcher', 'pd', 'admin', 'viewer', 'inspector'].includes(this.roleKey);
+    this.dbRef = null;
+    this.isDestroyed = false;
+    this.reconnectTimer = null;
+    this.knownPeers = {};
+
+    this._initPeer();
+  }
+
+  _getDb() {
+    if (window.db) return window.db;
+    if (typeof firebase !== 'undefined' && firebase.database) {
+      window.db = firebase.database();
+      return window.db;
     }
-  </script>
+    return null;
+  }
 
-  <!-- Firebase SDK (Compat Version) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="js/firebase-config.js"></script>
+  _generatePeerId() {
+    // Format alfanumerik murni tanpa simbol agar bebas dari kesalahan invalid-id
+    const cleanToken = this.roomToken.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'studio1';
+    const cleanRole = this.roleKey.toLowerCase().replace(/[^a-z0-9]/g, '') || 'cam1';
+    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+    return `skawan${cleanToken}${cleanRole}${randomSuffix}`;
+  }
 
-  <!-- PeerJS WebRTC Streamer & YouTube API -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <script src="js/webrtc-stream.js"></script>
-  <script src="https://www.youtube.com/iframe_api"></script>
-
-  <style>
-    @keyframes marquee {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-    .animate-ticker {
-      display: inline-block;
-      white-space: nowrap;
-      animation: marquee 16s linear infinite;
-    }
-    .deck-btn {
-      transition: all 0.12s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .deck-btn:active {
-      transform: scale(0.97);
-    }
-    .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-      background-size: 100% 2px, 3px 100%;
-      pointer-events: none;
-    }
-  </style>
-</head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-blue-600 selection:text-white pb-6">
-
-  <!-- ============================================== -->
-  <!-- HEADER & NAVIGASI GRAPHIC OPERATOR (DARK THEME) -->
-  <!-- ============================================== -->
-  <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <a href="index.html" class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-md shadow-blue-600/30">
-            CG
-          </div>
-          <div>
-            <div class="flex items-center gap-1.5">
-              <span class="font-brand font-black tracking-wide text-white text-lg leading-none">SKAWAN</span>
-              <span class="font-brand font-black text-blue-500 text-lg leading-none">TV</span>
-            </div>
-            <span class="text-[10px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Character Generator & Graphics Deck</span>
-          </div>
-        </a>
-        <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
-        <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-950/80 text-blue-400 border border-blue-800">
-          <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-          Graphic Operator (CG)
-        </span>
-      </div>
-
-      <div class="flex items-center gap-2 sm:gap-3">
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
-          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
-          <span id="navDisplayToken" class="font-mono font-bold text-xs text-blue-400">SKASA</span>
-        </div>
-        <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
-          <span>👤</span>
-          <span id="navDisplayUser">CG Operator</span>
-        </div>
-        <!-- Tombol Ganti Peran Cepat -->
-        <button onclick="bukaModalKeluar('ganti')" class="deck-btn text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
-          <span>🔄</span>
-          <span class="hidden sm:inline">Ganti Peran</span>
-        </button>
-        <!-- Tombol Keluar Sesi Cepat -->
-        <button onclick="bukaModalKeluar('keluar')" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar Sesi">
-          <span>🚪</span>
-          <span class="hidden sm:inline">Keluar</span>
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-1 space-y-5">
-
-    <!-- Banner Intercom Komando Sutradara (PD) -->
-    <div id="directorCueBanner" class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white p-3.5 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-blue-500/30">
-      <div class="flex items-center gap-3">
-        <div class="p-2 rounded-xl bg-white/20 shrink-0">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-        </div>
-        <div>
-          <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-200 block">KOMANDO SUTRADARA (PD):</span>
-          <span id="directorCueMessage" class="text-xs sm:text-sm font-brand font-black">Standby Lower Third Nama Host & Ticker</span>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <span id="directorCueTime" class="text-[11px] font-mono bg-black/40 px-2.5 py-1 rounded-lg font-bold border border-white/10">LIVE</span>
-      </div>
-    </div>
-
-    <!-- Banner Krisis Teknis jika disuntikkan Guru -->
-    <div id="crisisAlertBanner" class="hidden p-3.5 rounded-2xl bg-rose-600 text-white shadow-xl flex items-center justify-between animate-pulse border border-rose-400">
-      <div class="flex items-center gap-2.5">
-        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-        <div>
-          <span class="text-[10px] font-black uppercase tracking-wider block">⚠️ KENDALA TEKNIS GRAFIS (CG):</span>
-          <span id="crisisAlertText" class="text-xs font-bold">Sistem CG Crash! Segera bersihkan Lower Third.</span>
-        </div>
-      </div>
-      <span class="text-[10px] font-mono font-bold bg-white/20 px-2.5 py-0.5 rounded">SIMULASI GURU</span>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-      <!-- ============================================== -->
-      <!-- KOLOM KIRI: LAYAR LIVE PREVIEW PGM (5 Kolom)   -->
-      <!-- ============================================== -->
-      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 flex flex-col justify-between">
-        
-        <div class="space-y-3">
-          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-              <h2 class="font-brand font-black text-xs uppercase tracking-wider text-slate-200">Visual Program Preview (PGM Live)</h2>
-            </div>
-            <span id="onAirCgBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 uppercase">
-              CG OFF-AIR
-            </span>
-          </div>
-
-          <!-- Layar Simulasi Program On-Air dengan Lapisan CG -->
-          <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-slate-800 flex items-center justify-center shadow-inner">
-            
-            <!-- Video Kamera HP WebRTC Live Feed -->
-            <video id="cgLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
-
-            <!-- Video VT Media Live Playback (YouTube, HTML5, Drive) -->
-            <div id="cgLiveVtWrapper" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center pointer-events-none">
-              <video id="cgLiveVtHtml5" class="w-full h-full object-contain hidden" playsinline muted></video>
-              <div id="cgLiveVtYtWrap" class="w-full h-full pointer-events-none hidden">
-                <div id="cgLiveVtYtEl" class="w-full h-full"></div>
-              </div>
-              <iframe id="cgLiveVtGdrive" class="w-full h-full border-0 hidden pointer-events-none"></iframe>
-            </div>
-
-            <!-- Fallback Tampilan Default Jika Belum Ada Sinyal Video -->
-            <div id="cgFallbackScreen" class="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex flex-col items-center justify-center text-center p-4">
-              <span class="font-brand font-black text-2xl sm:text-3xl text-slate-600 tracking-wider">PGM LIVE FEED</span>
-              <span class="text-xs text-slate-500 mt-1 font-mono uppercase" id="cgLiveSourceText">STANDBY / MENUNGGU FEED</span>
-            </div>
-
-            <div class="scanline absolute inset-0 pointer-events-none"></div>
-
-            <!-- LAPISAN 1: Bug Logo Pojok Kanan Atas -->
-            <div id="previewBugLogo" class="hidden absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/20">
-              <div class="w-4 h-4 rounded bg-red-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
-              <span class="text-[10px] font-brand font-black text-white tracking-widest uppercase">SKAWAN <span class="text-red-500">TV</span></span>
-            </div>
-
-            <!-- LAPISAN 2: Lower Third Overlay (Nama & Jabatan) -->
-            <div id="previewLowerThird" class="hidden absolute bottom-8 left-4 right-4 z-20 transition-all duration-300 transform translate-y-0">
-              <div class="inline-block bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white font-brand font-black text-xs sm:text-sm px-3.5 py-1 rounded-t-lg shadow-md tracking-wide" id="previewLtTitle">
-                NAMA PRESENTER
-              </div>
-              <div class="bg-slate-950/95 backdrop-blur-sm border-l-4 border-red-500 text-slate-200 text-[11px] font-medium px-3.5 py-1 rounded-b-lg shadow-lg flex items-center justify-between">
-                <span id="previewLtSubtitleText">Pembawa Acara Utama SKAWAN TV</span>
-                <span class="text-[9px] font-mono text-red-400 font-bold ml-2">LIVE</span>
-              </div>
-            </div>
-
-            <!-- LAPISAN 3: Running Text / Ticker Bar di Dasar Layar (Header Waktu WIB Live: HH:mm) -->
-            <div id="previewTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 bg-red-700 text-white z-20 overflow-hidden flex items-center border-t border-red-500 shadow-md">
-              <div id="cgTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] uppercase tracking-wider text-amber-400 shrink-0 z-10 border-r border-red-900">
-                00:00 WIB
-              </div>
-              <div class="w-full overflow-hidden text-[10px] font-medium tracking-wide">
-                <span id="previewTickerText" class="animate-ticker">
-                  Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan &bull; SKAWAN TV Siaran Edukasi Digital
-                </span>
-              </div>
-            </div>
-
-            <!-- Live Bug Tag -->
-            <div class="absolute top-3 left-3 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded shadow flex items-center gap-1 z-10">
-              <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> PGM LIVE
-            </div>
-          </div>
-
-          <!-- Status Indikator Lapisan Aktif -->
-          <div class="grid grid-cols-3 gap-2 pt-1 text-center font-mono text-[11px]">
-            <div id="statLtBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
-              <span class="block font-bold">LOWER THIRD</span>
-              <span class="text-[10px]" id="statLtText">OFF</span>
-            </div>
-            <div id="statLogoBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
-              <span class="block font-bold">BUG LOGO</span>
-              <span class="text-[10px]" id="statLogoText">OFF</span>
-            </div>
-            <div id="statTickerBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
-              <span class="block font-bold">RUNNING TEXT</span>
-              <span class="text-[10px]" id="statTickerText">OFF</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tombol Aksi Darurat Bersihkan Semua Grafis -->
-        <button onclick="clearAllGraphics()" class="deck-btn w-full py-2.5 rounded-xl border border-rose-900/60 bg-rose-950/40 hover:bg-rose-900 text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-          <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-          <span>Hapus Semua Grafis dari Layar (CLEAR DSK)</span>
-        </button>
-
-      </div>
-
-      <!-- ============================================== -->
-      <!-- KOLOM KANAN: KONSOL KONTROL CG (7 Kolom)       -->
-      <!-- ============================================== -->
-      <div class="lg:col-span-7 space-y-4">
-
-        <!-- 1. KONTROL LOWER THIRD (SUPER TITLE) & MANAJER PRESET -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow"></span>
-              <h3 class="font-brand font-bold text-white text-sm">Lower Third & Manajer Preset</h3>
-            </div>
-            <span class="text-[11px] font-mono text-slate-400">Pilih, Edit, Hapus, atau Tambah Preset</span>
-          </div>
-
-          <!-- Bagian Pilihan & Manajemen Preset -->
-          <div class="space-y-2 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
-            <div class="flex items-center justify-between">
-              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Daftar Preset Tersimpan:</label>
-              <div class="flex items-center gap-1.5">
-                <button onclick="bukaModalTambahPreset()" class="deck-btn px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] flex items-center gap-1 shadow">
-                  <span>+</span>
-                  <span>Tambah Preset</span>
-                </button>
-                <button onclick="simpanInputSebagaiPreset()" class="deck-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold text-[11px]" title="Simpan teks input saat ini menjadi preset baru">
-                  💾 Simpan Input
-                </button>
-              </div>
-            </div>
-
-            <!-- Dropdown Pilihan Preset & Tombol Aksi Preset -->
-            <div class="flex flex-col sm:flex-row gap-2">
-              <select id="selectPresetLt" onchange="terapkanPresetLt()" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                <!-- Diisi dinamis via JS -->
-              </select>
-              
-              <div class="flex items-center gap-1.5 self-end sm:self-center">
-                <button onclick="terapkanPresetLt()" class="deck-btn px-3 py-2 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 text-blue-300 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                  <span>⚡</span>
-                  <span>Gunakan</span>
-                </button>
-                <button onclick="bukaModalEditPreset()" class="deck-btn px-2.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl text-xs font-semibold" title="Edit isi teks preset yang dipilih">
-                  ✏️ Edit
-                </button>
-                <button onclick="hapusPresetTerpilih()" class="deck-btn px-2.5 py-2 bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded-xl text-xs font-bold" title="Hapus preset ini dari daftar">
-                  🗑️ Hapus
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Input Manual Judul & Subjudul -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Baris 1: Nama / Topik Utama</label>
-              <input type="text" id="inputLtTitle" placeholder="Contoh: Dimas Pratama" value="Dimas Pratama" oninput="sinkronInputPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Baris 2: Jabatan / Keterangan</label>
-              <input type="text" id="inputLtSubtitle" placeholder="Contoh: Presenter SKAWAN TV" value="Presenter Utama SKAWAN TV" oninput="sinkronInputPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-            </div>
-          </div>
-
-          <!-- Tombol Eksekusi TAKE IN / TAKE OUT -->
-          <div class="grid grid-cols-2 gap-3 pt-1">
-            <button id="btnLtIn" onclick="toggleLowerThird(true)" class="deck-btn py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-brand font-black text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-              <span>TAKE IN (ON-AIR)</span>
-            </button>
-            <button id="btnLtOut" onclick="toggleLowerThird(false)" class="deck-btn py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
-              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-              <span>TAKE OUT (OFF)</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 2. KONTROL BUG LOGO & RUNNING TEXT -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          <!-- Kartu Bug Logo SKAWAN TV -->
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
-            <div class="space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Bug Logo SKAWAN TV</span>
-                <span id="logoLivePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF</span>
-              </div>
-              <p class="text-[11px] text-slate-400 leading-snug">Menampilkan watermark logo siaran di sudut kanan atas layar Program.</p>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-              <button id="btnLogoOn" onclick="toggleLogo(true)" class="deck-btn py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700">
-                LOGO ON
-              </button>
-              <button id="btnLogoOff" onclick="toggleLogo(false)" class="deck-btn py-2 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition">
-                LOGO OFF
-              </button>
-            </div>
-          </div>
-
-          <!-- Kartu Running Text / Ticker -->
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
-            <div class="space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Running Text (Ticker)</span>
-                <span id="tickerLivePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF</span>
-              </div>
-              <p class="text-[11px] text-slate-400 leading-snug">Menampilkan baris teks berita berjalan di dasar layar siaran.</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-              <button id="btnTickerOn" onclick="toggleTicker(true)" class="deck-btn py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700">
-                TICKER ON
-              </button>
-              <button id="btnTickerOff" onclick="toggleTicker(false)" class="deck-btn py-2 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition">
-                TICKER OFF
-              </button>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- 3. INPUT TEKS RUNNING TEXT -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2">
-          <div class="flex items-center justify-between">
-            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Teks Berita Berjalan (Ticker Content):</label>
-            <span class="text-[10px] font-mono text-slate-500">Otomatis Diperbarui</span>
-          </div>
-          <div class="flex gap-2">
-            <input type="text" id="inputTickerContent" value="Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan • SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast" oninput="updateTickerContent(this.value)" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-            <button onclick="simpanTicker()" class="deck-btn px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition shadow-md shadow-blue-600/30">
-              Update
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-
-  </main>
-
-  <!-- ============================================== -->
-  <!-- MODAL: TAMBAH / EDIT PRESET LOWER THIRD        -->
-  <!-- ============================================== -->
-  <div id="presetModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-white">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-          <h3 id="modalPresetHeader" class="font-brand font-black text-sm uppercase tracking-wider text-white">Tambah Preset Baru</h3>
-        </div>
-        <button onclick="tutupModalPreset()" class="text-slate-400 hover:text-white">✕</button>
-      </div>
-
-      <input type="hidden" id="modalPresetTargetId" value="">
-
-      <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Kategori / Label Cepat:</label>
-          <input type="text" id="inputModalPresetLabel" placeholder="Contoh: [Host], [Narasumber], [Reporter]" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-blue-500">
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Baris 1: Nama / Topik Utama:</label>
-          <input type="text" id="inputModalPresetTitle" placeholder="Contoh: Dimas Pratama" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-bold outline-none focus:border-blue-500">
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Baris 2: Jabatan / Keterangan:</label>
-          <input type="text" id="inputModalPresetSubtitle" placeholder="Contoh: Presenter Utama SKAWAN TV" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-blue-500">
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-        <button onclick="tutupModalPreset()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">
-          Batal
-        </button>
-        <button onclick="eksekusiSimpanModalPreset()" class="deck-btn bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md">
-          Simpan Preset
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DIALOG NOTIFIKASI -->
-  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
-      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/40 flex items-center justify-center mx-auto text-xl font-bold">✓</div>
-      <h4 id="noticeTitle" class="text-base font-bold text-white mb-1">Pemberitahuan</h4>
-      <p id="noticeMessage" class="text-xs text-slate-300 leading-relaxed"></p>
-      <button onclick="closeNotice()" class="deck-btn w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-600">
-        Tutup
-      </button>
-    </div>
-  </div>
-
-  <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN CG -->
-  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
-      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/40 flex items-center justify-center mx-auto text-xl font-bold">
-        🔄
-      </div>
-      <div>
-        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Kru?</h4>
-        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Slot posisi <strong>Graphic Operator (CG)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.
-        </p>
-      </div>
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
-          Batal
-        </button>
-        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
-          Ya, Lepaskan Slot
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================== -->
-  <!-- SKRIP LOGIKA WORKSPACE GRAPHIC OPERATOR (CG)   -->
-  <!-- ============================================== -->
-  <script>
-    let currentRoomToken = 'SKASA';
-    let currentRoleKey = 'cg';
-    let currentSiswaUser = '';
-    let pendingExitType = 'ganti';
-    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
-
-    // State Grafis CG
-    let cgState = {
-      lowerThirdActive: false,
-      title: "Dimas Pratama",
-      subtitle: "Presenter Utama SKAWAN TV",
-      logoActive: false,
-      tickerActive: false,
-      tickerText: "Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan • SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast"
-    };
-
-    // Live Feed Variables (WebRTC Camera & VT Player)
-    let streamerInstance = null;
-    const remoteCamStreams = new Map();
-    let currentLiveState = { programSource: 'cam_1', previewSource: 'cam_2' };
-    let latestVtState = { status: 'stopped', currentTime: 0, youtubeId: '', url: '', sourceType: 'youtube' };
-    let cgYtPlayer = null;
-    let isCgYtReady = false;
-    let currentCgYtId = '';
-
-    // Preset Data Awal Bawaan (Default List)
-    const DEFAULT_PRESETS = [
-      { id: "p1", label: "[Host]", title: "Dimas Pratama", subtitle: "Presenter Utama SKAWAN TV" },
-      { id: "p2", label: "[Narasumber]", title: "Ir. Anugerah Budi", subtitle: "Kepala Jurusan Broadcast & Pertelevisian" },
-      { id: "p3", label: "[Topik]", title: "Bincang Sore SKAWAN", subtitle: "Praktik Simulasi Produksi Siaran TV Digital" },
-      { id: "p4", label: "[Reporter]", title: "Aulia Rahma", subtitle: "Laporan Langsung dari Lantai Studio 1" }
-    ];
-
-    let customPresets = [];
-
-    function getDatabase() {
-      if (window.db) return window.db;
-      if (typeof firebase !== 'undefined' && firebase.database) {
-        window.db = firebase.database();
-        return window.db;
-      }
-      return null;
-    }
-
-    // Jam WIB Real-Time Live Ticker (HANYA JAM DAN MENIT: HH:mm WIB)
-    function startWibLiveClock() {
-      const updateClock = () => {
-        const now = new Date();
-        const formatter = new Intl.DateTimeFormat('id-ID', {
-          timeZone: 'Asia/Jakarta',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        });
-        const timePart = formatter.format(now).replace('.', ':');
-        const wibStr = `${timePart} WIB`;
-        const clockEl = document.getElementById('cgTickerWibHeader');
-        if (clockEl) clockEl.innerText = wibStr;
+  _initPeer() {
+    if (typeof Peer === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+      script.onload = () => this._createPeerInstance();
+      script.onerror = () => {
+        console.warn('[WebRTC] Gagal memuat CDN PeerJS.');
+        this.onStatusChange('error', 'Gagal memuat pustaka WebRTC');
       };
-      updateClock();
-      setInterval(updateClock, 1000);
+      document.head.appendChild(script);
+    } else {
+      this._createPeerInstance();
     }
+  }
 
-    // Inisialisasi YouTube API untuk Layar CG
-    window.onYouTubeIframeAPIReady = function() {
-      isCgYtReady = true;
-      try {
-        cgYtPlayer = new YT.Player('cgLiveVtYtEl', {
-          height: '100%',
-          width: '100%',
-          videoId: 'XhwSTlXTJRc',
-          playerVars: {
-            playsinline: 1,
-            controls: 0,
-            rel: 0,
-            mute: 1,
-            modestbranding: 1,
-            disablekb: 1,
-            cc_load_policy: 0,
-            iv_load_policy: 3
-          }
-        });
-      } catch (e) {
-        console.warn("[CG] YouTube player init error:", e);
+  _createPeerInstance() {
+    if (this.isDestroyed) return;
+    this.peerId = this._generatePeerId();
+
+    const peerOptions = {
+      debug: 1,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun.cloudflare.com:3478' }
+        ]
       }
     };
 
-    function showNotice(title, message, isSuccess = true) {
-      document.getElementById('noticeTitle').innerText = title;
-      document.getElementById('noticeMessage').innerText = message;
-      const icon = document.getElementById('noticeIcon');
-      if (isSuccess) {
-        icon.className = "w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold";
-        icon.innerText = "✓";
-      } else {
-        icon.className = "w-12 h-12 rounded-full bg-rose-600/20 text-rose-400 border border-rose-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold";
-        icon.innerText = "!";
-      }
-      document.getElementById('noticeModal').classList.remove('hidden');
+    try {
+      this.peer = new Peer(this.peerId, peerOptions);
+    } catch (e) {
+      this.peer = new Peer(peerOptions);
     }
 
-    function closeNotice() {
-      document.getElementById('noticeModal').classList.add('hidden');
-    }
+    this.peer.on('open', (id) => {
+      console.log(`[WebRTC Streamer] Peer terhubung: ${id} (${this.roleKey})`);
+      this.peerId = id;
+      this.onStatusChange('ready', `ID: ${id.substring(0, 12)}...`);
 
-    // Inisialisasi Penyimpanan Preset (Dual Storage: Firebase + LocalStorage)
-    function initPresetStorage() {
-      const localKey = `skawan_cg_presets_${currentRoomToken}`;
-      const localData = localStorage.getItem(localKey);
-      if (localData) {
-        try {
-          const parsed = JSON.parse(localData);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            customPresets = parsed;
-          }
-        } catch (e) {
-          console.warn("[CG] Parse presets gagal:", e);
-        }
+      this._registerToFirebase(id);
+      this._listenTargetPeers();
+
+      // Mulai heartbeat auto-reconnect untuk kamera
+      if (!this.isReceiver) {
+        this._startHeartbeat();
       }
-
-      if (!customPresets || customPresets.length === 0) {
-        customPresets = JSON.parse(JSON.stringify(DEFAULT_PRESETS));
-      }
-
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/cg_presets`).on('value', snap => {
-          if (snap.exists()) {
-            const data = snap.val();
-            if (Array.isArray(data) && data.length > 0) {
-              customPresets = data;
-              localStorage.setItem(localKey, JSON.stringify(customPresets));
-              renderPresetOptions();
-            }
-          } else {
-            simpanPresetKeStorage();
-          }
-        });
-      }
-
-      renderPresetOptions();
-    }
-
-    function simpanPresetKeStorage() {
-      const localKey = `skawan_cg_presets_${currentRoomToken}`;
-      localStorage.setItem(localKey, JSON.stringify(customPresets));
-
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/cg_presets`).set(customPresets);
-      }
-      renderPresetOptions();
-    }
-
-    function renderPresetOptions() {
-      const select = document.getElementById('selectPresetLt');
-      const prevVal = select.value;
-      select.innerHTML = '';
-
-      if (!customPresets || customPresets.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = "";
-        opt.innerText = "-- Belum ada preset --";
-        select.appendChild(opt);
-        return;
-      }
-
-      customPresets.forEach((p, idx) => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.innerText = `${idx + 1}. ${p.label ? p.label + ' ' : ''}${p.title} - ${p.subtitle}`;
-        select.appendChild(opt);
-      });
-
-      if (prevVal && customPresets.some(p => p.id === prevVal)) {
-        select.value = prevVal;
-      } else if (customPresets.length > 0) {
-        select.value = customPresets[0].id;
-      }
-    }
-
-    function terapkanPresetLt() {
-      const select = document.getElementById('selectPresetLt');
-      const targetId = select.value;
-      const found = customPresets.find(p => p.id === targetId);
-      if (!found) return;
-
-      document.getElementById('inputLtTitle').value = found.title;
-      document.getElementById('inputLtSubtitle').value = found.subtitle;
-      sinkronInputPreview();
-
-      if (cgState.lowerThirdActive) {
-        syncCgKeFirebase();
-      }
-    }
-
-    function bukaModalTambahPreset() {
-      document.getElementById('modalPresetHeader').innerText = "Tambah Preset Baru";
-      document.getElementById('modalPresetTargetId').value = "";
-      document.getElementById('inputModalPresetLabel').value = "[Talent]";
-      document.getElementById('inputModalPresetTitle').value = document.getElementById('inputLtTitle').value;
-      document.getElementById('inputModalPresetSubtitle').value = document.getElementById('inputLtSubtitle').value;
-      document.getElementById('presetModal').classList.remove('hidden');
-    }
-
-    function simpanInputSebagaiPreset() {
-      const title = document.getElementById('inputLtTitle').value.trim();
-      const subtitle = document.getElementById('inputLtSubtitle').value.trim();
-
-      if (!title) {
-        showNotice("Peringatan", "Nama/Topik Utama tidak boleh kosong!", false);
-        return;
-      }
-
-      const newId = `preset_${Date.now()}`;
-      customPresets.push({
-        id: newId,
-        label: "[Preset]",
-        title: title,
-        subtitle: subtitle || "Keterangan"
-      });
-
-      simpanPresetKeStorage();
-      document.getElementById('selectPresetLt').value = newId;
-      showNotice("Preset Disimpan", `Preset "${title}" berhasil ditambahkan ke daftar.`, true);
-    }
-
-    function bukaModalEditPreset() {
-      const select = document.getElementById('selectPresetLt');
-      const targetId = select.value;
-      const found = customPresets.find(p => p.id === targetId);
-
-      if (!found) {
-        showNotice("Peringatan", "Pilih preset yang ingin diedit terlebih dahulu!", false);
-        return;
-      }
-
-      document.getElementById('modalPresetHeader').innerText = "Edit Preset";
-      document.getElementById('modalPresetTargetId').value = found.id;
-      document.getElementById('inputModalPresetLabel').value = found.label || "";
-      document.getElementById('inputModalPresetTitle').value = found.title || "";
-      document.getElementById('inputModalPresetSubtitle').value = found.subtitle || "";
-      document.getElementById('presetModal').classList.remove('hidden');
-    }
-
-    function tutupModalPreset() {
-      document.getElementById('presetModal').classList.add('hidden');
-    }
-
-    function eksekusiSimpanModalPreset() {
-      const targetId = document.getElementById('modalPresetTargetId').value;
-      const label = document.getElementById('inputModalPresetLabel').value.trim();
-      const title = document.getElementById('inputModalPresetTitle').value.trim();
-      const subtitle = document.getElementById('inputModalPresetSubtitle').value.trim();
-
-      if (!title) {
-        showNotice("Peringatan", "Harap isi Nama / Judul preset!", false);
-        return;
-      }
-
-      if (targetId) {
-        // Mode Edit
-        const idx = customPresets.findIndex(p => p.id === targetId);
-        if (idx !== -1) {
-          customPresets[idx].label = label;
-          customPresets[idx].title = title;
-          customPresets[idx].subtitle = subtitle;
-        }
-      } else {
-        // Mode Tambah Baru
-        const newId = `preset_${Date.now()}`;
-        customPresets.push({
-          id: newId,
-          label: label || "[Talent]",
-          title: title,
-          subtitle: subtitle || "Keterangan"
-        });
-      }
-
-      tutupModalPreset();
-      simpanPresetKeStorage();
-      showNotice("Berhasil", "Daftar preset telah diperbarui.", true);
-    }
-
-    function hapusPresetTerpilih() {
-      const select = document.getElementById('selectPresetLt');
-      const targetId = select.value;
-      const found = customPresets.find(p => p.id === targetId);
-
-      if (!found) {
-        showNotice("Peringatan", "Pilih preset yang ingin dihapus!", false);
-        return;
-      }
-
-      if (customPresets.length <= 1) {
-        showNotice("Peringatan", "Minimal harus tersisa 1 preset dalam daftar.", false);
-        return;
-      }
-
-      customPresets = customPresets.filter(p => p.id !== targetId);
-      simpanPresetKeStorage();
-      showNotice("Preset Dihapus", `Preset "${found.title}" telah dihapus.`, true);
-      terapkanPresetLt();
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
-      const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
-      
-      currentRoomToken = (roomParam || sessionRoom || 'SKASA').toUpperCase();
-      currentSiswaUser = sessionUser || 'Graphic Operator';
-
-      document.getElementById('navDisplayToken').innerText = currentRoomToken;
-      const userBadge = document.getElementById('navDisplayUser');
-      if (userBadge) userBadge.innerText = currentSiswaUser;
-
-      startWibLiveClock();
-      initPresetStorage();
-      initCgSystem(currentRoomToken);
-      sinkronInputPreview();
     });
 
-    function initCgSystem(token) {
-      const activeDb = getDatabase();
-
-      if (activeDb) {
-        // Pantau jika Guru mengakhiri sesi siaran (SKASA kebal)
-        activeDb.ref(`rooms/${token}/meta/status`).on('value', snap => {
-          if (!snap.exists()) return;
-          if (snap.val() === 'ended' && token !== 'SKASA') {
-            tanganiSesiDiakhiriGuru();
-          }
-        });
-
-        // 1. Pantau Live State dari Switcher (Sumber Kamera PGM Aktif)
-        activeDb.ref(`rooms/${token}/live_state`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const live = snapshot.val();
-          currentLiveState.programSource = live.programSource || currentLiveState.programSource;
-          currentLiveState.previewSource = live.previewSource || currentLiveState.previewSource;
-          renderCgLiveBackground();
-        });
-
-        // 2. Pantau Playback VT dari Audio-VT
-        activeDb.ref(`rooms/${token}/vt_state`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          latestVtState = snapshot.val();
-          syncCgVtPlayback();
-        });
-
-        // Dengarkan instruksi komando langsung dari Program Director (PD)
-        activeDb.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const cue = snapshot.val();
-          if (cue.targetRole === 'CG' || cue.targetRole === 'ALL') {
-            document.getElementById('directorCueMessage').innerText = cue.message;
-            const now = new Date(cue.timestamp || Date.now());
-            document.getElementById('directorCueTime').innerText = now.toTimeString().split(' ')[0];
-
-            const banner = document.getElementById('directorCueBanner');
-            banner.classList.add('ring-4', 'ring-blue-400');
-            setTimeout(() => banner.classList.remove('ring-4', 'ring-blue-400'), 1500);
-          }
-        });
-
-        // Dengarkan status simulasi krisis dari Guru
-        activeDb.ref(`rooms/${token}/crisis`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const crisis = snapshot.val();
-          const banner = document.getElementById('crisisAlertBanner');
-          if (crisis.isActive && (crisis.type === 'CG_ERROR' || crisis.type === 'ALL')) {
-            banner.classList.remove('hidden');
-            document.getElementById('crisisAlertText').innerText = crisis.message;
-            clearAllGraphics();
-          } else {
-            banner.classList.add('hidden');
-          }
-        });
-
-        // Tarik state CG yang tersimpan
-        activeDb.ref(`rooms/${token}/cg_state`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const remoteCg = snapshot.val();
-          cgState = { ...cgState, ...remoteCg };
-          updateCgUI();
-        });
-      } else {
-        updateCgUI();
-      }
-
-      // Hubungkan WebRTC Streamer untuk Menerima Feed Kamera HP Langsung
-      if (typeof SkawanStreamer !== 'undefined') {
-        streamerInstance = new SkawanStreamer({
-          roomToken: token,
-          roleKey: 'cg',
-          onRemoteStream: (camKey, stream) => {
-            console.log(`[CG Deck] Stream kamera diterima: ${camKey}`);
-            remoteCamStreams.set(camKey, stream);
-            renderCgLiveBackground();
-          },
-          onStatusChange: (status, info) => {
-            console.log(`[CG Deck] WebRTC status: ${status} - ${info}`);
-          }
+    this.peer.on('error', (err) => {
+      console.warn('[WebRTC Streamer Error]:', err.type, err.message);
+      if (err.type === 'invalid-id' || err.type === 'unavailable-id') {
+        this.peer.destroy();
+        this.peer = new Peer(peerOptions);
+      } else if (err.type === 'peer-unavailable') {
+        this.activeCalls.forEach((call, targetRole) => {
+          if (call.peer === err.peer) this.activeCalls.delete(targetRole);
         });
       }
-    }
+      this.onStatusChange('error', err.type || 'Koneksi error');
+    });
 
-    function renderCgLiveBackground() {
-      const activeSrc = currentLiveState.programSource || 'cam_1';
-      const camVideo = document.getElementById('cgLiveCamVideo');
-      const vtWrap = document.getElementById('cgLiveVtWrapper');
-      const fallbackScreen = document.getElementById('cgFallbackScreen');
-      const sourceLabel = document.getElementById('cgLiveSourceText');
+    // RECEIVER (Switcher / PD / Viewer): Menerima dan menjawab panggilan kamera
+    this.peer.on('call', (call) => {
+      console.log('[WebRTC Streamer] Panggilan masuk dari:', call.peer);
 
-      if (sourceLabel) sourceLabel.innerText = `SUMBER ON-AIR: ${activeSrc.toUpperCase().replace('_', ' ')}`;
+      // Jawab dengan dummy canvas track aktif agar negosiasi SDP berjalan mulus di semua browser
+      const dummyStream = this._createActiveCanvasStream();
+      call.answer(dummyStream || undefined);
 
-      if (activeSrc === 'vt') {
-        camVideo.classList.add('hidden');
-        fallbackScreen.classList.add('hidden');
-        vtWrap.classList.remove('hidden');
-        syncCgVtPlayback();
-      } else {
-        vtWrap.classList.add('hidden');
-        const stream = getCameraStream(activeSrc);
-        if (stream) {
-          fallbackScreen.classList.add('hidden');
-          if (camVideo.srcObject !== stream) camVideo.srcObject = stream;
-          camVideo.classList.remove('hidden');
-          camVideo.play().catch(() => {});
-        } else {
-          camVideo.classList.add('hidden');
-          fallbackScreen.classList.remove('hidden');
+      call.on('stream', (remoteStream) => {
+        // Ambil nama peran langsung dari metadata panggilan atau dari mapping peer ID
+        const rawRole = call.metadata?.role || this._extractRoleFromPeer(call.peer) || 'cam_1';
+        const normRole = rawRole.includes('_') ? rawRole : rawRole.replace('cam', 'cam_');
+        console.log(`[WebRTC Streamer] Stream aktif diterima dari: ${normRole}`);
+        this.activeCalls.set(normRole, call);
+        this.activeCalls.set(rawRole, call);
+        this.onRemoteStream(normRole, remoteStream);
+      });
+
+      call.on('close', () => {
+        const rawRole = call.metadata?.role || this._extractRoleFromPeer(call.peer);
+        if (rawRole) {
+          const normRole = rawRole.includes('_') ? rawRole : rawRole.replace('cam', 'cam_');
+          this.activeCalls.delete(rawRole);
+          this.activeCalls.delete(normRole);
         }
-      }
+      });
+
+      call.on('error', (err) => {
+        console.warn('[WebRTC Streamer] Call error:', err);
+        const rawRole = call.metadata?.role || this._extractRoleFromPeer(call.peer);
+        if (rawRole) {
+          const normRole = rawRole.includes('_') ? rawRole : rawRole.replace('cam', 'cam_');
+          this.activeCalls.delete(rawRole);
+          this.activeCalls.delete(normRole);
+        }
+      });
+    });
+  }
+
+  _registerToFirebase(id) {
+    const activeDb = this._getDb();
+    if (!activeDb) {
+      setTimeout(() => this._registerToFirebase(id), 1000);
+      return;
     }
 
-    function getCameraStream(key) {
-      if (!key) return null;
-      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
-      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
-      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
+    const registerKey = this.roleKey === 'viewer' ? `viewer_${id.substring(id.length - 4)}` : this.roleKey;
+    this.dbRef = activeDb.ref(`rooms/${this.rawRoomToken}/peers/${registerKey}`);
+    this.dbRef.set({
+      peerId: id,
+      role: this.roleKey,
+      online: true,
+      updatedAt: Date.now()
+    });
+
+    this.dbRef.onDisconnect().remove();
+  }
+
+  _listenTargetPeers() {
+    const activeDb = this._getDb();
+    if (!activeDb) {
+      setTimeout(() => this._listenTargetPeers(), 1000);
+      return;
+    }
+
+    activeDb.ref(`rooms/${this.rawRoomToken}/peers`).on('value', (snapshot) => {
+      if (!snapshot.exists() || this.isDestroyed) return;
+      this.knownPeers = snapshot.val() || {};
+
+      // PUBLISHER (KAMERA HP): Kirim stream ke Switcher, PD, dan Seluruh Receiver
+      if (!this.isReceiver && this.localStream) {
+        this._pushStreamToTargets();
+      }
+    });
+  }
+
+  _pushStreamToTargets() {
+    if (!this.knownPeers || !this.localStream || this.isDestroyed) return;
+
+    const receiverTargetKeys = ['switcher', 'pd', 'cg', 'inspector', 'audio_vt'];
+
+    Object.keys(this.knownPeers).forEach(key => {
+      const p = this.knownPeers[key];
+      if (!p || !p.peerId) return;
+      if (p.peerId === this.peerId) return; // Jangan panggil diri sendiri
+
+      if (receiverTargetKeys.includes(key) || key.startsWith('viewer_') || key.startsWith('inspector_')) {
+        this._callTarget(key, p.peerId);
+      }
+    });
+  }
+
+  _callTarget(targetRole, targetPeerId) {
+    if (!this.peer || this.peer.disconnected || this.isDestroyed || !this.localStream) return;
+
+    // Cek apakah ada panggilan yang sedang aktif ke target ini
+    const existingCall = this.activeCalls.get(targetRole);
+    if (existingCall) {
+      // Jika masih terhubung ke peerId yang sama persis dan status open, pertahankan
+      if (existingCall.peer === targetPeerId && existingCall.open) {
+        return;
+      }
+      // Jika peerId target berubah (misal Switcher / PD di-refresh), tutup panggilan lama
+      try { existingCall.close(); } catch(e){}
+      this.activeCalls.delete(targetRole);
+    }
+
+    try {
+      console.log(`[WebRTC Streamer] Menghubungkan ke ${targetRole} (${targetPeerId})...`);
+      
+      const call = this.peer.call(targetPeerId, this.localStream, {
+        metadata: { role: this.roleKey }
+      });
+      if (!call) return;
+
+      this.activeCalls.set(targetRole, call);
+
+      call.on('stream', () => {
+        this.onStatusChange('connected', `Terhubung ke ${targetRole.toUpperCase()}`);
+      });
+
+      call.on('close', () => {
+        this.activeCalls.delete(targetRole);
+      });
+
+      call.on('error', (err) => {
+        console.warn(`[WebRTC Streamer] Panggilan ke ${targetRole} terputus:`, err);
+        this.activeCalls.delete(targetRole);
+      });
+
+      this.onStatusChange('connected', `Tersambung ke ${targetRole.toUpperCase()}`);
+    } catch (err) {
+      console.warn('[WebRTC Streamer] Gagal memanggil target:', err);
+      this.activeCalls.delete(targetRole);
+    }
+  }
+
+  _startHeartbeat() {
+    if (this.reconnectTimer) clearInterval(this.reconnectTimer);
+    // Cek setiap 2.5 detik untuk memastikan koneksi ke Switcher & PD tetap hidup
+    this.reconnectTimer = setInterval(() => {
+      if (this.isDestroyed) return;
+      if (!this.isReceiver && this.localStream && this.peer && !this.peer.disconnected) {
+        this._pushStreamToTargets();
+      }
+    }, 2500);
+  }
+
+  _extractRoleFromPeer(peerId) {
+    if (!peerId) return 'cam_1';
+    const match = peerId.match(/cam_?([0-9]+)/i);
+    if (match) return `cam_${match[1]}`;
+    if (peerId.includes('switcher')) return 'switcher';
+    if (peerId.includes('pd')) return 'pd';
+    return peerId;
+  }
+
+  _createActiveCanvasStream() {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 16;
+      canvas.height = 16;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 16, 16);
+      }
+      if (canvas.captureStream) {
+        const stream = canvas.captureStream(5);
+        // Segarkan kanvas secara berkala agar track dianggap aktif oleh peramban
+        setInterval(() => {
+          if (ctx && !this.isDestroyed) {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 16, 16);
+          }
+        }, 1000);
+        return stream;
+      }
+      return null;
+    } catch (e) {
       return null;
     }
+  }
 
-    function syncCgVtPlayback() {
-      if (currentLiveState.programSource !== 'vt') return;
-
-      const html5El = document.getElementById('cgLiveVtHtml5');
-      const ytWrap = document.getElementById('cgLiveVtYtWrap');
-      const gdriveEl = document.getElementById('cgLiveVtGdrive');
-
-      const ytId = latestVtState.youtubeId || (latestVtState.sourceType === 'youtube' ? latestVtState.url : '');
-      const isPlaying = latestVtState.status === 'playing';
-
-      if (latestVtState.sourceType === 'youtube' && ytId) {
-        html5El.classList.add('hidden');
-        gdriveEl.classList.add('hidden');
-        ytWrap.classList.remove('hidden');
-
-        if (isCgYtReady && cgYtPlayer && typeof cgYtPlayer.loadVideoById === 'function') {
-          if (currentCgYtId !== ytId) {
-            currentCgYtId = ytId;
-            if (isPlaying) cgYtPlayer.loadVideoById(ytId, latestVtState.currentTime || 0);
-            else cgYtPlayer.cueVideoById(ytId, latestVtState.currentTime || 0);
-          } else {
-            if (isPlaying) {
-              cgYtPlayer.playVideo();
-              const cur = cgYtPlayer.getCurrentTime() || 0;
-              if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
-                cgYtPlayer.seekTo(latestVtState.currentTime, true);
-              }
-            } else {
-              cgYtPlayer.pauseVideo();
-            }
-          }
+  updateLocalStream(newStream) {
+    this.localStream = newStream;
+    this.activeCalls.forEach((call) => {
+      if (call.peerConnection) {
+        const senders = call.peerConnection.getSenders();
+        const newTrack = newStream.getVideoTracks()[0];
+        const videoSender = senders.find((s) => s.track && s.track.kind === 'video');
+        if (videoSender && newTrack) {
+          videoSender.replaceTrack(newTrack).catch((e) => console.warn(e));
         }
-      } else if (latestVtState.sourceType === 'gdrive') {
-        html5El.classList.add('hidden');
-        ytWrap.classList.add('hidden');
-        gdriveEl.classList.remove('hidden');
-        if (latestVtState.url && gdriveEl.src !== latestVtState.url) {
-          gdriveEl.src = latestVtState.url;
-        }
-      } else {
-        ytWrap.classList.add('hidden');
-        gdriveEl.classList.add('hidden');
-        html5El.classList.remove('hidden');
-        if (latestVtState.url && html5El.src !== latestVtState.url) {
-          html5El.src = latestVtState.url;
-        }
-        if (isPlaying) html5El.play().catch(()=>{}); else html5El.pause();
       }
+    });
+    // Picu pengiriman jika belum ada panggilan aktif
+    if (this.activeCalls.size === 0) {
+      this._pushStreamToTargets();
     }
+  }
 
-    function sinkronInputPreview() {
-      const title = document.getElementById('inputLtTitle').value.trim() || 'NAMA PRESENTER';
-      const subtitle = document.getElementById('inputLtSubtitle').value.trim() || 'Keterangan Jabatan';
-
-      cgState.title = title;
-      cgState.subtitle = subtitle;
-
-      document.getElementById('previewLtTitle').innerText = title;
-      document.getElementById('previewLtSubtitleText').innerText = subtitle;
+  destroy() {
+    this.isDestroyed = true;
+    if (this.reconnectTimer) {
+      clearInterval(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
-
-    function toggleLowerThird(isActive) {
-      sinkronInputPreview();
-      cgState.lowerThirdActive = isActive;
-      updateCgUI();
-      syncCgKeFirebase();
+    if (this.dbRef) {
+      this.dbRef.remove().catch(() => {});
     }
-
-    function toggleLogo(isActive) {
-      cgState.logoActive = isActive;
-      updateCgUI();
-      syncCgKeFirebase();
+    this.activeCalls.forEach((call) => call.close());
+    this.activeCalls.clear();
+    if (this.peer) {
+      this.peer.destroy();
+      this.peer = null;
     }
+  }
+}
 
-    function toggleTicker(isActive) {
-      cgState.tickerActive = isActive;
-      updateCgUI();
-      syncCgKeFirebase();
-    }
-
-    function updateTickerContent(newText) {
-      cgState.tickerText = newText || '';
-      document.getElementById('previewTickerText').innerText = cgState.tickerText;
-    }
-
-    function simpanTicker() {
-      syncCgKeFirebase();
-      showNotice("Ticker Diperbarui", "Isi teks berjalan berhasil disinkronkan ke layar siaran.", true);
-    }
-
-    function clearAllGraphics() {
-      cgState.lowerThirdActive = false;
-      cgState.logoActive = false;
-      cgState.tickerActive = false;
-      updateCgUI();
-      syncCgKeFirebase();
-    }
-
-    function updateCgUI() {
-      // 1. Tampilan Lower Third
-      const ltBox = document.getElementById('previewLowerThird');
-      const statLt = document.getElementById('statLtBadge');
-      const statLtText = document.getElementById('statLtText');
-      const btnIn = document.getElementById('btnLtIn');
-      const btnOut = document.getElementById('btnLtOut');
-
-      if (cgState.lowerThirdActive) {
-        ltBox.classList.remove('hidden');
-        statLt.className = "p-2 rounded-xl bg-red-950/60 border border-red-700 text-red-300 font-bold";
-        statLtText.innerText = "ON-AIR";
-        btnIn.className = "deck-btn py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-brand font-black text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/40 animate-pulse";
-        btnOut.className = "deck-btn py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5";
-      } else {
-        ltBox.classList.add('hidden');
-        statLt.className = "p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400";
-        statLtText.innerText = "OFF";
-        btnIn.className = "deck-btn py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-brand font-black text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30";
-        btnOut.className = "deck-btn py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 font-brand font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5";
-      }
-
-      // 2. Tampilan Bug Logo
-      const logoBox = document.getElementById('previewBugLogo');
-      const logoPill = document.getElementById('logoLivePill');
-      const statLogo = document.getElementById('statLogoBadge');
-      const statLogoText = document.getElementById('statLogoText');
-      const btnLogoOn = document.getElementById('btnLogoOn');
-      const btnLogoOff = document.getElementById('btnLogoOff');
-
-      if (cgState.logoActive) {
-        logoBox.classList.remove('hidden');
-        logoPill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold";
-        logoPill.innerText = "ON-AIR";
-        statLogo.className = "p-2 rounded-xl bg-emerald-950/60 border border-emerald-700 text-emerald-300 font-bold";
-        statLogoText.innerText = "ON-AIR";
-        btnLogoOn.className = "deck-btn py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-md shadow-emerald-600/30";
-        btnLogoOff.className = "deck-btn py-2 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition";
-      } else {
-        logoBox.classList.add('hidden');
-        logoPill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700";
-        logoPill.innerText = "OFF";
-        statLogo.className = "p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400";
-        statLogoText.innerText = "OFF";
-        btnLogoOn.className = "deck-btn py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700";
-        btnLogoOff.className = "deck-btn py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-500 font-semibold text-xs transition";
-      }
-
-      // 3. Tampilan Running Text
-      const tickerBox = document.getElementById('previewTickerBar');
-      const tickerPill = document.getElementById('tickerLivePill');
-      const statTicker = document.getElementById('statTickerBadge');
-      const statTickerText = document.getElementById('statTickerText');
-      const btnTickerOn = document.getElementById('btnTickerOn');
-      const btnTickerOff = document.getElementById('btnTickerOff');
-
-      if (cgState.tickerActive) {
-        tickerBox.classList.remove('hidden');
-        tickerPill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700 font-bold";
-        tickerPill.innerText = "ON-AIR";
-        statTicker.className = "p-2 rounded-xl bg-amber-950/60 border border-amber-700 text-amber-300 font-bold";
-        statTickerText.innerText = "ON-AIR";
-        btnTickerOn.className = "deck-btn py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs transition shadow-md shadow-amber-600/30";
-        btnTickerOff.className = "deck-btn py-2 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition";
-      } else {
-        tickerBox.classList.add('hidden');
-        tickerPill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700";
-        tickerPill.innerText = "OFF";
-        statTicker.className = "p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400";
-        statTickerText.innerText = "OFF";
-        btnTickerOn.className = "deck-btn py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700";
-        btnTickerOff.className = "deck-btn py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-500 font-semibold text-xs transition";
-      }
-
-      // Badge umum On-Air CG
-      const onAirBadge = document.getElementById('onAirCgBadge');
-      if (cgState.lowerThirdActive || cgState.logoActive || cgState.tickerActive) {
-        onAirBadge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 uppercase animate-pulse border border-red-700";
-        onAirBadge.innerText = "CG ON-AIR";
-      } else {
-        onAirBadge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 uppercase";
-        onAirBadge.innerText = "CG OFF-AIR";
-      }
-    }
-
-    function syncCgKeFirebase() {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-      activeDb.ref(`rooms/${currentRoomToken}/cg_state`).set({
-        lowerThirdActive: cgState.lowerThirdActive,
-        title: cgState.title,
-        subtitle: cgState.subtitle,
-        logoActive: cgState.logoActive,
-        tickerActive: cgState.tickerActive,
-        tickerText: cgState.tickerText,
-        updatedAt: Date.now()
-      });
-    }
-
-    // Modal Konfirmasi Keluar / Ganti Peran CG
-    function bukaModalKeluar(type) {
-      pendingExitType = type;
-      const modal = document.getElementById('exitConfirmModal');
-      const title = document.getElementById('exitModalTitle');
-      const message = document.getElementById('exitModalMessage');
-      const icon = document.getElementById('exitModalIcon');
-      const btn = document.getElementById('btnConfirmExitAction');
-
-      if (type === 'ganti') {
-        icon.innerText = "🔄";
-        icon.className = "w-12 h-12 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/40 flex items-center justify-center mx-auto text-xl font-bold";
-        title.innerText = "Ganti Peran Kru?";
-        message.innerHTML = `Slot posisi <strong>Graphic Operator (CG)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.`;
-        btn.innerText = "Ya, Ganti Peran";
-        btn.className = "deck-btn w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition shadow-sm";
-      } else {
-        icon.innerText = "🚪";
-        icon.className = "w-12 h-12 rounded-full bg-rose-600/20 text-rose-400 border border-rose-500/40 flex items-center justify-center mx-auto text-xl font-bold";
-        title.innerText = "Keluar dari Sesi Siaran?";
-        message.innerHTML = `Slot posisi <strong>Graphic Operator (CG)</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.`;
-        btn.innerText = "Ya, Keluar Sesi";
-        btn.className = "deck-btn w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-sm";
-      }
-
-      modal.classList.remove('hidden');
-    }
-
-    function tutupModalKeluar() {
-      document.getElementById('exitConfirmModal').classList.add('hidden');
-    }
-
-    function tanganiSesiDiakhiriGuru() {
-      if (currentRoomToken === 'SKASA') return;
-
-      localStorage.removeItem('skawan_role');
-      localStorage.removeItem('skawan_role_title');
-      sessionStorage.removeItem('skawan_role');
-      sessionStorage.removeItem('skawan_role_title');
-
-      alert("Sesi Siaran Telah Diakhiri oleh Guru. Mengalihkan ke pemilihan peran...");
-      window.location.href = `login.html?room=${currentRoomToken}`;
-    }
-
-    function eksekusiKeluarSesi() {
-      const activeDb = getDatabase();
-      if (activeDb && currentRoomToken && currentSiswaUser) {
-        activeDb.ref(`rooms/${currentRoomToken}/roles/cg`).transaction(currentVal => {
-          if (currentVal === currentSiswaUser) {
-            return "";
-          }
-          return currentVal;
-        });
-      }
-
-      localStorage.removeItem('skawan_role');
-      localStorage.removeItem('skawan_role_title');
-      sessionStorage.removeItem('skawan_role');
-      sessionStorage.removeItem('skawan_role_title');
-
-      tutupModalKeluar();
-
-      if (pendingExitType === 'keluar') {
-        localStorage.removeItem('skawan_user');
-        sessionStorage.removeItem('skawan_user');
-        window.location.href = 'login.html';
-      } else {
-        window.location.href = `login.html?room=${currentRoomToken}`;
-      }
-    }
-  </script>
-</body>
-</html>
+if (typeof window !== 'undefined') {
+  window.SkawanStreamer = SkawanStreamer;
+}
