@@ -38,7 +38,6 @@
   <!-- Firebase SDK (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <!-- File Konfigurasi Firebase Eksternal -->
   <script src="js/firebase-config.js"></script>
 
   <!-- AUTO-FALLBACK: Menjamin Firebase SELALU aktif meski file eksternal belum di-commit/ter-cache -->
@@ -67,7 +66,6 @@
         }
       }
     })();
-    // Pastikan variabel db selalu tersedia di global scope
     var db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
   </script>
 </head>
@@ -102,12 +100,29 @@
   </header>
 
   <!-- Container Utama Form & Panel -->
-  <main class="w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 relative overflow-hidden">
+  <main class="w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 relative overflow-hidden space-y-5">
     <!-- Garis Aksen Dekoratif Atas -->
     <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-rose-500 to-blue-600"></div>
 
-    <!-- Tab Navigasi (Siswa vs Guru) -->
-    <div id="tabContainer" class="flex border-b border-slate-200 mb-6">
+    <!-- BANNER KHUSUS: Akses Penonton Publik (Bebas Login) -->
+    <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl p-4 shadow-md flex items-center justify-between gap-3 border border-slate-700">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-red-600/30 border border-red-500/50 flex items-center justify-center text-xl shrink-0">
+          📺
+        </div>
+        <div>
+          <span class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold block">PENONTON DI LUAR KRU:</span>
+          <span class="text-xs sm:text-sm font-brand font-black text-white">Nonton Siaran Langsung (PGM Viewer)</span>
+        </div>
+      </div>
+      <button onclick="bukaLiveViewerLangsung()" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-3.5 py-2 rounded-lg text-xs transition shadow-md shadow-red-600/30 flex items-center gap-1.5 shrink-0">
+        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+        <span>Tonton Live</span>
+      </button>
+    </div>
+
+    <!-- Tab Navigasi (Siswa Kru vs Guru) -->
+    <div id="tabContainer" class="flex border-b border-slate-200 pt-1">
       <button id="tabSiswaBtn" onclick="switchTab('siswa')" class="flex-1 pb-3 text-sm font-bold border-b-2 border-red-600 text-red-600 focus:outline-none transition">
         Masuk Sebagai Kru
       </button>
@@ -116,7 +131,7 @@
       </button>
     </div>
 
-    <!-- VIEW 1: Form Siswa Masuk Sesi -->
+    <!-- VIEW 1: Form Siswa Masuk Sesi Kru -->
     <section id="viewSiswa" class="space-y-4">
       <div>
         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Token Ruangan Studio</label>
@@ -186,7 +201,7 @@
 
   </main>
 
-  <!-- Notification Dialog Modal (Pengganti alert) -->
+  <!-- Notification Dialog Modal -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
@@ -198,12 +213,10 @@
     </div>
   </div>
 
-  <!-- Footer Branding -->
   <footer class="mt-6 text-center text-xs text-slate-500 font-medium">
     SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026
   </footer>
 
-  <!-- Script Logika Alur -->
   <script>
     let currentRoomToken = '';
     let currentSiswaName = '';
@@ -211,7 +224,6 @@
     let selectedRoleTitle = '';
     let isFirebaseReady = false;
 
-    // Helper untuk mengambil instance database secara aman
     function getDatabase() {
       if (window.db) return window.db;
       if (typeof firebase !== 'undefined' && firebase.database) {
@@ -221,13 +233,11 @@
       return null;
     }
 
-    // Utilitas Cek Kesiapan Firebase & Inisialisasi Koneksi
     function checkFirebaseReady() {
       const activeDb = getDatabase();
       return Boolean(typeof firebase !== 'undefined' && activeDb && firebase.apps && firebase.apps.length > 0);
     }
 
-    // Indikator Status Koneksi Realtime dengan Diagnostik Lengkap
     function setupConnectionMonitor() {
       const badge = document.getElementById('connStatusBadge');
       const dot = document.getElementById('connStatusDot');
@@ -245,7 +255,6 @@
 
       isFirebaseReady = true;
 
-      // Pantau koneksi native Firebase Database via .info/connected
       activeDb.ref('.info/connected').on('value', snap => {
         if (snap.val() === true) {
           badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm";
@@ -264,7 +273,6 @@
       });
     }
 
-    // Utilitas Modal Pengganti alert()
     function showNotice(title, message, isSuccess = false) {
       document.getElementById('noticeTitle').innerText = title;
       document.getElementById('noticeMessage').innerText = message;
@@ -283,7 +291,14 @@
       document.getElementById('noticeModal').classList.add('hidden');
     }
 
-    // Switch Tab Guru vs Siswa
+    // Navigasi langsung ke Layar Penonton Publik PGM
+    function bukaLiveViewerLangsung() {
+      const tokenInput = document.getElementById('siswaRoomToken').value.trim().toUpperCase();
+      const savedToken = localStorage.getItem('skawan_room') || sessionStorage.getItem('skawan_room');
+      const targetToken = tokenInput || savedToken || 'STUDIO-1';
+      window.location.href = `live.html?room=${targetToken}`;
+    }
+
     function switchTab(role) {
       const isSiswa = role === 'siswa';
       document.getElementById('viewSiswa').classList.toggle('hidden', !isSiswa);
@@ -298,7 +313,6 @@
         : "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition";
     }
 
-    // Mock DB Fallback jika Firebase belum tersambung (untuk Live Preview)
     let mockRoles = {
       creative: "",
       pd: "Rian (Contoh)",
@@ -311,7 +325,6 @@
       cam_3: ""
     };
 
-    // 1. Verifikasi Login Guru
     function loginGuru() {
       const pass = document.getElementById('guruPassword').value;
 
@@ -333,7 +346,6 @@
       }
     }
 
-    // 2. Siswa Masuk Sesi Menggunakan Token
     function masukLobbySiswa() {
       const token = document.getElementById('siswaRoomToken').value.trim().toUpperCase();
       const name = document.getElementById('siswaName').value.trim();
@@ -385,7 +397,6 @@
       document.getElementById('displaySiswaName').innerText = name;
     }
 
-    // Label peran divisi kru SKAWAN TV
     const roleLabels = {
       creative: "Tim Kreatif (Rundown & Script)",
       pd: "Program Director (PD)",
@@ -395,7 +406,6 @@
       fd: "Floor Director (FD / Studio Floor)"
     };
 
-    // 3. Listener & Render Tombol Peran Kru
     function listenRoles(token) {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -428,7 +438,6 @@
 
       Object.keys(roles).forEach(roleKey => {
         const occupant = roles[roleKey];
-        // Posisi dianggap terisi jika bernilai string tidak kosong
         const isTaken = Boolean(occupant && typeof occupant === 'string' && occupant.trim().length > 0);
         const isMine = isTaken && occupant === currentSiswaName;
         
@@ -464,7 +473,6 @@
       });
     }
 
-    // 4. Kunci Peran Terpilih Menggunakan Transaksi Atomik
     function ambilPeran(roleKey, roleTitle) {
       const activeDb = getDatabase();
       if (activeDb) {
@@ -496,7 +504,6 @@
       selectedRoleKey = roleKey;
       selectedRoleTitle = roleTitle;
 
-      // Simpan di localStorage & sessionStorage agar persist saat refresh
       localStorage.setItem('skawan_room', currentRoomToken);
       localStorage.setItem('skawan_role', roleKey);
       localStorage.setItem('skawan_role_title', roleTitle);
@@ -511,7 +518,6 @@
       document.getElementById('badgeRoleSelected').innerText = `${roleTitle} &bull; ${currentSiswaName}`;
     }
 
-    // 5. Batal Pilih Peran / Lepaskan Slot
     function batalPilihPeran() {
       const activeDb = getDatabase();
       if (selectedRoleKey && currentRoomToken && activeDb) {
@@ -530,7 +536,6 @@
       document.getElementById('viewRoleSelector').classList.remove('hidden');
     }
 
-    // 6. Menunggu Aba-aba Siaran Mulai dari Guru & Redirect
     function listenGameStart(token, roleKey) {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -556,11 +561,9 @@
       window.location.href = `${destination}?room=${token}&role=${roleKey}`;
     }
 
-    // 7. Auto-Restore Sesi Saat Halaman Dimuat / Di-Refresh
     window.addEventListener('DOMContentLoaded', () => {
       setupConnectionMonitor();
 
-      // Cek apakah ada sesi tersimpan dari localStorage
       const savedRoom = localStorage.getItem('skawan_room') || sessionStorage.getItem('skawan_room');
       const savedUser = localStorage.getItem('skawan_user') || sessionStorage.getItem('skawan_user');
       const savedRole = localStorage.getItem('skawan_role') || sessionStorage.getItem('skawan_role');
@@ -573,7 +576,6 @@
         document.getElementById('siswaName').value = savedUser;
       }
 
-      // KASUS 1: Siswa kembali karena ingin "Ganti Peran" (Token & Nama ada, tapi Role kosong)
       if (savedRoom && savedUser && !savedRole) {
         currentRoomToken = savedRoom;
         currentSiswaName = savedUser;
@@ -586,7 +588,6 @@
         return;
       }
 
-      // KASUS 2: Jika siswa sudah terdaftar dan memilih peran sebelum refresh
       if (savedRoom && savedUser && savedRole) {
         currentRoomToken = savedRoom;
         currentSiswaName = savedUser;
@@ -600,7 +601,6 @@
         document.getElementById('badgeRoleSelected').innerText = `${savedRoleTitle} • ${savedUser}`;
 
         if (checkFirebaseReady()) {
-          // Periksa apakah status sudah 'standby' atau 'live', jika ya langsung redirect
           db.ref(`rooms/${savedRoom}/meta/status`).once('value', snapshot => {
             const status = snapshot.val();
             if (status === 'standby' || status === 'live') {
