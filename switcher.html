@@ -242,8 +242,8 @@
 
           <!-- LAPISAN GRAFIS 3: Running Text / Ticker di Dasar Layar -->
           <div id="pgmTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-5 bg-red-700 text-white z-30 overflow-hidden flex items-center border-t border-red-500">
-            <div class="bg-slate-950 px-2 h-full flex items-center font-mono font-black text-[8px] text-amber-400 shrink-0">
-              INFO KILAT
+            <div id="switcherTickerWibHeader" class="bg-slate-950 px-2 h-full flex items-center font-mono font-black text-[8px] text-amber-400 shrink-0">
+              00:00:00 WIB
             </div>
             <div class="w-full overflow-hidden text-[9px] font-medium px-1">
               <span id="pgmTickerText" class="marquee-text">Siaran Simulasi SKAWAN TV</span>
@@ -433,9 +433,27 @@
       const userBadge = document.getElementById('navUserName');
       if (userBadge) userBadge.innerText = currentSiswaUser;
 
+      startWibLiveClock();
       initSwitcherSystem(currentRoomToken);
       setupKeyboardShortcuts();
     });
+
+    // Jam WIB Real-Time Live Ticker
+    function startWibLiveClock() {
+      setInterval(() => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        const wibStr = `${formatter.format(now)} WIB`;
+        const clockEl = document.getElementById('switcherTickerWibHeader');
+        if (clockEl) clockEl.innerText = wibStr;
+      }, 1000);
+    }
 
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
