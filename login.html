@@ -260,6 +260,33 @@
       return Boolean(typeof firebase !== 'undefined' && activeDb && firebase.apps && firebase.apps.length > 0);
     }
 
+    // Memastikan ruangan "SKASA" selalu aktif di Firebase saat portal dibuka
+    function ensureDefaultSkasaRoom() {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref('rooms/SKASA/meta').once('value', snap => {
+        if (!snap.exists()) {
+          activeDb.ref('rooms/SKASA').set({
+            meta: {
+              programName: "SKASA TV Live Broadcast",
+              episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
+              totalCameras: 3,
+              status: "live",
+              pin: "123456",
+              creatorRole: "guru",
+              createdAt: Date.now()
+            },
+            roles: {
+              creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "",
+              cam_1: "", cam_2: "", cam_3: ""
+            },
+            live_state: { programSource: "vt", previewSource: "cam_1" },
+            vt_state: { status: "playing", currentTime: 0, youtubeId: "XhwSTlXTJRc", sourceType: "youtube" }
+          });
+        }
+      });
+    }
+
     function setupConnectionMonitor() {
       const badge = document.getElementById('connStatusBadge');
       const dot = document.getElementById('connStatusDot');
@@ -608,6 +635,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       setupConnectionMonitor();
+      ensureDefaultSkasaRoom();
 
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
