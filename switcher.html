@@ -377,6 +377,24 @@
     </div>
   </div>
 
+  <!-- MODAL NOTIFIKASI: Sesi Diakhiri oleh Guru -->
+  <div id="sessionEndedModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-red-500 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div class="w-14 h-14 rounded-full bg-red-600/30 text-red-500 border border-red-500 flex items-center justify-center mx-auto text-2xl font-bold animate-pulse">
+        🛑
+      </div>
+      <div>
+        <h4 class="text-base font-brand font-black text-white">Sesi Siaran Telah Diakhiri</h4>
+        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+          Guru telah menyelesaikan sesi siaran studio. Mengalihkan Anda kembali ke halaman pemilihan peran...
+        </p>
+      </div>
+      <div class="font-mono text-xs text-amber-400 font-bold bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+        Mengalihkan dalam 2 detik...
+      </div>
+    </div>
+  </div>
+
   <script>
     let currentRoomToken = 'STUDIO-1';
     let currentRoleKey = 'switcher';
@@ -464,6 +482,10 @@
             totalCameras = meta.totalCameras;
             renderMultiviewCards();
           }
+          // Dengarkan jika Guru mengakhiri sesi siaran
+          if (meta.status === 'ended') {
+            tanganiSesiDiakhiriGuru();
+          }
         });
 
         db.ref(`rooms/${token}/live_state`).on('value', snap => {
@@ -520,6 +542,13 @@
             if (mvVideo) {
               mvVideo.srcObject = stream;
               mvVideo.classList.remove('hidden');
+              mvVideo.play().catch(() => {});
+            }
+
+            const mvLabel = document.getElementById(`mv-label-${camKey}`);
+            if (mvLabel) {
+              mvLabel.innerText = "● LIVE FEED";
+              mvLabel.className = "text-center font-mono font-black text-xs text-emerald-400 relative z-10 animate-pulse";
             }
 
             updateMonitors();
@@ -693,6 +722,7 @@
           pgmVideo.srcObject = stream;
           pgmVideo.classList.remove('hidden');
           pgmFallback.classList.add('hidden');
+          pgmVideo.play().catch(() => {});
         } else {
           pgmVideo.classList.add('hidden');
           pgmFallback.classList.remove('hidden');
@@ -715,6 +745,7 @@
           pvwVideo.srcObject = stream;
           pvwVideo.classList.remove('hidden');
           pvwFallback.classList.add('hidden');
+          pvwVideo.play().catch(() => {});
         } else {
           pvwVideo.classList.add('hidden');
           pvwFallback.classList.remove('hidden');
@@ -969,6 +1000,26 @@
 
     function tutupModalKeluar() {
       document.getElementById('exitConfirmModal').classList.add('hidden');
+    }
+
+    // Penanganan otomatis saat sesi siaran diakhiri oleh Guru
+    function tanganiSesiDiakhiriGuru() {
+      const modal = document.getElementById('sessionEndedModal');
+      if (modal) modal.classList.remove('hidden');
+
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_role_title');
+      sessionStorage.removeItem('skawan_role');
+      sessionStorage.removeItem('skawan_role_title');
+
+      setTimeout(() => {
+        window.location.href = `index.html?room=${currentRoomToken}`;
+      }, 2000);
     }
 
     function eksekusiKeluarSesi() {
