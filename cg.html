@@ -615,7 +615,7 @@
         const stream = getCameraStream(activeSrc);
         if (stream) {
           fallbackScreen.classList.add('hidden');
-          camVideo.srcObject = stream;
+          if (camVideo.srcObject !== stream) camVideo.srcObject = stream;
           camVideo.classList.remove('hidden');
           camVideo.play().catch(() => {});
         } else {
