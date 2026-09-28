@@ -44,6 +44,11 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
+  <!-- PeerJS WebRTC Streamer & YouTube API -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="js/webrtc-stream.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+
   <style>
     @keyframes marquee {
       0% { transform: translateX(100%); }
@@ -56,6 +61,11 @@
     }
     .cg-active-ring {
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .scanline {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+      background-size: 100% 2px, 3px 100%;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -155,11 +165,25 @@
           <!-- Layar Simulasi Program On-Air dengan Lapisan CG -->
           <div class="relative w-full aspect-video bg-slate-950 rounded-xl overflow-hidden border-2 border-slate-800 flex items-center justify-center shadow-inner">
             
-            <!-- Background Video Simulasi Studio -->
-            <div class="w-full h-full bg-gradient-to-br from-slate-900 via-neutral-900 to-black flex flex-col items-center justify-center text-center p-4">
-              <span class="font-brand font-black text-3xl text-slate-400 tracking-wider">PGM FEED</span>
-              <span class="text-xs text-slate-500 mt-1 font-mono">LIVE STUDIO BROADCAST</span>
+            <!-- Video Kamera HP WebRTC Live Feed -->
+            <video id="cgLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+
+            <!-- Video VT Media Live Playback (YouTube, HTML5, Drive) -->
+            <div id="cgLiveVtWrapper" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center">
+              <video id="cgLiveVtHtml5" class="w-full h-full object-contain hidden" playsinline muted></video>
+              <div id="cgLiveVtYtWrap" class="w-full h-full pointer-events-none hidden">
+                <div id="cgLiveVtYtEl" class="w-full h-full"></div>
+              </div>
+              <iframe id="cgLiveVtGdrive" class="w-full h-full border-0 hidden pointer-events-none"></iframe>
             </div>
+
+            <!-- Fallback Tampilan Default Jika Belum Ada Sinyal Video -->
+            <div id="cgFallbackScreen" class="w-full h-full bg-gradient-to-br from-slate-900 via-neutral-900 to-black flex flex-col items-center justify-center text-center p-4">
+              <span class="font-brand font-black text-2xl sm:text-3xl text-slate-400 tracking-wider">PGM LIVE FEED</span>
+              <span class="text-xs text-slate-500 mt-1 font-mono uppercase" id="cgLiveSourceText">STANDBY / MENUNGGU FEED</span>
+            </div>
+
+            <div class="scanline absolute inset-0 pointer-events-none"></div>
 
             <!-- LAPISAN 1: Bug Logo Pojok Kanan Atas -->
             <div id="previewBugLogo" class="hidden absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/20">
@@ -178,10 +202,10 @@
               </div>
             </div>
 
-            <!-- LAPISAN 3: Running Text / Ticker Bar di Dasar Layar -->
+            <!-- LAPISAN 3: Running Text / Ticker Bar di Dasar Layar (Header Waktu WIB Live) -->
             <div id="previewTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 bg-red-700 text-white z-20 overflow-hidden flex items-center border-t border-red-500 shadow-md">
-              <div class="bg-slate-900 px-2.5 h-full flex items-center font-brand font-black text-[9px] uppercase tracking-wider text-amber-400 shrink-0 z-10 border-r border-red-800">
-                INFO KILAT
+              <div id="cgTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] uppercase tracking-wider text-amber-400 shrink-0 z-10 border-r border-red-800">
+                00:00 WIB
               </div>
               <div class="w-full overflow-hidden text-[10px] font-medium tracking-wide">
                 <span id="previewTickerText" class="animate-ticker">
@@ -192,7 +216,7 @@
 
             <!-- Live Bug Tag -->
             <div class="absolute top-3 left-3 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded shadow flex items-center gap-1 z-10">
-              <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> PGM PREVIEW
+              <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> PGM LIVE
             </div>
           </div>
 
@@ -390,12 +414,64 @@
       tickerText: "Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan • SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast"
     };
 
+    // Live Feed Variables (WebRTC Camera & VT Player)
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
+    let currentLiveState = { programSource: 'cam_1', previewSource: 'cam_2' };
+    let latestVtState = { status: 'stopped', currentTime: 0, youtubeId: '', url: '', sourceType: 'youtube' };
+    let cgYtPlayer = null;
+    let isCgYtReady = false;
+    let currentCgYtId = '';
+
     // Preset Data Cepat
     const presetsLt = {
       preset_1: { title: "Dimas Pratama", subtitle: "Presenter Utama SKAWAN TV" },
       preset_2: { title: "Ir. Anugerah Budi", subtitle: "Kepala Jurusan Broadcast & Pertelevisian" },
       preset_3: { title: "Bincang Sore SKAWAN", subtitle: "Praktik Simulasi Produksi Siaran TV Digital" },
       preset_4: { title: "Aulia Rahma", subtitle: "Laporan Langsung dari Lantai Studio 1" }
+    };
+
+    // Jam WIB Real-Time Live Ticker (Hanya Jam dan Menit)
+    function startWibLiveClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        const timePart = formatter.format(now).replace('.', ':');
+        const wibStr = `${timePart} WIB`;
+        const clockEl = document.getElementById('cgTickerWibHeader');
+        if (clockEl) clockEl.innerText = wibStr;
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    // Inisialisasi YouTube API untuk Layar CG
+    window.onYouTubeIframeAPIReady = function() {
+      isCgYtReady = true;
+      try {
+        cgYtPlayer = new YT.Player('cgLiveVtYtEl', {
+          height: '100%',
+          width: '100%',
+          videoId: 'XhwSTlXTJRc',
+          playerVars: {
+            playsinline: 1,
+            controls: 0,
+            rel: 0,
+            mute: 1,
+            modestbranding: 1,
+            disablekb: 1,
+            cc_load_policy: 0,
+            iv_load_policy: 3
+          }
+        });
+      } catch (e) {
+        console.warn("[CG] YouTube player init error:", e);
+      }
     };
 
     // Modal Helper pengganti alert()
@@ -424,13 +500,14 @@
       const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
       const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
       
-      currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
+      currentRoomToken = roomParam || sessionRoom || 'SKASA';
       currentSiswaUser = sessionUser || 'Graphic Operator';
 
       document.getElementById('navDisplayToken').innerText = currentRoomToken;
       const userBadge = document.getElementById('navDisplayUser');
       if (userBadge) userBadge.innerText = currentSiswaUser;
 
+      startWibLiveClock();
       initCgSystem(currentRoomToken);
       sinkronInputPreview();
     });
@@ -443,6 +520,22 @@
           if (snap.val() === 'ended') {
             tanganiSesiDiakhiriGuru();
           }
+        });
+
+        // 1. Pantau Live State dari Switcher (Sumber Kamera PGM Aktif)
+        db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          const live = snapshot.val();
+          currentLiveState.programSource = live.programSource || currentLiveState.programSource;
+          currentLiveState.previewSource = live.previewSource || currentLiveState.previewSource;
+          renderCgLiveBackground();
+        });
+
+        // 2. Pantau Playback VT dari Audio-VT
+        db.ref(`rooms/${token}/vt_state`).on('value', snapshot => {
+          if (!snapshot.exists()) return;
+          latestVtState = snapshot.val();
+          syncCgVtPlayback();
         });
 
         // Dengarkan instruksi komando langsung dari Program Director (PD)
@@ -483,8 +576,110 @@
           updateCgUI();
         });
       } else {
-        // Fallback untuk mode preview
         updateCgUI();
+      }
+
+      // 3. Hubungkan WebRTC Streamer untuk Menerima Feed Kamera HP Langsung
+      if (typeof SkawanStreamer !== 'undefined') {
+        streamerInstance = new SkawanStreamer({
+          roomToken: token,
+          roleKey: 'inspector',
+          onRemoteStream: (camKey, stream) => {
+            console.log(`[CG Deck] Stream kamera diterima: ${camKey}`);
+            remoteCamStreams.set(camKey, stream);
+            renderCgLiveBackground();
+          },
+          onStatusChange: (status, info) => {
+            console.log(`[CG Deck] WebRTC status: ${status} - ${info}`);
+          }
+        });
+      }
+    }
+
+    function renderCgLiveBackground() {
+      const activeSrc = currentLiveState.programSource || 'cam_1';
+      const camVideo = document.getElementById('cgLiveCamVideo');
+      const vtWrap = document.getElementById('cgLiveVtWrapper');
+      const fallbackScreen = document.getElementById('cgFallbackScreen');
+      const sourceLabel = document.getElementById('cgLiveSourceText');
+
+      if (sourceLabel) sourceLabel.innerText = `SUMBER ON-AIR: ${activeSrc.toUpperCase().replace('_', ' ')}`;
+
+      if (activeSrc === 'vt') {
+        camVideo.classList.add('hidden');
+        fallbackScreen.classList.add('hidden');
+        vtWrap.classList.remove('hidden');
+        syncCgVtPlayback();
+      } else {
+        vtWrap.classList.add('hidden');
+        const stream = getCameraStream(activeSrc);
+        if (stream) {
+          fallbackScreen.classList.add('hidden');
+          camVideo.srcObject = stream;
+          camVideo.classList.remove('hidden');
+          camVideo.play().catch(() => {});
+        } else {
+          camVideo.classList.add('hidden');
+          fallbackScreen.classList.remove('hidden');
+        }
+      }
+    }
+
+    function getCameraStream(key) {
+      if (!key) return null;
+      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
+      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
+      return null;
+    }
+
+    function syncCgVtPlayback() {
+      if (currentLiveState.programSource !== 'vt') return;
+
+      const html5El = document.getElementById('cgLiveVtHtml5');
+      const ytWrap = document.getElementById('cgLiveVtYtWrap');
+      const gdriveEl = document.getElementById('cgLiveVtGdrive');
+
+      const ytId = latestVtState.youtubeId || (latestVtState.sourceType === 'youtube' ? latestVtState.url : '');
+      const isPlaying = latestVtState.status === 'playing';
+
+      if (latestVtState.sourceType === 'youtube' && ytId) {
+        html5El.classList.add('hidden');
+        gdriveEl.classList.add('hidden');
+        ytWrap.classList.remove('hidden');
+
+        if (isCgYtReady && cgYtPlayer && typeof cgYtPlayer.loadVideoById === 'function') {
+          if (currentCgYtId !== ytId) {
+            currentCgYtId = ytId;
+            if (isPlaying) cgYtPlayer.loadVideoById(ytId, latestVtState.currentTime || 0);
+            else cgYtPlayer.cueVideoById(ytId, latestVtState.currentTime || 0);
+          } else {
+            if (isPlaying) {
+              cgYtPlayer.playVideo();
+              const cur = cgYtPlayer.getCurrentTime() || 0;
+              if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
+                cgYtPlayer.seekTo(latestVtState.currentTime, true);
+              }
+            } else {
+              cgYtPlayer.pauseVideo();
+            }
+          }
+        }
+      } else if (latestVtState.sourceType === 'gdrive') {
+        html5El.classList.add('hidden');
+        ytWrap.classList.add('hidden');
+        gdriveEl.classList.remove('hidden');
+        if (latestVtState.url && gdriveEl.src !== latestVtState.url) {
+          gdriveEl.src = latestVtState.url;
+        }
+      } else {
+        ytWrap.classList.add('hidden');
+        gdriveEl.classList.add('hidden');
+        html5El.classList.remove('hidden');
+        if (latestVtState.url && html5El.src !== latestVtState.url) {
+          html5El.src = latestVtState.url;
+        }
+        if (isPlaying) html5El.play().catch(()=>{}); else html5El.pause();
       }
     }
 
