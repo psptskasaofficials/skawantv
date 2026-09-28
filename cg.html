@@ -437,6 +437,14 @@
 
     function initCgSystem(token) {
       if (isFirebaseReady) {
+        // Pantau jika Guru mengakhiri sesi siaran
+        db.ref(`rooms/${token}/meta/status`).on('value', snap => {
+          if (!snap.exists()) return;
+          if (snap.val() === 'ended') {
+            tanganiSesiDiakhiriGuru();
+          }
+        });
+
         // Dengarkan instruksi komando langsung dari Program Director (PD)
         db.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
           if (!snapshot.exists()) return;
@@ -670,6 +678,16 @@
 
     function tutupModalKeluar() {
       document.getElementById('exitConfirmModal').classList.add('hidden');
+    }
+
+    function tanganiSesiDiakhiriGuru() {
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_role_title');
+      sessionStorage.removeItem('skawan_role');
+      sessionStorage.removeItem('skawan_role_title');
+
+      alert("Sesi Siaran Telah Diakhiri oleh Guru. Mengalihkan ke pemilihan peran...");
+      window.location.href = `index.html?room=${currentRoomToken}`;
     }
 
     function eksekusiKeluarSesi() {
