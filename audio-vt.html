@@ -44,6 +44,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+  <!-- PeerJS WebRTC Streamer & YouTube API -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
@@ -251,6 +254,32 @@
             <button onclick="pindahKlip(1)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center" title="Klip Berikutnya">
               NEXT ⏭️
             </button>
+          </div>
+        </div>
+
+        <!-- LAYAR MONITOR INTIP PGM SIARAN LIVE (RETURN VIDEO FEED) -->
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 shadow-xl space-y-2">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+              <span class="font-brand font-bold text-xs uppercase tracking-wider text-slate-200">PGM Live Return Monitor (Studio Cam Feed)</span>
+            </div>
+            <span id="audioPgmReturnSource" class="font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 uppercase">
+              CAM 1 ON-AIR
+            </span>
+          </div>
+          
+          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 h-36 sm:h-44 mx-auto">
+            <video id="audioReturnCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+            
+            <div id="audioReturnFallback" class="text-center p-2 text-slate-500 font-mono text-xs">
+              <span class="block text-slate-400 font-bold mb-0.5">FEED STUDIO MENUNGGU</span>
+              <span class="text-[10px] text-slate-600">Kamera atau VT aktif di Switcher akan tampil di sini</span>
+            </div>
+            <div class="scanline absolute inset-0 pointer-events-none"></div>
+            <div class="absolute bottom-1.5 left-2 bg-slate-900/90 text-amber-400 font-mono text-[8px] px-1.5 py-0.5 rounded font-bold border border-slate-700">
+              AUDIO RETURN MONITOR
+            </div>
           </div>
         </div>
 
@@ -568,6 +597,11 @@
     let isHardwareMicActive = false;
     let monitorSpeakerEnabled = false;
 
+    // WebRTC Live PGM Return Streamer
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
+    let currentLiveState = { programSource: 'cam_1', previewSource: 'cam_2' };
+
     // State Playback VT
     let vtState = {
       status: 'stopped', // 'stopped', 'playing', 'paused'
@@ -816,12 +850,17 @@
         db.ref(`rooms/${token}/live_state`).on('value', snap => {
           if (!snap.exists()) return;
           const live = snap.val();
+          currentLiveState.programSource = live.programSource || currentLiveState.programSource;
+          currentLiveState.previewSource = live.previewSource || currentLiveState.previewSource;
+          
           const onAirBadge = document.getElementById('vtOnAirBadge');
           if (live.programSource === 'vt') {
             onAirBadge.classList.remove('hidden');
           } else {
             onAirBadge.classList.add('hidden');
           }
+
+          updateAudioReturnMonitor();
         });
 
         // 3. Pantau Komando Sutradara (PD)
@@ -1022,9 +1061,61 @@
 
       renderPlaylistUI();
 
-      if (autoCue) {
-        eksekusiCue();
+      // 5. Inisialisasi WebRTC untuk Menerima Feed Kamera Studio di Return Monitor
+      if (typeof SkawanStreamer !== 'undefined') {
+        streamerInstance = new SkawanStreamer({
+          roomToken: token,
+          roleKey: 'inspector',
+          onRemoteStream: (camKey, stream) => {
+            console.log(`[Audio-VT] Stream kamera diterima: ${camKey}`);
+            remoteCamStreams.set(camKey, stream);
+            updateAudioReturnMonitor();
+          },
+          onStatusChange: (status, info) => {
+            console.log(`[Audio-VT] WebRTC status: ${status} - ${info}`);
+          }
+        });
       }
+    }
+
+    function updateAudioReturnMonitor() {
+      const activeSrc = currentLiveState.programSource || 'cam_1';
+      const badge = document.getElementById('audioPgmReturnSource');
+      const videoEl = document.getElementById('audioReturnCamVideo');
+      const fallback = document.getElementById('audioReturnFallback');
+
+      if (badge) badge.innerText = `${activeSrc.toUpperCase().replace('_', ' ')} ON-AIR`;
+
+      if (activeSrc === 'vt') {
+        if (videoEl) videoEl.classList.add('hidden');
+        if (fallback) {
+          fallback.classList.remove('hidden');
+          fallback.innerHTML = `<span class="text-amber-400 font-bold block">VT MEDIA SEDANG ON-AIR</span><span class="text-[10px] text-slate-500">Klip video Anda sedang tayang di siaran utama</span>`;
+        }
+      } else {
+        const stream = getCameraStream(activeSrc);
+        if (stream && videoEl) {
+          if (fallback) fallback.classList.add('hidden');
+          videoEl.srcObject = stream;
+          videoEl.classList.remove('hidden');
+          videoEl.play().catch(() => {});
+        } else {
+          if (videoEl) videoEl.classList.add('hidden');
+          if (fallback) {
+            fallback.classList.remove('hidden');
+            fallback.innerHTML = `<span class="block text-slate-400 font-bold mb-0.5">${activeSrc.toUpperCase().replace('_', ' ')} ON-AIR</span><span class="text-[10px] text-slate-600">Menunggu feed kamera terhubung</span>`;
+          }
+        }
+      }
+    }
+
+    function getCameraStream(key) {
+      if (!key) return null;
+      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
+      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
+      return null;
+    }
     }
 
     function eksekusiCue() {
