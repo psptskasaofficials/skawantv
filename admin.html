@@ -531,6 +531,47 @@
       fd: { title: "Floor Director (FD)", desc: "Timer & Isyarat Studio" }
     };
 
+    function getDatabase() {
+      if (window.db) return window.db;
+      if (typeof firebase !== 'undefined' && firebase.database) {
+        window.db = firebase.database();
+        return window.db;
+      }
+      return null;
+    }
+
+    // Memastikan ruangan "SKASA" selalu aktif di Firebase
+    function ensureDefaultSkasaRoom() {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref('rooms/SKASA/meta').once('value', snap => {
+        if (!snap.exists()) {
+          activeDb.ref('rooms/SKASA').set({
+            meta: {
+              programName: "SKASA TV Live Broadcast",
+              episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
+              totalCameras: 3,
+              status: "live",
+              pin: "123456",
+              creatorRole: "guru",
+              createdAt: Date.now()
+            },
+            roles: {
+              creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "",
+              cam_1: "", cam_2: "", cam_3: ""
+            },
+            live_state: { programSource: "vt", previewSource: "cam_1" },
+            vt_state: { status: "playing", currentTime: 0, youtubeId: "XhwSTlXTJRc", sourceType: "youtube" }
+          });
+        } else {
+          const meta = snap.val() || {};
+          if (meta.status !== 'live') {
+            activeDb.ref('rooms/SKASA/meta').update({ status: 'live' });
+          }
+        }
+      });
+    }
+
     function showNotice(title, message, isSuccess = false) {
       document.getElementById('noticeTitle').innerText = title;
       document.getElementById('noticeMessage').innerText = message;
@@ -569,6 +610,9 @@
         document.getElementById('activeRoomsHeading').innerText = "Daftar Ruangan Studio Aktif (Guru)";
         document.getElementById('activeRoomsSubheading').innerText = "Pilih ruangan untuk mengontrol status Standby & On-Air, atau buat ruangan baru.";
       }
+
+      // Pastikan ruangan default SKASA selalu aktif di database
+      ensureDefaultSkasaRoom();
 
       // Generator default token & PIN
       generateRandomToken();
@@ -613,14 +657,15 @@
 
     // Mendengarkan semua ruangan di Firebase
     function listenAllActiveRooms() {
-      if (!isFirebaseReady) {
+      const activeDb = getDatabase();
+      if (!activeDb) {
         renderAdminRoomsList({
-          'SKASA': { meta: { programName: 'SKASA TV Live Broadcast', episode: 'Siaran Utama', pin: '123456', status: 'waiting' } }
+          'SKASA': { meta: { programName: 'SKASA TV Live Broadcast', episode: 'Siaran Utama', pin: '123456', status: 'live' } }
         });
         return;
       }
 
-      allRoomsListener = db.ref('rooms').on('value', snap => {
+      allRoomsListener = activeDb.ref('rooms').on('value', snap => {
         const rooms = snap.val() || {};
         allActiveRoomsMap = rooms;
         renderAdminRoomsList(rooms);
@@ -631,15 +676,24 @@
       const grid = document.getElementById('adminRoomsListGrid');
       grid.innerHTML = '';
 
-      const tokens = Object.keys(rooms);
-      if (tokens.length === 0) {
-        grid.innerHTML = `
-          <div class="col-span-full py-6 text-center text-slate-400 text-xs italic bg-slate-50 rounded-xl border border-slate-200">
-            Belum ada ruangan aktif. Klik tombol "+ Buat Sesi Baru" untuk membuka studio.
-          </div>
-        `;
-        return;
+      // Jamin SKASA selalu ada di objek rooms
+      if (!rooms['SKASA']) {
+        rooms['SKASA'] = {
+          meta: {
+            programName: "SKASA TV Live Broadcast",
+            episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
+            totalCameras: 3,
+            status: "live",
+            pin: "123456",
+            creatorRole: "guru",
+            createdAt: Date.now()
+          }
+        };
+        ensureDefaultSkasaRoom();
       }
+
+      // Urutkan agar SKASA selalu berada di posisi terdepan (#1)
+      const tokens = Object.keys(rooms).sort((a, b) => (a === 'SKASA' ? -1 : b === 'SKASA' ? 1 : a.localeCompare(b)));
 
       tokens.forEach(tok => {
         const rData = rooms[tok] || {};
@@ -672,9 +726,10 @@
               <button type="button" onclick="loadLiveControl('${tok}')" class="flex-1 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-bold transition">
                 Kontrol Studio
               </button>
+              ${tok !== 'SKASA' ? `
               <button type="button" onclick="bukaModalHapusAdmin('${tok}')" class="py-1.5 px-3 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold transition" title="Hapus Ruangan Tanpa PIN">
                 ⚡ Hapus (Admin)
-              </button>
+              </button>` : ''}
             </div>
           `;
         } else {
