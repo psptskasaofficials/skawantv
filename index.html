@@ -61,21 +61,18 @@
       white-space: nowrap;
       animation: ticker-anim 18s linear infinite;
     }
-    :fullscreen #mainLiveNavBar {
-      display: none;
-    }
-    :-webkit-full-screen #mainLiveNavBar {
-      display: none;
-    }
+    :fullscreen #liveNavBar { display: none; }
+    :-webkit-full-screen #liveNavBar { display: none; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white">
 
-  <nav id="mainLiveNavBar" class="bg-slate-950/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
+  <!-- Header Navigasi Publik -->
+  <nav id="liveNavBar" class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <a href="index.html" class="flex items-center gap-2.5 group">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-base text-white shadow-sm group-hover:scale-105 transition">
+        <a href="index.html" class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-base text-white shadow-md shadow-red-600/30">
             SK
           </div>
           <div>
@@ -83,40 +80,42 @@
               <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
               <span class="font-brand font-black text-red-500 text-base leading-none">TV</span>
             </div>
-            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">Layar Siaran Utama (PGM Live)</span>
+            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">Layar Siaran Langsung (PGM Live)</span>
           </div>
         </a>
         <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
-        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-950/60 text-red-400 border border-red-800">
+        <span id="badgeLiveOnAirNav" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-950/70 text-red-400 border border-red-800">
           <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-          Master Broadcast Channel
+          <span id="navLiveStatusText">SKASA LIVE ON-AIR</span>
         </span>
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Badge Ruangan Aktif -->
         <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
-          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan Aktif:</span>
+          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
           <span id="navRoomToken" class="font-mono font-bold text-xs text-red-400">SKASA</span>
         </div>
-        
-        <!-- Tombol Masuk Kru & Master Control (Mengarahkan ke login.html) -->
-        <a id="btnGoToLogin" href="login.html" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs transition shadow-md shadow-red-600/30 flex items-center gap-1.5 active:scale-95">
+
+        <!-- Tombol Masuk Portal Kru & Guru -->
+        <a href="login.html" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-95 text-white font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs transition shadow-md shadow-red-600/25 flex items-center gap-1.5">
           <span>🎬</span>
-          <span>Masuk Kru / Login</span>
+          <span class="font-brand font-bold">Masuk Kru / Studio</span>
         </a>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-6 w-full flex-1 flex flex-col justify-center items-center space-y-5">
+  <!-- Konten Utama: Layar Televisi 16:9 & Multiview Ruangan -->
+  <main class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-5 w-full flex-1 flex flex-col justify-start items-center space-y-4">
     
-    <!-- FRAME UTAMA VIDEO SIARAN TELEVISI 16:9 -->
-    <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative border-2 border-slate-800 shadow-2xl flex items-center justify-center group">
+    <!-- LAYAR UTAMA PROGRAM (PGM BROADCAST SCREEN) 16:9 -->
+    <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative border-2 border-red-600/80 shadow-2xl shadow-red-950/30 flex items-center justify-center group">
 
-      <!-- 1. FEED KAMERA HP WEBRTC (JIKA PGM = KAMERA) -->
+      <!-- 1. FEED KAMERA WEBRTC HP (Jika PGM = Cam 1, 2, 3) -->
       <video id="pgmCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
 
-      <!-- 2. PEMUTAR VT (JIKA PGM = VT / MEDIA) -->
+      <!-- 2. PEMUTAR VT / MEDIA INSERTS (YouTube, Google Drive, HTML5 MP4) -->
       <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center">
         <!-- Player HTML5 Native (MP4) -->
         <video id="pgmVtHtml5" class="w-full h-full object-contain hidden" playsinline></video>
@@ -130,49 +129,35 @@
         <iframe id="pgmVtGdrive" class="w-full h-full border-0 hidden pointer-events-none" allow="autoplay"></iframe>
       </div>
 
-      <!-- 3. KARTU ACARA & OVERLAY STATUS STANDBY (JIKA BELUM ON-AIR) -->
-      <div id="pgmStandbyScreen" class="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-between text-center p-4 sm:p-6 z-20 pointer-events-none transition-all duration-500">
-        <!-- Standby Top Header -->
-        <div class="flex items-center gap-2 bg-black/70 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold text-amber-400 shadow-lg">
+      <!-- 3. KARTU ACARA STANDBY JIKA BELUM ON-AIR (Khusus Room Siswa yang Belum Live) -->
+      <div id="pgmStandbyScreen" class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-between text-center p-4 sm:p-6 z-20 pointer-events-none transition-all duration-500">
+        <div class="flex items-center gap-2 bg-black/80 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold text-amber-400 shadow-lg">
           <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
           <span id="standbyStatusText">STUDIO STANDBY &bull; TAYANGAN PROFIL SKAWAN TV</span>
         </div>
 
-        <!-- Standby Center Title Badge (Kartu Acara) -->
-        <div class="bg-black/75 backdrop-blur-md border border-white/10 p-5 rounded-2xl max-w-lg mx-auto shadow-2xl space-y-2 pointer-events-auto">
-          <div class="flex items-center justify-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-red-950 text-red-400 border border-red-800" id="standbyRoomBadge">
-              RUANGAN: SKASA
-            </span>
-            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-800 text-slate-300" id="standbyPhaseBadge">
-              OFF-AIR
-            </span>
-          </div>
-
-          <div class="w-10 h-10 rounded-xl bg-red-600/30 border border-red-500/50 text-red-500 flex items-center justify-center text-lg font-black mx-auto">
+        <div class="bg-black/80 backdrop-blur-md border border-white/10 p-5 rounded-2xl max-w-md mx-auto shadow-2xl space-y-2">
+          <div class="w-12 h-12 rounded-xl bg-red-600/30 border border-red-500/50 text-red-500 flex items-center justify-center text-xl font-black mx-auto">
             SK
           </div>
           <h2 class="text-base sm:text-xl font-brand font-black text-white" id="standbyProgramTitle">
-            Bincang Sore SKAWAN
+            SKASA TV Live Broadcast
           </h2>
-          <p class="text-xs sm:text-sm text-slate-300 line-clamp-2" id="standbyEpisodeDesc">
-            Menunggu sesi siaran langsung studio dimulai oleh ruang kendali...
+          <p class="text-xs sm:text-sm text-slate-300" id="standbyEpisodeDesc">
+            Siaran Utama Sekolah SMKN 1 Pacitan
           </p>
-
-          <div class="pt-2 flex items-center justify-center gap-2">
-            <a id="btnStandbyJoinCrew" href="login.html" class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition shadow active:scale-95">
-              <span>🎬 Masuk Sebagai Kru Siaran</span>
-            </a>
+          <div class="pt-2 text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
+            Menunggu Aba-Aba Sutradara (PD) & Guru Pengampu
           </div>
         </div>
 
-        <!-- Standby Bottom Note -->
-        <div class="text-[10px] font-mono text-slate-300 bg-black/70 px-3 py-1 rounded-lg border border-white/10">
+        <div class="text-[10px] font-mono text-slate-400 bg-black/80 px-3 py-1 rounded-lg border border-white/10">
           Klik tombol <strong>"Buka Suara"</strong> di kanan bawah untuk mendengarkan audio siaran.
         </div>
       </div>
 
-      <!-- 4. LAPISAN GRAFIS CG (LOWER THIRD, LOGO, TICKER) -->
+      <!-- 4. LAPISAN GRAFIS CG (LOWER THIRD, LOGO, RUNNING TEXT) -->
+
       <!-- Bug Logo SKAWAN TV (Pojok Kanan Atas) -->
       <div id="cgBugLogo" class="hidden absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-white/20 shadow-md">
         <div class="w-4 h-4 rounded bg-red-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
@@ -190,32 +175,34 @@
         </div>
       </div>
 
-      <!-- Running Text / Ticker Bar (Dasar Layar Siaran) -->
+      <!-- Running Text / Ticker Bar di Dasar Layar Siaran -->
       <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 sm:h-7 bg-red-700 text-white z-30 overflow-hidden flex items-center border-t border-red-500 shadow-md">
-        <div id="pgmTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] sm:text-[10px] text-amber-400 shrink-0 border-r border-red-900 tracking-wider">
+        <div id="indexTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] sm:text-[10px] text-amber-400 shrink-0 border-r border-red-900 tracking-wider">
           00:00:00 WIB
         </div>
         <div class="w-full overflow-hidden text-[10px] sm:text-xs font-medium px-2">
-          <span id="cgTickerText" class="marquee-text">Siaran Simulasi SKAWAN TV &bull; SMK Negeri 1 Pacitan</span>
+          <span id="cgTickerText" class="marquee-text">Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan &bull; SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast</span>
         </div>
       </div>
 
       <!-- Lencana Live Bug Pojok Kiri Atas -->
-      <div id="badgeLiveOnAir" class="hidden absolute top-4 left-4 z-30 bg-red-600 text-white font-brand font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-lg">
+      <div id="badgeLiveOnAir" class="absolute top-4 left-4 z-30 bg-red-600 text-white font-brand font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-lg">
         <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
         <span>LIVE</span>
       </div>
 
-      <!-- Scanline Visual Overlay -->
+      <!-- Scanline Visual Overlay Khas Tabung TV -->
       <div class="scanline absolute inset-0 pointer-events-none"></div>
 
-      <!-- 5. KONTROL AUDIO & FULLSCREEN OVERLAY -->
+      <!-- 5. KONTROL OVERLAY (UNMUTE & FULLSCREEN) -->
       <div class="absolute bottom-8 right-4 z-40 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
+        <!-- Tombol Unmute Audio VT -->
         <button id="btnToggleAudio" onclick="toggleAudioPlayback()" class="bg-black/70 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition flex items-center gap-1.5 shadow-lg">
           <span id="iconAudioMute">🔇</span>
           <span id="lblAudioMute" class="hidden sm:inline text-[11px]">Buka Suara</span>
         </button>
 
+        <!-- Tombol Fullscreen -->
         <button onclick="toggleFullscreen()" class="bg-black/70 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition shadow-lg" title="Layar Penuh">
           ⛶
         </button>
@@ -223,80 +210,75 @@
 
     </div>
 
-    <!-- Informasi Program & Status Studio Bawah -->
-    <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 px-2">
+    <!-- Informasi Program & Status Sumber Siaran -->
+    <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 px-1">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span>Sumber On-Air: <strong id="lblActivePgmSource" class="text-white font-mono uppercase">CAM 1</strong></span>
+        <span>Sumber On-Air Saat Ini: <strong id="lblActivePgmSource" class="text-white font-mono uppercase">VT (PLAYLIST)</strong></span>
       </div>
 
       <div class="flex items-center gap-3 font-mono text-[11px]">
         <span>Resolusi: <strong class="text-slate-200">16:9 HD Broadcast</strong></span>
         <span>&bull;</span>
-        <span>Status: <strong id="lblBroadcastStatus" class="text-red-400">STANDBY</strong></span>
+        <span>Status: <strong id="lblBroadcastStatus" class="text-red-500 font-bold animate-pulse">ON-AIR (LIVE)</strong></span>
       </div>
     </div>
 
-    <div class="w-full pt-4 border-t border-slate-800 space-y-3">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-sm font-brand font-black text-white uppercase tracking-wider flex items-center gap-2">
-            <span>📺</span>
-            <span>Daftar Saluran & Ruangan Siaran Aktif</span>
-          </h3>
-          <p class="text-[11px] text-slate-400">Klik salah satu saluran di bawah untuk beralih tayangan PGM secara langsung:</p>
+    <!-- PANEL DAFTAR RUANGAN SIARAN AKTIF -->
+    <div class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow"></span>
+          <h3 class="font-brand font-black text-xs sm:text-sm uppercase tracking-wider text-white">Daftar Saluran Ruang Siaran (Channels)</h3>
         </div>
-        <span id="activeRoomsCount" class="text-[10px] font-mono font-bold bg-slate-900 border border-slate-800 text-slate-300 px-2.5 py-1 rounded-lg">
-          1 Ruangan
-        </span>
+        <span class="text-[10px] font-mono text-slate-400" id="lblChannelCount">Memuat saluran...</span>
       </div>
 
-      <!-- Grid Saluran Ruangan Aktif -->
-      <div id="activeRoomsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+      <!-- Grid Kartu Ruangan Siaran Aktif -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="channelRoomsGrid">
         <!-- Render dinamis via JavaScript -->
       </div>
     </div>
 
   </main>
 
+  <footer class="py-4 text-center text-xs text-slate-500 font-medium border-t border-slate-900">
+    SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026 &bull; Siaran Edukasi Digital
+  </footer>
+
   <script>
-    // Default room selalu "SKASA"
+    // State Halaman
     let currentRoomToken = 'SKASA';
-    let currentRoomStatus = 'waiting';
+    let currentRoomStatus = 'live';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
     let streamerInstance = null;
     const remoteCamStreams = new Map();
-    let currentActiveRoomsMap = {};
 
-    // Default VT Standby Loop Video (Profil SKAWAN TV)
     const DEFAULT_STANDBY_YT_ID = 'XhwSTlXTJRc';
 
     let liveState = {
-      programSource: 'cam_1',
-      previewSource: 'cam_2',
-      tally: { cam_1: 'red', cam_2: 'green' }
+      programSource: 'vt',
+      previewSource: 'cam_1',
+      tally: { cam_1: 'green' }
     };
 
-    let latestVtState = { status: 'stopped', currentTime: 0, url: '', youtubeId: '', sourceType: 'youtube' };
+    let latestVtState = { status: 'playing', currentTime: 0, url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc', youtubeId: 'XhwSTlXTJRc', sourceType: 'youtube' };
     let livePgmYt = null;
     let isYtReady = false;
     let currentYtId = '';
     let isAudioUnmuted = false;
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      
-      // Utamakan room parameter URL, jika tidak ada gunakan default SKASA
-      currentRoomToken = (roomParam || 'SKASA').trim().toUpperCase();
-      document.getElementById('navRoomToken').innerText = currentRoomToken;
+    // Database Getter
+    function getDatabase() {
+      if (window.db) return window.db;
+      if (typeof firebase !== 'undefined' && firebase.database) {
+        window.db = firebase.database();
+        return window.db;
+      }
+      return null;
+    }
 
-      startWibLiveClock();
-      initLiveViewer(currentRoomToken);
-      listenActiveRooms();
-    });
-
-    // Jam WIB Real-Time Live Ticker
+    // Jam WIB Live Real-Time
     function startWibLiveClock() {
       setInterval(() => {
         const now = new Date();
@@ -308,12 +290,65 @@
           hour12: false
         });
         const wibStr = `${formatter.format(now)} WIB`;
-        const clockEl = document.getElementById('pgmTickerWibHeader');
+        const clockEl = document.getElementById('indexTickerWibHeader');
         if (clockEl) clockEl.innerText = wibStr;
       }, 1000);
     }
 
-    // Inisialisasi YouTube API dengan Default Video Standby Reel
+    // Pastikan Room SKASA Selalu Ada & Terkunci ON-AIR
+    function ensureDefaultSkasaRoom() {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref('rooms/SKASA/meta').once('value', snap => {
+        if (!snap.exists()) {
+          activeDb.ref('rooms/SKASA').set({
+            meta: {
+              programName: "SKASA TV Live Broadcast",
+              episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
+              totalCameras: 3,
+              status: "live",
+              pin: "123456",
+              creatorRole: "guru",
+              createdAt: Date.now()
+            },
+            roles: {
+              creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "",
+              cam_1: "", cam_2: "", cam_3: ""
+            },
+            live_state: { programSource: "vt", previewSource: "cam_1" },
+            vt_state: { status: "playing", currentTime: 0, youtubeId: "XhwSTlXTJRc", sourceType: "youtube", title: "Profil SKAWAN TV Studio" },
+            vt_playlist: [
+              {
+                id: 'vt_default_skawan',
+                title: 'Profil SKAWAN TV Studio',
+                sourceType: 'youtube',
+                youtubeId: 'XhwSTlXTJRc',
+                url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc',
+                durationSec: 120
+              }
+            ]
+          });
+        } else {
+          activeDb.ref('rooms/SKASA/meta/status').set('live');
+          activeDb.ref('rooms/SKASA/vt_playlist').once('value', pSnap => {
+            if (!pSnap.exists()) {
+              activeDb.ref('rooms/SKASA/vt_playlist').set([
+                {
+                  id: 'vt_default_skawan',
+                  title: 'Profil SKAWAN TV Studio',
+                  sourceType: 'youtube',
+                  youtubeId: 'XhwSTlXTJRc',
+                  url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc',
+                  durationSec: 120
+                }
+              ]);
+            }
+          });
+        }
+      });
+    }
+
+    // Inisialisasi YouTube API Player
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
       try {
@@ -342,12 +377,10 @@
               } else {
                 livePgmYt.mute();
               }
-              if (currentRoomStatus !== 'live') {
-                putarDefaultStandbyVt();
-              }
+              putarDefaultStandbyVt();
             },
             onStateChange: (e) => {
-              if (e.data === YT.PlayerState.ENDED && currentRoomStatus !== 'live') {
+              if (e.data === YT.PlayerState.ENDED) {
                 livePgmYt.seekTo(0, true);
                 livePgmYt.playVideo();
               }
@@ -355,49 +388,51 @@
           }
         });
       } catch (e) {
-        console.warn("[Live PGM] YouTube Player Init Error:", e);
+        console.warn("[Index PGM] YouTube Player Init Error:", e);
       }
     };
 
-    function initLiveViewer(token) {
-      currentRoomToken = token;
-      document.getElementById('navRoomToken').innerText = token;
-      document.getElementById('standbyRoomBadge').innerText = `RUANGAN: ${token}`;
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      
+      // Default selalu ke SKASA jika tidak ada parameter URL
+      currentRoomToken = roomParam || 'SKASA';
+      document.getElementById('navRoomToken').innerText = currentRoomToken;
 
-      // Update link login agar menyertakan room token aktif
-      const loginBtn = document.getElementById('btnGoToLogin');
-      const standbyJoinBtn = document.getElementById('btnStandbyJoinCrew');
-      if (loginBtn) loginBtn.href = `login.html?room=${token}`;
-      if (standbyJoinBtn) standbyJoinBtn.href = `login.html?room=${token}`;
+      startWibLiveClock();
+      ensureDefaultSkasaRoom();
+      initChannelViewer(currentRoomToken);
+      listenActiveChannels();
+    });
 
-      if (isFirebaseReady) {
-        // Jamin ruangan default SKASA selalu ada di Firebase
-        ensureDefaultSkasaRoom();
-
-        // 1. Pantau Metadata Ruangan Terpilih
-        db.ref(`rooms/${token}/meta`).on('value', snap => {
+    function initChannelViewer(token) {
+      const activeDb = getDatabase();
+      if (activeDb) {
+        // 1. Pantau Status & Metadata Ruangan
+        activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
           if (!snap.exists()) {
             if (token === 'SKASA') {
-              ensureDefaultSkasaRoom();
-              updateRoomStatusUI('live', 'SKASA TV Live Broadcast', 'Siaran Utama Sekolah SMKN 1 Pacitan');
+              updateRoomStatusUI('live');
             } else {
-              updateRoomStatusUI('waiting', 'Ruangan Belum Dibuka', 'Menunggu Guru membuka sesi studio ini...');
+              updateRoomStatusUI('waiting');
             }
             return;
           }
           const meta = snap.val();
-          const progTitle = meta.programName || (token === 'SKASA' ? 'SKASA TV Live Broadcast' : 'Bincang Sore SKAWAN');
-          const epDesc = meta.episode || (token === 'SKASA' ? 'Siaran Utama Sekolah SMKN 1 Pacitan' : 'Pengenalan Studio Broadcast');
-          document.getElementById('standbyProgramTitle').innerText = progTitle;
-          document.getElementById('standbyEpisodeDesc').innerText = epDesc;
+          if (meta.programName) {
+            document.getElementById('standbyProgramTitle').innerText = meta.programName;
+          }
+          if (meta.episode) {
+            document.getElementById('standbyEpisodeDesc').innerText = meta.episode;
+          }
           
-          // Ruangan SKASA selalu On-Air (live)
           currentRoomStatus = token === 'SKASA' ? 'live' : (meta.status || 'waiting');
-          updateRoomStatusUI(currentRoomStatus, progTitle, epDesc);
+          updateRoomStatusUI(currentRoomStatus);
         });
 
         // 2. Pantau Live State dari Switcher
-        db.ref(`rooms/${token}/live_state`).on('value', snap => {
+        activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
           if (!snap.exists()) return;
           const remoteLive = snap.val();
           liveState.programSource = remoteLive.programSource || liveState.programSource;
@@ -405,149 +440,46 @@
           renderPgmDisplay();
         });
 
-        // 3. Pantau Sinkronisasi Video VT dari Audio Operator
-        db.ref(`rooms/${token}/vt_state`).on('value', snap => {
+        // 3. Pantau Sinkronisasi Video VT dari Audio-VT
+        activeDb.ref(`rooms/${token}/vt_state`).on('value', snap => {
           if (!snap.exists()) return;
           latestVtState = snap.val();
           syncVtPlayback();
         });
 
         // 4. Pantau Lapisan Grafis CG
-        db.ref(`rooms/${token}/cg_state`).on('value', snap => {
+        activeDb.ref(`rooms/${token}/cg_state`).on('value', snap => {
           if (!snap.exists()) return;
           const cg = snap.val();
           applyCgOverlay(cg);
         });
       } else {
-        updateRoomStatusUI('waiting', 'Bincang Sore SKAWAN', 'Sesi Studio Standby (Mode Demo Offline)');
+        updateRoomStatusUI('live');
       }
 
-      // 5. Inisialisasi WebRTC Streamer untuk ruangan terpilih
-      if (streamerInstance) {
-        streamerInstance.destroy();
-      }
-      remoteCamStreams.clear();
-
+      // 5. Hubungkan WebRTC Streamer untuk Menerima Feed Kamera HP Langsung
       if (typeof SkawanStreamer !== 'undefined') {
+        if (streamerInstance) {
+          streamerInstance.destroy();
+          streamerInstance = null;
+        }
+        remoteCamStreams.clear();
+
         streamerInstance = new SkawanStreamer({
           roomToken: token,
           roleKey: 'viewer',
           onRemoteStream: (camKey, stream) => {
-            console.log(`[WebRTC Viewer] Feed kamera diterima: ${camKey}`);
+            console.log(`[PGM Viewer] Feed kamera diterima: ${camKey}`);
             remoteCamStreams.set(camKey, stream);
             renderPgmDisplay();
           },
           onStatusChange: (status, info) => {
-            console.log(`[WebRTC Viewer] Status: ${status} - ${info}`);
+            console.log(`[PGM Viewer] Status WebRTC: ${status} - ${info}`);
           }
         });
-    // Memastikan ruangan "SKASA" selalu aktif di Firebase dan berstatus ON-AIR (live)
-    function ensureDefaultSkasaRoom() {
-      if (!isFirebaseReady) return;
-      db.ref('rooms/SKASA/meta').once('value', snap => {
-        if (!snap.exists()) {
-          db.ref('rooms/SKASA').set({
-            meta: {
-              programName: "SKASA TV Live Broadcast",
-              episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
-              totalCameras: 3,
-              status: "live",
-              pin: "123456",
-              creatorRole: "guru",
-              createdAt: Date.now()
-            },
-            roles: {
-              creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "",
-              cam_1: "", cam_2: "", cam_3: ""
-            },
-            live_state: { programSource: "vt", previewSource: "cam_1" },
-            vt_state: { status: "playing", currentTime: 0, youtubeId: DEFAULT_STANDBY_YT_ID, sourceType: "youtube" }
-          });
-        } else {
-          const meta = snap.val();
-          if (meta.status !== 'live') {
-            db.ref('rooms/SKASA/meta').update({ status: 'live' });
-          }
-        }
-      });
-    }
-
-    // Mendengarkan seluruh ruangan aktif di Firebase untuk daftar saluran
-    function listenActiveRooms() {
-      if (!isFirebaseReady) {
-        renderActiveRoomsList({
-          'SKASA': { meta: { programName: 'SKASA TV Live Broadcast', episode: 'Siaran Utama Sekolah', status: 'live' } }
-        });
-        return;
       }
 
-      db.ref('rooms').on('value', snap => {
-        const rooms = snap.val() || {};
-        currentActiveRoomsMap = rooms;
-        renderActiveRoomsList(rooms);
-      });
-    }
-
-    function renderActiveRoomsList(rooms) {
-      const grid = document.getElementById('activeRoomsGrid');
-      const counter = document.getElementById('activeRoomsCount');
-      grid.innerHTML = '';
-
-      const tokens = Object.keys(rooms);
-      counter.innerText = `${tokens.length} Ruangan`;
-
-      tokens.forEach(tok => {
-        const rData = rooms[tok] || {};
-        const meta = rData.meta || {};
-        const progName = meta.programName || `Ruangan ${tok}`;
-        const ep = meta.episode || 'Siaran Studio';
-        const status = meta.status || 'waiting';
-        const isSelected = tok === currentRoomToken;
-
-        let statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-slate-800 text-slate-300">OFF-AIR</span>`;
-        if (status === 'live') {
-          statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-red-600 text-white animate-pulse">● LIVE</span>`;
-        } else if (status === 'standby') {
-          statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">STANDBY</span>`;
-        }
-
-        const card = document.createElement('div');
-        card.onclick = () => gantiRuanganPgm(tok);
-        card.className = `p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
-          isSelected 
-            ? 'bg-slate-900 border-red-500 ring-2 ring-red-500/30 shadow-lg' 
-            : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
-        }`;
-
-        card.innerHTML = `
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-xl ${isSelected ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'} flex items-center justify-center font-brand font-black text-sm shrink-0">
-              ${tok.substring(0, 2)}
-            </div>
-            <div class="truncate">
-              <div class="flex items-center gap-2">
-                <span class="font-mono font-bold text-xs text-white">${tok}</span>
-                ${statusBadge}
-              </div>
-              <h4 class="text-xs font-brand font-bold text-slate-200 truncate mt-0.5">${progName}</h4>
-              <p class="text-[10px] text-slate-400 truncate">${ep}</p>
-            </div>
-          </div>
-          <span class="text-xs ${isSelected ? 'text-red-400 font-bold' : 'text-slate-600'} shrink-0">
-            ${isSelected ? 'Sedang Ditonton' : 'Tonton &rarr;'}
-          </span>
-        `;
-
-        grid.appendChild(card);
-      });
-    }
-
-    // Mengganti siaran PGM ke ruangan yang diklik
-    function gantiRuanganPgm(token) {
-      if (token === currentRoomToken) return;
-      window.history.pushState(null, '', `?room=${token}`);
-      initLiveViewer(token);
-      renderActiveRoomsList(currentActiveRoomsMap);
+      renderPgmDisplay();
     }
 
     function putarDefaultStandbyVt() {
@@ -572,43 +504,29 @@
       }
     }
 
-    function updateRoomStatusUI(status, title, ep) {
-      currentRoomStatus = status;
+    function updateRoomStatusUI(status) {
+      currentRoomStatus = currentRoomToken === 'SKASA' ? 'live' : status;
       const standbyScreen = document.getElementById('pgmStandbyScreen');
       const badgeLive = document.getElementById('badgeLiveOnAir');
+      const badgeLiveNav = document.getElementById('badgeLiveOnAirNav');
       const lblStatus = document.getElementById('lblBroadcastStatus');
-      const statusText = document.getElementById('standbyStatusText');
-      const activeSourceBadge = document.getElementById('lblActivePgmSource');
-      const phaseBadge = document.getElementById('standbyPhaseBadge');
+      const navLiveStatusText = document.getElementById('navLiveStatusText');
 
-      if (status === 'live') {
+      if (currentRoomStatus === 'live') {
         standbyScreen.classList.add('hidden');
         badgeLive.classList.remove('hidden');
+        badgeLiveNav.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-950/70 text-red-400 border border-red-800";
+        navLiveStatusText.innerText = `${currentRoomToken} LIVE ON-AIR`;
         lblStatus.innerText = "ON-AIR (LIVE)";
         lblStatus.className = "text-red-500 font-bold animate-pulse";
         renderPgmDisplay();
       } else {
         standbyScreen.classList.remove('hidden');
         badgeLive.classList.add('hidden');
-
-        if (status === 'standby') {
-          lblStatus.innerText = "PERSIAPAN KRU";
-          lblStatus.className = "text-amber-400 font-bold";
-          statusText.innerText = `GLADI BERSIH / PERSIAPAN KRU • ${currentRoomToken}`;
-          if (phaseBadge) phaseBadge.innerText = "STANDBY / GLADI";
-        } else if (status === 'ended') {
-          lblStatus.innerText = "SIARAN SELESAI";
-          lblStatus.className = "text-slate-400 font-bold";
-          statusText.innerText = `SESI SIARAN BERAKHIR • ${currentRoomToken}`;
-          if (phaseBadge) phaseBadge.innerText = "ENDED";
-        } else {
-          lblStatus.innerText = "OFF-AIR";
-          lblStatus.className = "text-slate-400";
-          statusText.innerText = `STUDIO STANDBY &bull; TAYANGAN PROFIL SKAWAN TV`;
-          if (phaseBadge) phaseBadge.innerText = "OFF-AIR";
-        }
-
-        activeSourceBadge.innerText = "VT (STANDBY REEL)";
+        badgeLiveNav.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-950/70 text-amber-400 border border-amber-800";
+        navLiveStatusText.innerText = `${currentRoomToken} STANDBY`;
+        lblStatus.innerText = "STANDBY (OFF-AIR)";
+        lblStatus.className = "text-amber-400 font-bold";
 
         const camVideo = document.getElementById('pgmCamVideo');
         const vtWrapper = document.getElementById('pgmVtWrapper');
@@ -619,13 +537,8 @@
     }
 
     function renderPgmDisplay() {
-      if (currentRoomStatus !== 'live') {
-        updateRoomStatusUI(currentRoomStatus);
-        return;
-      }
-
       const activeSrc = liveState.programSource || 'vt';
-      document.getElementById('lblActivePgmSource').innerText = activeSrc.toUpperCase().replace('_', ' ');
+      document.getElementById('lblActivePgmSource').innerText = activeSrc === 'vt' ? 'VT (PLAYLIST)' : activeSrc.toUpperCase().replace('_', ' ');
 
       const camVideo = document.getElementById('pgmCamVideo');
       const vtWrapper = document.getElementById('pgmVtWrapper');
@@ -635,19 +548,16 @@
         vtWrapper.classList.remove('hidden');
         syncVtPlayback();
       } else {
+        vtWrapper.classList.add('hidden');
         const stream = getCameraStream(activeSrc);
         if (stream) {
-          vtWrapper.classList.add('hidden');
-          camVideo.srcObject = stream;
+          if (camVideo.srcObject !== stream) camVideo.srcObject = stream;
           camVideo.classList.remove('hidden');
+          camVideo.play().catch(() => {});
         } else {
-          // Jika belum ada feed kamera aktif, tayangkan feed VT siaran agar layar selalu live
           camVideo.classList.add('hidden');
           vtWrapper.classList.remove('hidden');
-          if (latestVtState.sourceType === 'youtube' && !latestVtState.youtubeId) {
-            latestVtState.youtubeId = DEFAULT_STANDBY_YT_ID;
-          }
-          syncVtPlayback();
+          putarDefaultStandbyVt();
         }
       }
     }
@@ -661,7 +571,7 @@
     }
 
     function syncVtPlayback() {
-      if (currentRoomStatus !== 'live' || liveState.programSource !== 'vt') return;
+      if (liveState.programSource !== 'vt') return;
 
       const html5El = document.getElementById('pgmVtHtml5');
       const ytWrap = document.getElementById('pgmVtYtWrap');
@@ -774,6 +684,88 @@
       } else {
         document.exitFullscreen().catch(err => console.warn(err));
       }
+    }
+
+    // Mendengarkan Daftar Saluran / Ruangan Aktif di Sistem
+    function listenActiveChannels() {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref('rooms').on('value', snap => {
+        const grid = document.getElementById('channelRoomsGrid');
+        grid.innerHTML = '';
+
+        const roomsData = snap.val() || {};
+        const roomKeys = Object.keys(roomsData);
+
+        // Pastikan SKASA selalu ada di urutan pertama
+        if (!roomKeys.includes('SKASA')) {
+          roomKeys.unshift('SKASA');
+        } else {
+          const idx = roomKeys.indexOf('SKASA');
+          if (idx > 0) {
+            roomKeys.splice(idx, 1);
+            roomKeys.unshift('SKASA');
+          }
+        }
+
+        document.getElementById('lblChannelCount').innerText = `${roomKeys.length} Saluran Ditemukan`;
+
+        roomKeys.forEach(token => {
+          const room = roomsData[token] || {};
+          const meta = room.meta || {};
+          const isSkasa = token === 'SKASA';
+          const isLive = isSkasa || meta.status === 'live';
+          const isCurrentSelected = token === currentRoomToken;
+
+          const card = document.createElement('div');
+          card.onclick = () => gantiSaluranSiaran(token);
+          
+          let cardStyle = "p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between ";
+          if (isCurrentSelected) {
+            cardStyle += "bg-red-950/40 border-red-500 shadow-lg shadow-red-950/40";
+          } else {
+            cardStyle += "bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900";
+          }
+
+          card.className = cardStyle;
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5 overflow-hidden">
+              <div class="w-8 h-8 rounded-lg ${isLive ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'} flex items-center justify-center font-brand font-black text-xs shrink-0">
+                ${isLive ? 'LIVE' : 'CH'}
+              </div>
+              <div class="truncate">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono font-bold text-xs text-white">${token}</span>
+                  ${isSkasa ? '<span class="text-[9px] font-mono bg-red-900/60 text-red-300 px-1.5 py-0.2 rounded">UTAMA</span>' : ''}
+                </div>
+                <span class="text-[11px] text-slate-400 truncate block">${meta.programName || "SKASA TV Broadcast"}</span>
+              </div>
+            </div>
+
+            <div class="text-right shrink-0">
+              <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded ${isLive ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">
+                ${isLive ? '● ON-AIR' : 'STANDBY'}
+              </span>
+            </div>
+          `;
+
+          grid.appendChild(card);
+        });
+      });
+    }
+
+    function gantiSaluranSiaran(newToken) {
+      if (newToken === currentRoomToken) return;
+      currentRoomToken = newToken;
+      document.getElementById('navRoomToken').innerText = newToken;
+
+      // Update URL query string tanpa reload halaman
+      const newUrl = `${window.location.pathname}?room=${newToken}`;
+      window.history.pushState({ path: newUrl }, '', newUrl);
+
+      initChannelViewer(newToken);
+      listenActiveChannels();
     }
   </script>
 </body>
