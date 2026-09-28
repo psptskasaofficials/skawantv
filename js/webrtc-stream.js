@@ -36,26 +36,25 @@ class SkawanStreamer {
   }
 
   _generatePeerId() {
-    // Gunakan pemisah aman '---' agar underscore pada 'cam_1' tidak terpotong
-    const cleanToken = this.roomToken;
-    const cleanRole = this.roleKey.toLowerCase();
+    // Format aman mematuhi regex PeerJS: /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/
+    // DILARANG menggunakan tanda hubung berturut-turut seperti '--' atau '---'
+    const cleanToken = this.roomToken.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'studio1';
+    const cleanRole = this.roleKey.toLowerCase().replace(/[^a-z0-9]/g, '');
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    return `skawan---${cleanToken}---${cleanRole}---${randomSuffix}`;
+    return `skawan-${cleanToken}-${cleanRole}-${randomSuffix}`;
   }
 
   _extractRoleFromPeerId(peerId) {
     if (typeof peerId !== 'string') return 'cam_1';
     
-    // 1. Ekstraksi format baru dengan pemisah '---'
-    if (peerId.includes('---')) {
-      const parts = peerId.split('---');
-      if (parts.length >= 3) {
-        let role = parts[2].toLowerCase();
-        // Normalisasi format cam1 -> cam_1
-        const numMatch = role.match(/cam_?([0-9]+)/);
-        if (numMatch) return `cam_${numMatch[1]}`;
-        return role;
-      }
+    // 1. Ekstraksi format baku: skawan-[token]-[role]-[suffix]
+    const parts = peerId.split('-');
+    if (parts.length >= 4) {
+      const role = parts[2].toLowerCase();
+      // Normalisasi format cam1 / cam_1 -> cam_1
+      const numMatch = role.match(/cam([0-9]+)/);
+      if (numMatch) return `cam_${numMatch[1]}`;
+      return role;
     }
 
     // 2. Ekstraksi fallback jika format lain digunakan
@@ -160,7 +159,7 @@ class SkawanStreamer {
     }
 
     // Registrasi unik untuk setiap peer (viewer dapat memiliki banyak instance)
-    const registerKey = this.roleKey === 'viewer' ? `viewer_${this.peerId.split('---').pop()}` : this.roleKey;
+    const registerKey = this.roleKey === 'viewer' ? `viewer_${this.peerId.split('-').pop()}` : this.roleKey;
     this.dbRef = activeDb.ref(`rooms/${this.rawRoomToken}/peers/${registerKey}`);
     this.dbRef.set({
       peerId: id,
