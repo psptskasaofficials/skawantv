@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Kamera Viewfinder | SKAWAN TV</title>
+  <title>Kamerawan Viewfinder | SKAWAN TV</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -31,6 +31,28 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+
+  <script>
+    (function ensureFirebaseConnection() {
+      const config = {
+        apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
+        authDomain: "skawan-tv.firebaseapp.com",
+        databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "skawan-tv",
+        storageBucket: "skawan-tv.firebasestorage.app",
+        messagingSenderId: "501619282826",
+        appId: "1:501619282826:web:81e624ac35e9798062ae73"
+      };
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || !firebase.apps.length) {
+          try { firebase.initializeApp(config); } catch (e) {}
+        }
+        if (!window.db && firebase.database) {
+          window.db = firebase.database();
+        }
+      }
+    })();
+  </script>
 
   <!-- Native WebRTC Streamer (Tanpa Dependensi PeerJS) -->
   <script src="js/webrtc-stream.js"></script>
