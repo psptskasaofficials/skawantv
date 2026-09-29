@@ -283,6 +283,12 @@
             live_state: { programSource: "vt", previewSource: "cam_1" },
             vt_state: { status: "playing", currentTime: 0, youtubeId: "XhwSTlXTJRc", sourceType: "youtube" }
           });
+        } else {
+          // Pulihkan status SKASA selalu ke 'live' jika sempat tertinggal di status lain
+          const val = snap.val();
+          if (val && val.status !== 'live') {
+            activeDb.ref('rooms/SKASA/meta/status').set('live');
+          }
         }
       });
     }
@@ -611,6 +617,13 @@
     function listenGameStart(token, roleKey) {
       const activeDb = getDatabase();
       if (!activeDb) return;
+
+      // Ruangan SKASA terkunci ON-AIR permanen: langsung alihkan siswa tanpa menunggu
+      if (token === 'SKASA') {
+        alihkanKeWorkstation(token, roleKey);
+        return;
+      }
+
       activeDb.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
         const status = snapshot.val();
         if (status === 'standby' || status === 'live') {
@@ -678,7 +691,7 @@
         if (checkFirebaseReady()) {
           db.ref(`rooms/${savedRoom}/meta/status`).once('value', snapshot => {
             const status = snapshot.val();
-            if (status === 'standby' || status === 'live') {
+            if (savedRoom === 'SKASA' || status === 'standby' || status === 'live') {
               alihkanKeWorkstation(savedRoom, savedRole);
             } else {
               listenGameStart(savedRoom, savedRole);
