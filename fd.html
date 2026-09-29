@@ -393,13 +393,13 @@
 
     function initFloorDirectorSystem(token) {
       if (isFirebaseReady) {
-        // Tarik meta ruangan & pantau status berakhir
+        // Tarik meta ruangan & pantau status berakhir (SKASA kebal)
         db.ref(`rooms/${token}/meta`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const meta = snapshot.val();
           if (meta.totalCameras) totalCameras = meta.totalCameras;
           if (meta.programName) document.getElementById('displayProgramTitle').innerText = meta.programName;
-          if (meta.status === 'ended') {
+          if (meta.status === 'ended' && token !== 'SKASA') {
             tanganiSesiDiakhiriGuru();
           }
           renderStudioTallyCards();
@@ -630,6 +630,8 @@
     }
 
     function tanganiSesiDiakhiriGuru() {
+      if (currentRoomToken === 'SKASA') return; // Proteksi SKASA
+
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
