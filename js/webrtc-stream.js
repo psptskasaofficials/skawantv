@@ -1,14 +1,39 @@
 /**
  * js/webrtc-stream.js
- * Modul Streaming WebRTC Peer-to-Peer SKAWAN TV
+ * Modul Native WebRTC Peer-to-Peer & Relay SKAWAN TV
  * SMK Negeri 1 Pacitan
  * 
- * Versi Stabil v3.4: 
- * - Dual State Watcher (connectionState + iceConnectionState)
- * - Anti-Hang Zombie Calls Watchdog
- * - Direct Receive-Only Clean Answer
- * - Multi-Provider STUN Redundancy
+ * Versi v4.0 (Zero-PeerJS Cloud Dependency):
+ * - Direct Firebase Realtime Database Signaling (Offer/Answer/Candidate)
+ * - Native window.RTCPeerConnection (100% Kompatibel Semua Browser)
+ * - Multi-Port STUN & OpenRelay TURN (Bypass Firewall Sekolah & 4G NAT)
+ * - Auto Candidate Queueing & Seamless Track Hot-Swapping
  */
+
+const SKAWAN_ICE_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:openrelay.metered.ca:80' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
+  ],
+  iceCandidatePoolSize: 10
+};
 
 class SkawanStreamer {
   constructor(options = {}) {
@@ -18,19 +43,20 @@ class SkawanStreamer {
     this.localStream = options.localStream || null;
     this.onRemoteStream = options.onRemoteStream || (() => {});
     this.onStatusChange = options.onStatusChange || (() => {});
-    
-    this.peer = null;
-    this.peerId = null;
-    this.activeCalls = new Map();
-    // Penerima stream murni: Switcher, PD, Admin Inspector, Viewer, Audio-VT, CG
+
+    // Role penerima stream: Switcher, PD, Admin Inspector, Viewer, Audio-VT, CG
     this.isReceiver = ['switcher', 'pd', 'admin', 'viewer', 'inspector', 'audio_vt', 'cg'].includes(this.roleKey);
-    this.dbRef = null;
+
+    // Kumpulan koneksi aktif: Map<targetKey, { pc, candidateQueue, hasRemoteDesc, unsubscribeList }>
+    this.connections = new Map();
     this.isDestroyed = false;
     this.reconnectTimer = null;
-    this.watchdogTimer = null;
-    this.knownPeers = {};
+    this.peerPresenceRef = null;
 
-    this._initPeer();
+    // Generate Client ID Unik per sesi
+    this.clientId = `${this.roleKey}_${Math.floor(1000 + Math.random() * 9000)}`;
+
+    this._startEngine();
   }
 
   _getDb() {
@@ -42,402 +68,354 @@ class SkawanStreamer {
     return null;
   }
 
-  _generatePeerId() {
-    const cleanToken = this.roomToken.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'skasa';
-    const cleanRole = this.roleKey.toLowerCase().replace(/[^a-z0-9]/g, '') || 'cam1';
-    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
-    return `skawan${cleanToken}${cleanRole}${randomSuffix}`;
-  }
-
-  _initPeer() {
-    if (typeof Peer === 'undefined') {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
-      script.onload = () => this._createPeerInstance();
-      script.onerror = () => {
-        console.warn('[WebRTC] Gagal memuat CDN PeerJS.');
-        this.onStatusChange('error', 'Gagal memuat pustaka WebRTC');
-      };
-      document.head.appendChild(script);
-    } else {
-      this._createPeerInstance();
-    }
-  }
-
-  _createPeerInstance() {
-    if (this.isDestroyed) return;
-    this.peerId = this._generatePeerId();
-
-    const peerOptions = {
-      debug: 1,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:stun3.l.google.com:19302' },
-          { urls: 'stun:stun4.l.google.com:19302' },
-          { urls: 'stun:global.stun.twilio.com:3478' },
-          { urls: 'stun:stun.cloudflare.com:3478' }
-        ],
-        sdpSemantics: 'unified-plan'
-      }
-    };
-
-    try {
-      this.peer = new Peer(this.peerId, peerOptions);
-    } catch (e) {
-      this.peer = new Peer(peerOptions);
-    }
-
-    this.peer.on('open', (id) => {
-      console.log(`[WebRTC Streamer] Peer terhubung ke server: ${id} (${this.roleKey})`);
-      this.peerId = id;
-      this._registerToFirebase(id);
-      this._listenTargetPeers();
-
-      if (!this.isReceiver) {
-        this.onStatusChange('ready', 'Siap (Menunggu Switcher/PD)');
-        this._startHeartbeat();
-        this._startWatchdog();
-      } else {
-        this.onStatusChange('ready', 'Penerima Siap');
-      }
-    });
-
-    this.peer.on('error', (err) => {
-      console.warn('[WebRTC Streamer Error Event]:', err.type, err.message);
-
-      // Tangani peer-unavailable sebagai target yang belum online (bukan error fatal kamera)
-      if (err.type === 'peer-unavailable') {
-        this.activeCalls.forEach((call, targetRole) => {
-          if (call.peer === err.peer) this.activeCalls.delete(targetRole);
-        });
-
-        // Hapus ID yang sudah tidak berlaku dari cache lokal
-        Object.keys(this.knownPeers).forEach(key => {
-          if (this.knownPeers[key] && this.knownPeers[key].peerId === err.peer) {
-            delete this.knownPeers[key];
-          }
-        });
-
-        this._updateConnectionStatus();
-        return;
-      }
-
-      if (err.type === 'invalid-id' || err.type === 'unavailable-id') {
-        this.peer.destroy();
-        this.peer = new Peer(peerOptions);
-      } else if (err.type === 'disconnected' || err.type === 'network') {
-        if (!this.peer.destroyed) {
-          try { this.peer.reconnect(); } catch(e){}
-        }
-      }
-
-      this.onStatusChange('error', err.type || 'Koneksi jaringan');
-    });
-
-    // RECEIVER (Switcher / PD / Viewer): Menjawab panggilan kamera studio
-    this.peer.on('call', (call) => {
-      console.log('[WebRTC Streamer] Panggilan video masuk dari:', call.peer);
-
-      // Jawab panggilan secara bersih tanpa memasukkan track dummy audio
-      try {
-        call.answer();
-      } catch (err) {
-        const dummyStream = this._createActiveCanvasStream();
-        call.answer(dummyStream || undefined);
-      }
-
-      call.on('stream', (remoteStream) => {
-        const rawRole = call.metadata?.role || this._extractRoleFromPeer(call.peer) || 'cam_1';
-        const normRole = rawRole.includes('_') ? rawRole : rawRole.replace('cam', 'cam_');
-        console.log(`[WebRTC Streamer] Stream video aktif diterima dari: ${normRole}`);
-        this.activeCalls.set(normRole, call);
-        this.activeCalls.set(rawRole, call);
-        this.onRemoteStream(normRole, remoteStream);
-      });
-
-      call.on('close', () => {
-        const rawRole = call.metadata?.role || this._extractRoleFromPeer(call.peer);
-        if (rawRole) {
-          const normRole = rawRole.includes('_') ? rawRole : rawRole.replace('cam', 'cam_');
-          this.activeCalls.delete(rawRole);
-          this.activeCalls.delete(normRole);
-        }
-      });
-
-      call.on('error', (err) => {
-        console.warn('[WebRTC Streamer] Call error:', err);
-        const rawRole = call.metadata?.role || this._extractRoleFromPeer(call.peer);
-        if (rawRole) {
-          const normRole = rawRole.includes('_') ? rawRole : rawRole.replace('cam', 'cam_');
-          this.activeCalls.delete(rawRole);
-          this.activeCalls.delete(normRole);
-        }
-      });
-    });
-  }
-
-  _registerToFirebase(id) {
+  _startEngine() {
     const activeDb = this._getDb();
     if (!activeDb) {
-      setTimeout(() => this._registerToFirebase(id), 1000);
+      setTimeout(() => this._startEngine(), 600);
       return;
     }
 
-    const registerKey = this.roleKey === 'viewer' ? `viewer_${id.substring(id.length - 4)}` : this.roleKey;
-    this.dbRef = activeDb.ref(`rooms/${this.rawRoomToken}/peers/${registerKey}`);
-    this.dbRef.set({
-      peerId: id,
+    console.log(`[Native WebRTC] Memulai mesin untuk role: ${this.roleKey} (Room: ${this.rawRoomToken})`);
+    this.onStatusChange('ready', this.isReceiver ? 'Penerima Siaga' : 'Siap (Menghubungkan ke Studio...)');
+
+    // 1. Daftarkan kehadiran node peer di Firebase
+    this._announcePresence(activeDb);
+
+    // 2. Dengarkan sinyal WebRTC masuk
+    this._listenIncomingSignals(activeDb);
+
+    // 3. Jika kamera pemancar: inisiasi panggilan ke stasiun studio
+    if (!this.isReceiver) {
+      this._monitorStudioReceivers(activeDb);
+    }
+  }
+
+  _announcePresence(activeDb) {
+    this.peerPresenceRef = activeDb.ref(`rooms/${this.rawRoomToken}/webrtc_presence/${this.roleKey}`);
+    this.peerPresenceRef.set({
+      clientId: this.clientId,
       role: this.roleKey,
+      isReceiver: this.isReceiver,
       online: true,
       updatedAt: Date.now()
     });
 
-    this.dbRef.onDisconnect().remove();
+    this.peerPresenceRef.onDisconnect().remove();
   }
 
-  _listenTargetPeers() {
-    const activeDb = this._getDb();
-    if (!activeDb) {
-      setTimeout(() => this._listenTargetPeers(), 1000);
+  _monitorStudioReceivers(activeDb) {
+    const targets = ['switcher', 'pd', 'admin', 'inspector'];
+
+    activeDb.ref(`rooms/${this.rawRoomToken}/webrtc_presence`).on('value', (snapshot) => {
+      if (this.isDestroyed || !snapshot.exists()) return;
+      const peers = snapshot.val() || {};
+
+      Object.keys(peers).forEach((key) => {
+        const p = peers[key];
+        if (!p || !p.online) return;
+
+        // Jika receiver aktif terdeteksi (Switcher / PD / Viewer)
+        if (targets.includes(key) || key.startsWith('viewer_')) {
+          if (!this.connections.has(key)) {
+            console.log(`[Native WebRTC] Target studio terdeteksi: ${key}. Membuat offer...`);
+            this._createPeerConnectionAsSender(key, activeDb);
+          }
+        }
+      });
+    });
+  }
+
+  async _createPeerConnectionAsSender(targetKey, activeDb) {
+    if (this.isDestroyed || !this.localStream) return;
+
+    // Bersihkan sambungan lama jika ada
+    this._closeConnection(targetKey);
+
+    const pc = new RTCPeerConnection(SKAWAN_ICE_CONFIG);
+    const connData = {
+      pc,
+      candidateQueue: [],
+      hasRemoteDesc: false,
+      unsubs: []
+    };
+    this.connections.set(targetKey, connData);
+
+    // Tambahkan seluruh track lokal kamera ke peer connection
+    this.localStream.getTracks().forEach((track) => {
+      pc.addTrack(track, this.localStream);
+    });
+
+    // Kirim ICE Candidate lokal ke Firebase
+    const signalPath = `rooms/${this.rawRoomToken}/webrtc_signals/${this.roleKey}___${targetKey}`;
+    pc.onicecandidate = (event) => {
+      if (event.candidate && !this.isDestroyed) {
+        activeDb.ref(`${signalPath}/candidates_from_cam`).push(event.candidate.toJSON());
+      }
+    };
+
+    // Pantau status koneksi WebRTC
+    const handleStateChange = () => {
+      console.log(`[Native WebRTC] State ${targetKey}: ${pc.connectionState} (ICE: ${pc.iceConnectionState})`);
+      this._updateConnectionStatus();
+
+      if (pc.connectionState === 'failed' || pc.iceConnectionState === 'failed') {
+        console.warn(`[Native WebRTC] Sambungan ke ${targetKey} gagal. Mengulang jabat tangan...`);
+        this._closeConnection(targetKey);
+        setTimeout(() => {
+          if (!this.isDestroyed && !this.connections.has(targetKey)) {
+            this._createPeerConnectionAsSender(targetKey, activeDb);
+          }
+        }, 2000);
+      }
+    };
+
+    pc.onconnectionstatechange = handleStateChange;
+    pc.oniceconnectionstatechange = handleStateChange;
+
+    try {
+      // Buat Offer SDP
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: false,
+        offerToReceiveVideo: false
+      });
+      await pc.setLocalDescription(offer);
+
+      // Bersihkan sinyal usang dan simpan Offer baru di Firebase
+      await activeDb.ref(signalPath).set({
+        offer: { type: offer.type, sdp: offer.sdp },
+        camClientId: this.clientId,
+        timestamp: Date.now()
+      });
+
+      // Dengarkan Answer dari Receiver
+      const answerRef = activeDb.ref(`${signalPath}/answer`);
+      const onAnswer = answerRef.on('value', async (snap) => {
+        if (!snap.exists() || this.isDestroyed || connData.hasRemoteDesc) return;
+        const answer = snap.val();
+        if (answer && answer.sdp) {
+          try {
+            console.log(`[Native WebRTC] Menerima Answer SDP dari ${targetKey}. Menerapkan...`);
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            connData.hasRemoteDesc = true;
+
+            // Kuras antrean kandidat ICE yang tiba duluan
+            while (connData.candidateQueue.length > 0) {
+              const cand = connData.candidateQueue.shift();
+              await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+            }
+          } catch (e) {
+            console.warn('[Native WebRTC] SetRemoteDescription error:', e);
+          }
+        }
+      });
+      connData.unsubs.push(() => answerRef.off('value', onAnswer));
+
+      // Dengarkan ICE Candidates dari Receiver
+      const candRef = activeDb.ref(`${signalPath}/candidates_from_rec`);
+      const onCand = candRef.on('child_added', async (snap) => {
+        if (!snap.exists() || this.isDestroyed) return;
+        const candData = snap.val();
+        if (connData.hasRemoteDesc) {
+          await pc.addIceCandidate(new RTCIceCandidate(candData)).catch(() => {});
+        } else {
+          connData.candidateQueue.push(candData);
+        }
+      });
+      connData.unsubs.push(() => candRef.off('child_added', onCand));
+
+      this._updateConnectionStatus();
+
+    } catch (err) {
+      console.warn(`[Native WebRTC] Gagal membuat offer ke ${targetKey}:`, err);
+      this._closeConnection(targetKey);
+    }
+  }
+
+  _listenIncomingSignals(activeDb) {
+    if (!this.isReceiver) return;
+
+    const signalsRoot = activeDb.ref(`rooms/${this.rawRoomToken}/webrtc_signals`);
+    signalsRoot.on('child_added', (snapshot) => {
+      this._processIncomingChannel(snapshot.key, activeDb);
+    });
+    signalsRoot.on('child_changed', (snapshot) => {
+      this._processIncomingChannel(snapshot.key, activeDb);
+    });
+  }
+
+  _processIncomingChannel(channelKey, activeDb) {
+    if (this.isDestroyed || !channelKey || !channelKey.includes('___')) return;
+
+    const [senderRole, targetRole] = channelKey.split('___');
+    // Jika panggilan ini ditujukan untuk role saya (misal: switcher, pd, viewer)
+    if (targetRole !== this.roleKey && !this.roleKey.startsWith(targetRole)) {
       return;
     }
 
-    activeDb.ref(`rooms/${this.rawRoomToken}/peers`).on('value', (snapshot) => {
-      if (!snapshot.exists() || this.isDestroyed) {
-        this.knownPeers = {};
-        this._updateConnectionStatus();
+    const signalPath = `rooms/${this.rawRoomToken}/webrtc_signals/${channelKey}`;
+    activeDb.ref(signalPath).once('value', async (snapshot) => {
+      if (!snapshot.exists() || this.isDestroyed) return;
+      const data = snapshot.val() || {};
+      const offer = data.offer;
+      if (!offer || !offer.sdp) return;
+
+      // Jika koneksi untuk kamera ini sudah aktif dengan sdp yang sama, abaikan
+      const existing = this.connections.get(senderRole);
+      if (existing && existing.currentOfferSdp === offer.sdp) {
         return;
       }
-      this.knownPeers = snapshot.val() || {};
 
-      if (!this.isReceiver && this.localStream) {
-        this._pushStreamToTargets();
-      }
+      console.log(`[Native WebRTC Receiver] Menerima Offer dari ${senderRole}. Membuka channel...`);
+      await this._answerIncomingCall(senderRole, signalPath, offer, activeDb);
     });
   }
 
-  _pushStreamToTargets() {
-    if (!this.knownPeers || !this.localStream || this.isDestroyed) return;
+  async _answerIncomingCall(senderRole, signalPath, offer, activeDb) {
+    this._closeConnection(senderRole);
 
-    const receiverTargetKeys = ['switcher', 'pd', 'admin', 'inspector'];
+    const pc = new RTCPeerConnection(SKAWAN_ICE_CONFIG);
+    const connData = {
+      pc,
+      candidateQueue: [],
+      hasRemoteDesc: false,
+      currentOfferSdp: offer.sdp,
+      unsubs: []
+    };
+    this.connections.set(senderRole, connData);
 
-    Object.keys(this.knownPeers).forEach(key => {
-      const p = this.knownPeers[key];
-      if (!p || !p.peerId) return;
-      if (p.peerId === this.peerId) return;
-
-      if (receiverTargetKeys.includes(key) || key.startsWith('viewer_') || key.startsWith('inspector_')) {
-        this._callTarget(key, p.peerId);
+    // Kirim ICE Candidate dari Receiver ke Firebase
+    pc.onicecandidate = (event) => {
+      if (event.candidate && !this.isDestroyed) {
+        activeDb.ref(`${signalPath}/candidates_from_rec`).push(event.candidate.toJSON());
       }
-    });
-  }
+    };
 
-  _callTarget(targetRole, targetPeerId) {
-    if (!this.peer || this.peer.disconnected || this.isDestroyed || !this.localStream) return;
-
-    const existingCall = this.activeCalls.get(targetRole);
-    if (existingCall) {
-      if (existingCall.peer === targetPeerId) {
-        const pc = existingCall.peerConnection;
-        if (pc) {
-          const isConnected = pc.connectionState === 'connected' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed';
-          const isConnecting = pc.connectionState === 'connecting' || pc.iceConnectionState === 'checking';
-          if (isConnected || isConnecting) {
-            return;
-          }
-        }
+    // Saat track video kamera diterima dari HP:
+    pc.ontrack = (event) => {
+      console.log(`[Native WebRTC] Stream video aktif diterima dari: ${senderRole}`);
+      if (event.streams && event.streams[0]) {
+        const normKey = senderRole.includes('_') ? senderRole : senderRole.replace('cam', 'cam_');
+        this.onRemoteStream(normKey, event.streams[0]);
+        this.onRemoteStream(senderRole, event.streams[0]);
       }
-      try { existingCall.close(); } catch(e){}
-      this.activeCalls.delete(targetRole);
-    }
+    };
 
     try {
-      console.log(`[WebRTC Streamer] Menghubungkan ke ${targetRole} (${targetPeerId})...`);
-      
-      const call = this.peer.call(targetPeerId, this.localStream, {
-        metadata: { role: this.roleKey }
-      });
-      if (!call) return;
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      connData.hasRemoteDesc = true;
 
-      call._callStartTime = Date.now();
-      this.activeCalls.set(targetRole, call);
-
-      const checkState = () => {
-        this._updateConnectionStatus();
-      };
-
-      if (call.peerConnection) {
-        const pc = call.peerConnection;
-        pc.onconnectionstatechange = () => {
-          console.log(`[WebRTC Streamer] State ${targetRole}: ${pc.connectionState}`);
-          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-            this.activeCalls.delete(targetRole);
-          }
-          checkState();
-        };
-
-        pc.oniceconnectionstatechange = () => {
-          console.log(`[WebRTC Streamer] ICE State ${targetRole}: ${pc.iceConnectionState}`);
-          if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-            this.activeCalls.delete(targetRole);
-          }
-          checkState();
-        };
+      // Kuras antrean kandidat ICE
+      while (connData.candidateQueue.length > 0) {
+        const cand = connData.candidateQueue.shift();
+        await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
       }
 
-      call.on('close', () => {
-        this.activeCalls.delete(targetRole);
-        checkState();
+      // Buat Answer SDP
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      // Kirim Answer balik ke Firebase
+      await activeDb.ref(`${signalPath}/answer`).set({
+        type: answer.type,
+        sdp: answer.sdp,
+        receiverClientId: this.clientId,
+        timestamp: Date.now()
       });
 
-      call.on('error', (err) => {
-        console.warn(`[WebRTC Streamer] Panggilan ke ${targetRole} ditutup/error:`, err);
-        this.activeCalls.delete(targetRole);
-        checkState();
+      // Dengarkan ICE Candidates dari Kamera
+      const camCandRef = activeDb.ref(`${signalPath}/candidates_from_cam`);
+      const onCamCand = camCandRef.on('child_added', async (snap) => {
+        if (!snap.exists() || this.isDestroyed) return;
+        const candData = snap.val();
+        if (connData.hasRemoteDesc) {
+          await pc.addIceCandidate(new RTCIceCandidate(candData)).catch(() => {});
+        } else {
+          connData.candidateQueue.push(candData);
+        }
       });
+      connData.unsubs.push(() => camCandRef.off('child_added', onCamCand));
 
-      this._updateConnectionStatus();
     } catch (err) {
-      console.warn('[WebRTC Streamer] Gagal memanggil target:', err);
-      this.activeCalls.delete(targetRole);
+      console.warn(`[Native WebRTC] Gagal menjawab offer dari ${senderRole}:`, err);
+      this._closeConnection(senderRole);
     }
-  }
-
-  _isCallConnected(call) {
-    if (!call || !call.peerConnection) return false;
-    const pc = call.peerConnection;
-    return pc.connectionState === 'connected' || 
-           pc.iceConnectionState === 'connected' || 
-           pc.iceConnectionState === 'completed';
   }
 
   _updateConnectionStatus() {
     if (this.isReceiver || this.isDestroyed) return;
 
     const connectedRoles = [];
-    this.activeCalls.forEach((call, role) => {
-      if (this._isCallConnected(call)) {
-        connectedRoles.push(role.toUpperCase());
+    let isAnyConnecting = false;
+
+    this.connections.forEach((conn, role) => {
+      const pc = conn.pc;
+      if (pc) {
+        const isConnected = pc.connectionState === 'connected' || 
+                            pc.iceConnectionState === 'connected' || 
+                            pc.iceConnectionState === 'completed';
+        const isConnecting = pc.connectionState === 'connecting' || 
+                             pc.iceConnectionState === 'checking';
+
+        if (isConnected) {
+          connectedRoles.push(role.toUpperCase());
+        } else if (isConnecting) {
+          isAnyConnecting = true;
+        }
       }
     });
 
     if (connectedRoles.length > 0) {
       this.onStatusChange('connected', `Terhubung ke ${connectedRoles.join(' & ')}`);
-    } else if (this.activeCalls.size > 0) {
+    } else if (isAnyConnecting || this.connections.size > 0) {
       this.onStatusChange('connecting', 'Menghubungkan ke Studio...');
     } else {
       this.onStatusChange('ready', 'Siap (Menunggu Switcher/PD)');
     }
   }
 
-  _startWatchdog() {
-    if (this.watchdogTimer) clearInterval(this.watchdogTimer);
-    // Evaluasi setiap 4 detik untuk membersihkan panggilan hantu/zombie
-    this.watchdogTimer = setInterval(() => {
-      if (this.isDestroyed || this.isReceiver) return;
-
-      const now = Date.now();
-      let cleaned = false;
-
-      this.activeCalls.forEach((call, role) => {
-        const isConn = this._isCallConnected(call);
-        const startTime = call._callStartTime || 0;
-        // Jika sudah lebih dari 7 detik belum juga terhubung, buang sambungan lama
-        if (!isConn && (now - startTime > 7000)) {
-          console.warn(`[WebRTC Watchdog] Membuang panggilan zombie ke ${role} (${call.peer})`);
-          try { call.close(); } catch(e){}
-          this.activeCalls.delete(role);
-          cleaned = true;
-        }
-      });
-
-      if (cleaned) {
-        this._updateConnectionStatus();
-        this._pushStreamToTargets();
-      }
-    }, 4000);
-  }
-
-  _startHeartbeat() {
-    if (this.reconnectTimer) clearInterval(this.reconnectTimer);
-    this.reconnectTimer = setInterval(() => {
-      if (this.isDestroyed) return;
-      if (!this.isReceiver && this.localStream && this.peer && !this.peer.disconnected) {
-        this._pushStreamToTargets();
-      }
-    }, 3000);
-  }
-
-  _extractRoleFromPeer(peerId) {
-    if (!peerId) return 'cam_1';
-    const match = peerId.match(/cam_?([0-9]+)/i);
-    if (match) return `cam_${match[1]}`;
-    if (peerId.includes('switcher')) return 'switcher';
-    if (peerId.includes('pd')) return 'pd';
-    return peerId;
-  }
-
-  _createActiveCanvasStream() {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 16;
-      canvas.height = 16;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, 16, 16);
-      }
-      if (canvas.captureStream) {
-        const stream = canvas.captureStream(5);
-        return stream;
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
   updateLocalStream(newStream) {
     this.localStream = newStream;
-    this.activeCalls.forEach((call) => {
-      if (call.peerConnection) {
-        const senders = call.peerConnection.getSenders();
-        const newTrack = newStream.getVideoTracks()[0];
+    const newVideoTrack = newStream.getVideoTracks()[0];
+
+    this.connections.forEach((conn) => {
+      if (conn.pc && newVideoTrack) {
+        const senders = conn.pc.getSenders();
         const videoSender = senders.find((s) => s.track && s.track.kind === 'video');
-        if (videoSender && newTrack) {
-          videoSender.replaceTrack(newTrack).catch((e) => console.warn(e));
+        if (videoSender) {
+          videoSender.replaceTrack(newVideoTrack).catch((e) => console.warn(e));
         }
       }
     });
-    if (this.activeCalls.size === 0) {
-      this._pushStreamToTargets();
+  }
+
+  _closeConnection(key) {
+    const conn = this.connections.get(key);
+    if (!conn) return;
+
+    if (conn.unsubs) {
+      conn.unsubs.forEach((unsub) => {
+        try { unsub(); } catch(e){}
+      });
     }
+
+    if (conn.pc) {
+      try { conn.pc.close(); } catch(e){}
+    }
+
+    this.connections.delete(key);
   }
 
   destroy() {
     this.isDestroyed = true;
-    if (this.reconnectTimer) {
-      clearInterval(this.reconnectTimer);
-      this.reconnectTimer = null;
+
+    if (this.peerPresenceRef) {
+      this.peerPresenceRef.remove().catch(() => {});
     }
-    if (this.watchdogTimer) {
-      clearInterval(this.watchdogTimer);
-      this.watchdogTimer = null;
-    }
-    if (this.dbRef) {
-      this.dbRef.remove().catch(() => {});
-    }
-    this.activeCalls.forEach((call) => {
-      try { call.close(); } catch(e){}
+
+    this.connections.forEach((_, key) => {
+      this._closeConnection(key);
     });
-    this.activeCalls.clear();
-    if (this.peer) {
-      this.peer.destroy();
-      this.peer = null;
-    }
+    this.connections.clear();
   }
 }
 
