@@ -84,6 +84,12 @@
         <span id="roomTokenBadge" class="text-[10px] font-mono font-bold bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg text-slate-200">
           STUDIO-1
         </span>
+
+        <!-- Tombol Pemilih Resolusi Kamera Cepat -->
+        <button onclick="bukaModalResolusi()" class="bg-black/70 hover:bg-black/90 active:scale-95 text-white border border-white/20 px-2.5 py-1 rounded-xl text-xs font-mono font-bold flex items-center gap-1 shadow transition backdrop-blur-md" title="Atur Resolusi Kamera">
+          <span id="lblResHeaderBadge" class="text-blue-400">720p HD</span>
+          <span class="text-[10px] opacity-70">⚙️</span>
+        </button>
       </div>
 
       <!-- Badge Tally Utama & Tombol Kontrol Keluar/Ganti Peran -->
@@ -158,9 +164,9 @@
 
       <!-- Indikator Kunci Layar (Wake Lock) & Status Resolusi Rendah -->
       <div class="text-center font-mono text-[10px] text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
-        <div class="flex items-center justify-center gap-1.5 text-emerald-400 font-bold">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-          <span>LOW-RES 360p &bull; NO AUDIO</span>
+        <div class="flex items-center justify-center gap-1.5 text-blue-400 font-bold">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></span>
+          <span id="lblFooterResSummary">BROADCAST 720p &bull; NO AUDIO</span>
         </div>
         <div class="flex items-center justify-center gap-1 text-[9px] text-slate-400 mt-0.5">
           <span>WakeLock ON &bull;</span>
@@ -206,6 +212,59 @@
     </div>
   </div>
 
+  <!-- MODAL: PEMILIH PRESET RESOLUSI KAMERA -->
+  <div id="modalResolusi" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 text-center shadow-2xl space-y-4 text-white">
+      <div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center mx-auto text-xl font-bold">
+        📹
+      </div>
+      <div>
+        <h4 class="text-base font-brand font-black text-white">Kualitas Resolusi Kamera</h4>
+        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+          Pilih resolusi sesuai kemampuan gawai dan kestabilan sinyal Wi-Fi studio:
+        </p>
+      </div>
+
+      <div class="space-y-2 text-left text-xs font-mono">
+        <!-- Pilihan 1: 360p Hemat -->
+        <button onclick="pilihResolusiPreset('360p')" id="btnResPreset-360p" class="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 transition flex items-center justify-between">
+          <div>
+            <span class="font-bold text-emerald-400 block text-sm">360p (Hemat Kuota)</span>
+            <span class="text-[10px] text-slate-400 font-sans">Cocok jika Wi-Fi lemah / HP pemula (640×360)</span>
+          </div>
+          <span id="checkRes-360p" class="hidden text-emerald-400 font-black text-base">✓</span>
+        </button>
+
+        <!-- Pilihan 2: 720p HD Standard (Rekomendasi Default) -->
+        <button onclick="pilihResolusiPreset('720p')" id="btnResPreset-720p" class="w-full p-3 rounded-xl border-2 border-blue-500 bg-blue-950/40 hover:bg-blue-900/40 transition flex items-center justify-between shadow-md">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-blue-400 text-sm">720p HD (Broadcast)</span>
+              <span class="text-[9px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded font-sans">REKOMENDASI</span>
+            </div>
+            <span class="text-[10px] text-slate-300 font-sans">Sangat tajam di proyektor aula (1280×720)</span>
+          </div>
+          <span id="checkRes-720p" class="text-blue-400 font-black text-base">✓</span>
+        </button>
+
+        <!-- Pilihan 3: 1080p FHD Studio -->
+        <button onclick="pilihResolusiPreset('1080p')" id="btnResPreset-1080p" class="w-full p-3 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 transition flex items-center justify-between">
+          <div>
+            <span class="font-bold text-purple-400 block text-sm">1080p FHD (Studio Master)</span>
+            <span class="text-[10px] text-slate-400 font-sans">Detail tertinggi, butuh Wi-Fi 5 GHz cepat (1920×1080)</span>
+          </div>
+          <span id="checkRes-1080p" class="hidden text-purple-400 font-black text-base">✓</span>
+        </button>
+      </div>
+
+      <div class="pt-2">
+        <button onclick="tutupModalResolusi()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700">
+          Tutup & Terapkan
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white">
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
@@ -228,6 +287,33 @@
     let usingFrontCamera = false;
     let wakeLock = null;
     let streamerInstance = null;
+
+    // Presets Resolusi Kamera WebRTC
+    const RESOLUTION_PRESETS = {
+      '360p': {
+        label: '360p',
+        fullName: 'HEMAT 360p',
+        width: { ideal: 640, max: 640 },
+        height: { ideal: 360, max: 480 },
+        frameRate: { ideal: 20, max: 24 }
+      },
+      '720p': {
+        label: '720p HD',
+        fullName: 'BROADCAST 720p HD',
+        width: { ideal: 1280, max: 1280 },
+        height: { ideal: 720, max: 720 },
+        frameRate: { ideal: 30, max: 30 }
+      },
+      '1080p': {
+        label: '1080p FHD',
+        fullName: 'STUDIO 1080p FHD',
+        width: { ideal: 1920, max: 1920 },
+        height: { ideal: 1080, max: 1080 },
+        frameRate: { ideal: 30, max: 30 }
+      }
+    };
+
+    let currentResolutionKey = localStorage.getItem('skawan_cam_res') || '720p';
 
     // Modal Helper
     function showNotice(title, message, isSuccess = false) {
@@ -265,10 +351,66 @@
       document.getElementById('cameraNameBadge').innerText = `KAMERA ${camNum}`;
       document.getElementById('roomTokenBadge').innerText = currentRoomToken;
 
+      updateResolutionUI();
       initCameraFeed();
       initScreenWakeLock();
       initFirebaseTallyListener(currentRoomToken, currentRoleKey);
     });
+
+    function updateResolutionUI() {
+      const preset = RESOLUTION_PRESETS[currentResolutionKey] || RESOLUTION_PRESETS['720p'];
+      
+      const headerBadge = document.getElementById('lblResHeaderBadge');
+      if (headerBadge) {
+        headerBadge.innerText = preset.label;
+        if (currentResolutionKey === '360p') headerBadge.className = "text-emerald-400";
+        else if (currentResolutionKey === '720p') headerBadge.className = "text-blue-400";
+        else headerBadge.className = "text-purple-400";
+      }
+
+      const footerLabel = document.getElementById('lblFooterResSummary');
+      if (footerLabel) {
+        footerLabel.innerText = `${preset.fullName} • NO AUDIO`;
+      }
+
+      ['360p', '720p', '1080p'].forEach(key => {
+        const btn = document.getElementById(`btnResPreset-${key}`);
+        const check = document.getElementById(`checkRes-${key}`);
+        if (!btn || !check) return;
+
+        if (key === currentResolutionKey) {
+          check.classList.remove('hidden');
+          btn.className = "w-full p-3 rounded-xl border-2 border-blue-500 bg-blue-950/40 transition flex items-center justify-between shadow-md";
+        } else {
+          check.classList.add('hidden');
+          btn.className = "w-full p-3 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 transition flex items-center justify-between";
+        }
+      });
+    }
+
+    function bukaModalResolusi() {
+      updateResolutionUI();
+      document.getElementById('modalResolusi').classList.remove('hidden');
+    }
+
+    function tutupModalResolusi() {
+      document.getElementById('modalResolusi').classList.add('hidden');
+    }
+
+    function pilihResolusiPreset(key) {
+      if (!RESOLUTION_PRESETS[key] || key === currentResolutionKey) {
+        tutupModalResolusi();
+        return;
+      }
+
+      currentResolutionKey = key;
+      localStorage.setItem('skawan_cam_res', key);
+      updateResolutionUI();
+      tutupModalResolusi();
+
+      // Restart camera feed dengan resolusi baru
+      initCameraFeed();
+    }
 
     async function initCameraFeed() {
       // Matikan stream sebelumnya jika ada
@@ -276,14 +418,16 @@
         currentStream.getTracks().forEach(track => track.stop());
       }
 
-      // Resolusi rendah 360p tanpa audio demi menghemat bandwidth jaringan sekolah
+      const preset = RESOLUTION_PRESETS[currentResolutionKey] || RESOLUTION_PRESETS['720p'];
+
+      // Video-only push stream (audio false demi isolasi gema studio & bandwidth)
       const constraints = {
         audio: false,
         video: {
           facingMode: usingFrontCamera ? "user" : "environment",
-          width: { ideal: 480, max: 640 },
-          height: { ideal: 360, max: 480 },
-          frameRate: { ideal: 15, max: 20 }
+          width: preset.width,
+          height: preset.height,
+          frameRate: preset.frameRate
         }
       };
 
