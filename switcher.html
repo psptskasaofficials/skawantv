@@ -440,14 +440,13 @@
       return null;
     }
 
-    // Inisialisasi YouTube API (3 Player: PGM, PVW, dan Multiview Thumbnail VT)
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
       const playerDefaults = {
         playsinline: 1,
         controls: 0,
         rel: 0,
-        mute: 1,
+        mute: 1, // Mute di switcher agar suara murni dialirkan dari audio-vt
         modestbranding: 1,
         disablekb: 1,
         cc_load_policy: 0, // Matikan takarir/CC bawaan
@@ -1011,7 +1010,7 @@
         if (latestVtState.url) {
           if (pgmHtml5 && pgmHtml5.src !== latestVtState.url) pgmHtml5.src = latestVtState.url;
           if (pvwHtml5 && pvwHtml5.src !== latestVtState.url) pvwHtml5.src = latestVtState.url;
-          if (mvHtml5 && mvHtml5.src !== latestVtState.url) mvHtml5.src = latestVtState.url;
+          if (mvHtml5) mvHtml5.src !== latestVtState.url) mvHtml5.src = latestVtState.url;
         }
 
         if (isPlaying) {
