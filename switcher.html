@@ -50,8 +50,9 @@
 
   <style>
     .atem-btn {
-      transition: all 0.12s ease;
+      transition: all 0.1s ease;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     .atem-btn:active {
       transform: scale(0.96);
@@ -60,13 +61,13 @@
       background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%) !important;
       color: #ffffff !important;
       border-color: #f87171 !important;
-      box-shadow: 0 0 16px rgba(239, 68, 68, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.85), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
     }
     .btn-pvw-active {
       background: linear-gradient(180deg, #10b981 0%, #047857 100%) !important;
       color: #ffffff !important;
       border-color: #34d399 !important;
-      box-shadow: 0 0 16px rgba(16, 185, 129, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
     }
     .scanline {
       background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
@@ -118,7 +119,7 @@
           <span>👤</span>
           <span id="navUserName">Switcher Operator</span>
         </div>
-        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
+        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
           <span>🔄</span>
           <span class="hidden sm:inline">Ganti Peran</span>
         </button>
@@ -132,7 +133,7 @@
 
   <!-- Banner Instruksi dari Sutradara (PD) -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
-    <div id="directorCueBanner" class="bg-gradient-to-r from-red-600 via-rose-600 to-indigo-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition">
+    <div id="directorCueBanner" class="bg-gradient-to-r from-red-600 via-rose-600 to-indigo-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-red-500/30">
       <div class="flex items-center gap-2.5">
         <div class="p-1.5 rounded-xl bg-white/20 shrink-0">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
@@ -260,8 +261,8 @@
     </div>
 
     <!-- 2. MULTIVIEW FEEDS BARIS BAWAH (CAM 1, CAM 2, CAM 3, VT SIMULTAN LIVE) -->
-    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 shadow-md">
-      <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 shadow-md space-y-2">
+      <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span class="font-brand font-bold text-slate-200 uppercase tracking-wider">Multiview Live Feeds (Simultan)</span>
@@ -270,7 +271,61 @@
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="multiviewCardsGrid">
-        <!-- Render dinamis via JavaScript -->
+        
+        <!-- CARD 1: CAM 1 -->
+        <div id="mv-card-cam_1" onclick="pilihBusLangsung('pvw', 'cam_1')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
+          <video id="mv-video-cam_1" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+          <div class="flex items-center justify-between relative z-10">
+            <span class="font-brand font-black text-xs text-white drop-shadow">CAM 1</span>
+            <span id="mv-badge-cam_1" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span>
+          </div>
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_1">MENUNGGU FEED</div>
+          <div class="text-[9px] text-slate-400 font-mono truncate relative z-10 drop-shadow">Kamera HP 1</div>
+          <div class="scanline absolute inset-0 pointer-events-none"></div>
+        </div>
+
+        <!-- CARD 2: CAM 2 -->
+        <div id="mv-card-cam_2" onclick="pilihBusLangsung('pvw', 'cam_2')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
+          <video id="mv-video-cam_2" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+          <div class="flex items-center justify-between relative z-10">
+            <span class="font-brand font-black text-xs text-white drop-shadow">CAM 2</span>
+            <span id="mv-badge-cam_2" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span>
+          </div>
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_2">MENUNGGU FEED</div>
+          <div class="text-[9px] text-slate-400 font-mono truncate relative z-10 drop-shadow">Kamera HP 2</div>
+          <div class="scanline absolute inset-0 pointer-events-none"></div>
+        </div>
+
+        <!-- CARD 3: CAM 3 -->
+        <div id="mv-card-cam_3" onclick="pilihBusLangsung('pvw', 'cam_3')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
+          <video id="mv-video-cam_3" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+          <div class="flex items-center justify-between relative z-10">
+            <span class="font-brand font-black text-xs text-white drop-shadow">CAM 3</span>
+            <span id="mv-badge-cam_3" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span>
+          </div>
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_3">MENUNGGU FEED</div>
+          <div class="text-[9px] text-slate-400 font-mono truncate relative z-10 drop-shadow">Kamera HP 3</div>
+          <div class="scanline absolute inset-0 pointer-events-none"></div>
+        </div>
+
+        <!-- CARD 4: VT / MEDIA -->
+        <div id="mv-card-vt" onclick="pilihBusLangsung('pvw', 'vt')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
+          <div id="mv-vt-wrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center pointer-events-none">
+            <video id="mv-vt-html5" class="w-full h-full object-contain hidden" playsinline muted autoplay></video>
+            <div id="mv-vt-yt-wrap" class="w-full h-full hidden pointer-events-none">
+              <div id="mv-vt-yt-el" class="w-full h-full"></div>
+            </div>
+            <iframe id="mv-vt-gdrive" class="w-full h-full border-0 hidden pointer-events-none"></iframe>
+          </div>
+          <div class="flex items-center justify-between relative z-10">
+            <span class="font-brand font-black text-xs text-white drop-shadow">VT / MEDIA</span>
+            <span id="mv-badge-vt" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span>
+          </div>
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-vt">VT PLAYLIST</div>
+          <div class="text-[9px] text-slate-300 font-mono truncate relative z-10 drop-shadow" id="mv-sub-vt">Profil SKAWAN TV</div>
+          <div class="scanline absolute inset-0 pointer-events-none"></div>
+        </div>
+
       </div>
     </div>
 
@@ -299,7 +354,10 @@
               <span class="text-[10px] font-mono text-slate-500">Live Out</span>
             </div>
             <div class="grid grid-cols-4 gap-2" id="pgmBusButtons">
-              <!-- Render via JS -->
+              <button id="btn-pgm-cam_1" onclick="pilihBusLangsung('pgm', 'cam_1')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700">CAM 1</button>
+              <button id="btn-pgm-cam_2" onclick="pilihBusLangsung('pgm', 'cam_2')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700">CAM 2</button>
+              <button id="btn-pgm-cam_3" onclick="pilihBusLangsung('pgm', 'cam_3')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700">CAM 3</button>
+              <button id="btn-pgm-vt" onclick="pilihBusLangsung('pgm', 'vt')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700">VT / MEDIA</button>
             </div>
           </div>
 
@@ -310,7 +368,10 @@
               <span class="text-[10px] font-mono text-slate-500">Standby</span>
             </div>
             <div class="grid grid-cols-4 gap-2" id="pvwBusButtons">
-              <!-- Render via JS -->
+              <button id="btn-pvw-cam_1" onclick="pilihBusLangsung('pvw', 'cam_1')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700">CAM 1</button>
+              <button id="btn-pvw-cam_2" onclick="pilihBusLangsung('pvw', 'cam_2')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700">CAM 2</button>
+              <button id="btn-pvw-cam_3" onclick="pilihBusLangsung('pvw', 'cam_3')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700">CAM 3</button>
+              <button id="btn-pvw-vt" onclick="pilihBusLangsung('pvw', 'vt')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700">VT / MEDIA</button>
             </div>
           </div>
 
@@ -401,7 +462,7 @@
     let currentRoleKey = 'switcher';
     let currentSiswaUser = '';
     let pendingExitType = 'ganti';
-    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let isTransitioning = false;
 
     let totalCameras = 3;
     let liveState = {
@@ -440,6 +501,17 @@
       return null;
     }
 
+    // Eksekusi aman untuk metode YouTube Player agar tidak pernah menghentikan thread JS
+    function safeYt(player, callback) {
+      try {
+        if (player && typeof player.getPlayerState === 'function') {
+          callback(player);
+        }
+      } catch (err) {
+        // Abaikan galat sementara saat player belum siap
+      }
+    }
+
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
       const playerDefaults = {
@@ -449,27 +521,30 @@
         mute: 1, // Mute di switcher agar suara murni dialirkan dari audio-vt
         modestbranding: 1,
         disablekb: 1,
-        cc_load_policy: 0, // Matikan takarir/CC bawaan
-        iv_load_policy: 3  // Matikan anotasi pop-up
+        cc_load_policy: 0,
+        iv_load_policy: 3
       };
 
       try {
-        switcherPgmYt = new YT.Player('pgmVtYtEl', {
-          height: '100%', width: '100%',
-          videoId: 'XhwSTlXTJRc',
-          playerVars: playerDefaults,
-          events: { onReady: () => syncVtDisplay() }
-        });
+        if (document.getElementById('pgmVtYtEl')) {
+          switcherPgmYt = new YT.Player('pgmVtYtEl', {
+            height: '100%', width: '100%',
+            videoId: 'XhwSTlXTJRc',
+            playerVars: playerDefaults,
+            events: { onReady: () => syncVtDisplay() }
+          });
+        }
 
-        switcherPvwYt = new YT.Player('pvwVtYtEl', {
-          height: '100%', width: '100%',
-          videoId: 'XhwSTlXTJRc',
-          playerVars: playerDefaults,
-          events: { onReady: () => syncVtDisplay() }
-        });
+        if (document.getElementById('pvwVtYtEl')) {
+          switcherPvwYt = new YT.Player('pvwVtYtEl', {
+            height: '100%', width: '100%',
+            videoId: 'XhwSTlXTJRc',
+            playerVars: playerDefaults,
+            events: { onReady: () => syncVtDisplay() }
+          });
+        }
 
-        const mvYtContainer = document.getElementById('mv-vt-yt-el');
-        if (mvYtContainer) {
+        if (document.getElementById('mv-vt-yt-el')) {
           switcherMvYt = new YT.Player('mv-vt-yt-el', {
             height: '100%', width: '100%',
             videoId: 'XhwSTlXTJRc',
@@ -496,7 +571,8 @@
       if (userBadge) userBadge.innerText = currentSiswaUser;
 
       startWibLiveClock();
-      renderMultiviewCards();
+      updateBusButtons();
+      updateTallyVisuals();
       initSwitcherSystem(currentRoomToken);
       setupKeyboardShortcuts();
     });
@@ -528,9 +604,8 @@
           const meta = snap.val();
           if (meta.totalCameras && meta.totalCameras !== totalCameras) {
             totalCameras = meta.totalCameras;
-            renderMultiviewCards();
+            syncCameraCardsVisibility();
           }
-          // Dengarkan jika Guru mengakhiri sesi siaran (SKASA kebal)
           if (meta.status === 'ended' && token !== 'SKASA') {
             tanganiSesiDiakhiriGuru();
           }
@@ -574,11 +649,9 @@
         });
       }
 
-      renderMultiviewCards();
       updateBusButtons();
       updateMonitors();
 
-      // Inisialisasi WebRTC Streamer (Role: Switcher Receiver)
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -621,158 +694,27 @@
       return null;
     }
 
-    // Merender Multiview Inputs: Cam 1, Cam 2, Cam 3, dan VT secara simultan
-    function renderMultiviewCards() {
-      const grid = document.getElementById('multiviewCardsGrid');
-      grid.innerHTML = '';
-
-      const sources = [];
-      for (let i = 1; i <= totalCameras; i++) {
-        sources.push({ key: `cam_${i}`, label: `CAM ${i}`, sub: `Kamera HP ${i}` });
-      }
-      sources.push({ key: 'vt', label: 'VT / MEDIA', sub: 'Pemutar YouTube / Drive' });
-
-      sources.forEach(src => {
-        const card = document.createElement('div');
-        card.id = `mv-card-${src.key}`;
-        card.onclick = () => pilihBusLangsung('pvw', src.key);
-        card.className = "bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow";
-
-        if (src.key === 'vt') {
-          // Kotak Multiview khusus VT (Mendukung YouTube, Drive, dan HTML5 secara live)
-          card.innerHTML = `
-            <div id="mv-vt-wrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center pointer-events-none">
-              <video id="mv-vt-html5" class="w-full h-full object-contain hidden" playsinline muted autoplay></video>
-              <div id="mv-vt-yt-wrap" class="w-full h-full hidden pointer-events-none">
-                <div id="mv-vt-yt-el" class="w-full h-full"></div>
-              </div>
-              <iframe id="mv-vt-gdrive" class="w-full h-full border-0 hidden pointer-events-none"></iframe>
-            </div>
-
-            <div class="flex items-center justify-between relative z-10">
-              <span class="font-brand font-black text-xs text-white drop-shadow">${src.label}</span>
-              <span id="mv-badge-${src.key}" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
-                OFF
-              </span>
-            </div>
-
-            <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-${src.key}">
-              VT PLAYLIST
-            </div>
-
-            <div class="text-[9px] text-slate-300 font-mono truncate relative z-10 drop-shadow" id="mv-sub-vt">Profil SKAWAN TV</div>
-            <div class="scanline absolute inset-0 pointer-events-none"></div>
-          `;
-        } else {
-          // Kotak Multiview Kamera HP
-          card.innerHTML = `
-            <video id="mv-video-${src.key}" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
-
-            <div class="flex items-center justify-between relative z-10">
-              <span class="font-brand font-black text-xs text-white drop-shadow">${src.label}</span>
-              <span id="mv-badge-${src.key}" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
-                OFF
-              </span>
-            </div>
-
-            <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-${src.key}">
-              MENUNGGU FEED
-            </div>
-
-            <div class="text-[9px] text-slate-400 font-mono truncate relative z-10 drop-shadow">${src.sub}</div>
-            <div class="scanline absolute inset-0 pointer-events-none"></div>
-          `;
-        }
-
-        grid.appendChild(card);
-
-        // Jika stream kamera sudah ada di memori, langsung pasang seketika
-        if (src.key !== 'vt') {
-          const existingStream = getCameraStream(src.key);
-          if (existingStream) {
-            setTimeout(() => {
-              const vid = document.getElementById(`mv-video-${src.key}`);
-              const lbl = document.getElementById(`mv-label-${src.key}`);
-              if (vid) {
-                if (vid.srcObject !== existingStream) vid.srcObject = existingStream;
-                vid.classList.remove('hidden');
-                vid.play().catch(() => {});
-              }
-              if (lbl) {
-                lbl.innerText = "● LIVE FEED";
-                lbl.className = "text-center font-mono font-black text-xs text-emerald-400 relative z-10 animate-pulse drop-shadow";
-              }
-            }, 60);
-          }
-        }
-      });
-
-      // Inisialisasi ulang thumbnail YouTube jika player belum terpasang
-      if (isYtReady && !switcherMvYt && document.getElementById('mv-vt-yt-el')) {
-        try {
-          switcherMvYt = new YT.Player('mv-vt-yt-el', {
-            height: '100%', width: '100%',
-            videoId: latestVtState.youtubeId || 'XhwSTlXTJRc',
-            playerVars: {
-              playsinline: 1, controls: 0, rel: 0, mute: 1, modestbranding: 1, disablekb: 1,
-              cc_load_policy: 0, iv_load_policy: 3
-            },
-            events: { onReady: () => syncVtDisplay() }
-          });
-        } catch (e) {}
-      }
-
-      renderBusButtons();
-      updateTallyVisuals();
-      syncVtDisplay();
-    }
-
-    function renderBusButtons() {
-      const pgmContainer = document.getElementById('pgmBusButtons');
-      const pvwContainer = document.getElementById('pvwBusButtons');
-      pgmContainer.innerHTML = '';
-      pvwContainer.innerHTML = '';
-
-      const sources = [];
-      for (let i = 1; i <= totalCameras; i++) sources.push(`cam_${i}`);
-      sources.push('vt');
-
-      sources.forEach(src => {
-        const label = src === 'vt' ? 'VT / MEDIA' : src.toUpperCase().replace('_', ' ');
-
-        const btnPgm = document.createElement('button');
-        btnPgm.id = `btn-pgm-${src}`;
-        btnPgm.onclick = () => pilihBusLangsung('pgm', src);
-        btnPgm.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700";
-        btnPgm.innerText = label;
-        pgmContainer.appendChild(btnPgm);
-
-        const btnPvw = document.createElement('button');
-        btnPvw.id = `btn-pvw-${src}`;
-        btnPvw.onclick = () => pilihBusLangsung('pvw', src);
-        btnPvw.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-200 hover:bg-slate-700";
-        btnPvw.innerText = label;
-        pvwContainer.appendChild(btnPvw);
-      });
-
-      updateBusButtons();
-    }
-
     function updateBusButtons() {
-      const sources = [];
-      for (let i = 1; i <= totalCameras; i++) sources.push(`cam_${i}`);
-      sources.push('vt');
+      const sources = ['cam_1', 'cam_2', 'cam_3', 'vt'];
 
       sources.forEach(src => {
         const btnPgm = document.getElementById(`btn-pgm-${src}`);
         const btnPvw = document.getElementById(`btn-pvw-${src}`);
+        
         if (btnPgm) {
-          if (src === liveState.programSource) btnPgm.className = "atem-btn py-3 rounded-xl border font-brand font-black text-xs sm:text-sm btn-pgm-active";
-          else btnPgm.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-300 hover:bg-slate-700";
+          if (src === liveState.programSource) {
+            btnPgm.className = "atem-btn py-3 rounded-xl border font-brand font-black text-xs sm:text-sm btn-pgm-active shadow-md";
+          } else {
+            btnPgm.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-300 hover:bg-slate-700";
+          }
         }
+
         if (btnPvw) {
-          if (src === liveState.previewSource) btnPvw.className = "atem-btn py-3 rounded-xl border font-brand font-black text-xs sm:text-sm btn-pvw-active";
-          else btnPvw.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-300 hover:bg-slate-700";
+          if (src === liveState.previewSource) {
+            btnPvw.className = "atem-btn py-3 rounded-xl border font-brand font-black text-xs sm:text-sm btn-pvw-active shadow-md";
+          } else {
+            btnPvw.className = "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-brand font-black text-xs sm:text-sm text-slate-300 hover:bg-slate-700";
+          }
         }
       });
 
@@ -780,9 +722,7 @@
     }
 
     function updateTallyVisuals() {
-      const sources = [];
-      for (let i = 1; i <= totalCameras; i++) sources.push(`cam_${i}`);
-      sources.push('vt');
+      const sources = ['cam_1', 'cam_2', 'cam_3', 'vt'];
 
       sources.forEach(src => {
         const card = document.getElementById(`mv-card-${src}`);
@@ -790,12 +730,12 @@
         if (!card || !badge) return;
 
         if (src === liveState.programSource) {
-          card.className = "bg-slate-900 border-2 border-red-500 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer shadow-lg";
-          badge.className = "text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse";
+          card.className = "bg-slate-900 border-2 border-red-500 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer shadow-lg ring-1 ring-red-500/50";
+          badge.className = "text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse shadow";
           badge.innerText = "PGM";
         } else if (src === liveState.previewSource) {
-          card.className = "bg-slate-900 border-2 border-emerald-500 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer shadow-md";
-          badge.className = "text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white";
+          card.className = "bg-slate-900 border-2 border-emerald-500 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer shadow-md ring-1 ring-emerald-500/50";
+          badge.className = "text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow";
           badge.innerText = "PVW";
         } else {
           card.className = "bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow";
@@ -805,66 +745,78 @@
       });
     }
 
+    function syncCameraCardsVisibility() {
+      const cam3Card = document.getElementById('mv-card-cam_3');
+      if (cam3Card) {
+        cam3Card.style.display = totalCameras < 3 ? 'none' : 'flex';
+      }
+    }
+
     function updateMonitors() {
       const pgmLabel = (liveState.programSource || 'cam_1').toUpperCase().replace('_', ' ');
       const pvwLabel = (liveState.previewSource || 'cam_2').toUpperCase().replace('_', ' ');
 
-      document.getElementById('badgePgmSource').innerText = pgmLabel;
-      document.getElementById('pgmScreenLabel').innerText = pgmLabel;
-      document.getElementById('badgePvwSource').innerText = pvwLabel;
-      document.getElementById('pvwScreenLabel').innerText = pvwLabel;
+      const badgePgm = document.getElementById('badgePgmSource');
+      const pgmScreenLbl = document.getElementById('pgmScreenLabel');
+      const badgePvw = document.getElementById('badgePvwSource');
+      const pvwScreenLbl = document.getElementById('pvwScreenLabel');
 
-      // 1. Program Monitor (PGM) - Transisi mulus bebas freeze
+      if (badgePgm) badgePgm.innerText = pgmLabel;
+      if (pgmScreenLbl) pgmScreenLbl.innerText = pgmLabel;
+      if (badgePvw) badgePvw.innerText = pvwLabel;
+      if (pvwScreenLbl) pvwScreenLbl.innerText = pvwLabel;
+
+      // 1. Program Monitor (PGM)
       const pgmVideo = document.getElementById('pgmCamVideo');
       const pgmFallback = document.getElementById('pgmFallbackBox');
       const pgmVtWrap = document.getElementById('pgmVtWrapper');
 
       if (liveState.programSource === 'vt') {
-        pgmVideo.classList.add('hidden');
-        pgmFallback.classList.add('hidden');
-        pgmVtWrap.classList.remove('hidden');
+        if (pgmVideo) pgmVideo.classList.add('hidden');
+        if (pgmFallback) pgmFallback.classList.add('hidden');
+        if (pgmVtWrap) pgmVtWrap.classList.remove('hidden');
       } else {
-        pgmVtWrap.classList.add('hidden');
+        if (pgmVtWrap) pgmVtWrap.classList.add('hidden');
         const stream = getCameraStream(liveState.programSource);
-        if (stream) {
+        if (stream && pgmVideo) {
           if (pgmVideo.srcObject !== stream) {
             pgmVideo.srcObject = stream;
           }
           pgmVideo.classList.remove('hidden');
-          pgmFallback.classList.add('hidden');
+          if (pgmFallback) pgmFallback.classList.add('hidden');
           pgmVideo.play().catch(() => {});
         } else {
-          pgmVideo.classList.add('hidden');
-          pgmFallback.classList.remove('hidden');
+          if (pgmVideo) pgmVideo.classList.add('hidden');
+          if (pgmFallback) pgmFallback.classList.remove('hidden');
         }
       }
 
-      // 2. Preview Monitor (PVW) - Transisi mulus bebas freeze
+      // 2. Preview Monitor (PVW)
       const pvwVideo = document.getElementById('pvwCamVideo');
       const pvwFallback = document.getElementById('pvwFallbackBox');
       const pvwVtWrap = document.getElementById('pvwVtWrapper');
 
       if (liveState.previewSource === 'vt') {
-        pvwVideo.classList.add('hidden');
-        pvwFallback.classList.add('hidden');
-        pvwVtWrap.classList.remove('hidden');
+        if (pvwVideo) pvwVideo.classList.add('hidden');
+        if (pvwFallback) pvwFallback.classList.add('hidden');
+        if (pvwVtWrap) pvwVtWrap.classList.remove('hidden');
       } else {
-        pvwVtWrap.classList.add('hidden');
+        if (pvwVtWrap) pvwVtWrap.classList.add('hidden');
         const stream = getCameraStream(liveState.previewSource);
-        if (stream) {
+        if (stream && pvwVideo) {
           if (pvwVideo.srcObject !== stream) {
             pvwVideo.srcObject = stream;
           }
           pvwVideo.classList.remove('hidden');
-          pvwFallback.classList.add('hidden');
+          if (pvwFallback) pvwFallback.classList.add('hidden');
           pvwVideo.play().catch(() => {});
         } else {
-          pvwVideo.classList.add('hidden');
-          pvwFallback.classList.remove('hidden');
+          if (pvwVideo) pvwVideo.classList.add('hidden');
+          if (pvwFallback) pvwFallback.classList.remove('hidden');
         }
       }
 
-      // Pastikan seluruh elemen video kamera di multiview tetap bermain tanpa henti
+      // 3. Pastikan seluruh video kamera multiview tetap memutar stream
       for (let i = 1; i <= totalCameras; i++) {
         const cStream = getCameraStream(`cam_${i}`);
         const cVideo = document.getElementById(`mv-video-cam_${i}`);
@@ -903,7 +855,6 @@
       const isPlaying = latestVtState.status === 'playing';
 
       if (latestVtState.sourceType === 'youtube' && ytId) {
-        // Mode YouTube Player
         if (pgmHtml5) pgmHtml5.classList.add('hidden');
         if (pvwHtml5) pvwHtml5.classList.add('hidden');
         if (mvHtml5) mvHtml5.classList.add('hidden');
@@ -918,64 +869,63 @@
 
         if (isYtReady) {
           // 1. Program Player
-          if (switcherPgmYt && typeof switcherPgmYt.loadVideoById === 'function') {
+          safeYt(switcherPgmYt, (player) => {
             if (currentPgmYtId !== ytId) {
               currentPgmYtId = ytId;
-              if (isPlaying && isPgmVt) switcherPgmYt.loadVideoById(ytId, latestVtState.currentTime || 0);
-              else switcherPgmYt.cueVideoById(ytId, latestVtState.currentTime || 0);
+              if (isPlaying && isPgmVt) player.loadVideoById(ytId, latestVtState.currentTime || 0);
+              else player.cueVideoById(ytId, latestVtState.currentTime || 0);
             } else {
               if (isPlaying && isPgmVt) {
-                switcherPgmYt.playVideo();
-                const cur = switcherPgmYt.getCurrentTime() || 0;
+                player.playVideo();
+                const cur = player.getCurrentTime() || 0;
                 if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
-                  switcherPgmYt.seekTo(latestVtState.currentTime, true);
+                  player.seekTo(latestVtState.currentTime, true);
                 }
               } else {
-                switcherPgmYt.pauseVideo();
+                player.pauseVideo();
               }
             }
-          }
+          });
 
           // 2. Preview Player
-          if (switcherPvwYt && typeof switcherPvwYt.loadVideoById === 'function') {
+          safeYt(switcherPvwYt, (player) => {
             if (currentPvwYtId !== ytId) {
               currentPvwYtId = ytId;
-              if (isPlaying && isPvwVt) switcherPvwYt.loadVideoById(ytId, latestVtState.currentTime || 0);
-              else switcherPvwYt.cueVideoById(ytId, latestVtState.currentTime || 0);
+              if (isPlaying && isPvwVt) player.loadVideoById(ytId, latestVtState.currentTime || 0);
+              else player.cueVideoById(ytId, latestVtState.currentTime || 0);
             } else {
               if (isPlaying && isPvwVt) {
-                switcherPvwYt.playVideo();
-                const cur = switcherPvwYt.getCurrentTime() || 0;
+                player.playVideo();
+                const cur = player.getCurrentTime() || 0;
                 if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
-                  switcherPvwYt.seekTo(latestVtState.currentTime, true);
+                  player.seekTo(latestVtState.currentTime, true);
                 }
               } else {
-                switcherPvwYt.pauseVideo();
+                player.pauseVideo();
               }
             }
-          }
+          });
 
           // 3. Multiview Thumbnail VT Player (Selalu Live)
-          if (switcherMvYt && typeof switcherMvYt.loadVideoById === 'function') {
+          safeYt(switcherMvYt, (player) => {
             if (currentMvYtId !== ytId) {
               currentMvYtId = ytId;
-              if (isPlaying) switcherMvYt.loadVideoById(ytId, latestVtState.currentTime || 0);
-              else switcherMvYt.cueVideoById(ytId, latestVtState.currentTime || 0);
+              if (isPlaying) player.loadVideoById(ytId, latestVtState.currentTime || 0);
+              else player.cueVideoById(ytId, latestVtState.currentTime || 0);
             } else {
               if (isPlaying) {
-                switcherMvYt.playVideo();
-                const cur = switcherMvYt.getCurrentTime() || 0;
+                player.playVideo();
+                const cur = player.getCurrentTime() || 0;
                 if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
-                  switcherMvYt.seekTo(latestVtState.currentTime, true);
+                  player.seekTo(latestVtState.currentTime, true);
                 }
               } else {
-                switcherMvYt.pauseVideo();
+                player.pauseVideo();
               }
             }
-          }
+          });
         }
       } else if (latestVtState.sourceType === 'gdrive') {
-        // Mode Google Drive
         if (pgmHtml5) pgmHtml5.classList.add('hidden');
         if (pvwHtml5) pvwHtml5.classList.add('hidden');
         if (mvHtml5) mvHtml5.classList.add('hidden');
@@ -994,7 +944,6 @@
           if (mvGdrive && mvGdrive.src !== latestVtState.url) mvGdrive.src = latestVtState.url;
         }
       } else {
-        // Mode HTML5 Native MP4
         if (pgmYtWrap) pgmYtWrap.classList.add('hidden');
         if (pvwYtWrap) pvwYtWrap.classList.add('hidden');
         if (mvYtWrap) mvYtWrap.classList.add('hidden');
@@ -1010,7 +959,7 @@
         if (latestVtState.url) {
           if (pgmHtml5 && pgmHtml5.src !== latestVtState.url) pgmHtml5.src = latestVtState.url;
           if (pvwHtml5 && pvwHtml5.src !== latestVtState.url) pvwHtml5.src = latestVtState.url;
-          if (mvHtml5) mvHtml5.src !== latestVtState.url) mvHtml5.src = latestVtState.url;
+          if (mvHtml5 && mvHtml5.src !== latestVtState.url) mvHtml5.src = latestVtState.url;
         }
 
         if (isPlaying) {
@@ -1034,21 +983,24 @@
       const tickerText = document.getElementById('pgmTickerText');
 
       if (cg.lowerThirdActive) {
-        ltBox.classList.remove('hidden');
+        if (ltBox) ltBox.classList.remove('hidden');
         if (ltTitle) ltTitle.innerText = cg.title || 'NAMA PRESENTER';
         if (ltSub) ltSub.firstElementChild.innerText = cg.subtitle || 'Keterangan';
       } else {
-        ltBox.classList.add('hidden');
+        if (ltBox) ltBox.classList.add('hidden');
       }
 
-      if (cg.logoActive) logoBox.classList.remove('hidden');
-      else logoBox.classList.add('hidden');
+      if (cg.logoActive) {
+        if (logoBox) logoBox.classList.remove('hidden');
+      } else {
+        if (logoBox) logoBox.classList.add('hidden');
+      }
 
       if (cg.tickerActive) {
-        tickerBox.classList.remove('hidden');
+        if (tickerBox) tickerBox.classList.remove('hidden');
         if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live Broadcast';
       } else {
-        tickerBox.classList.add('hidden');
+        if (tickerBox) tickerBox.classList.add('hidden');
       }
     }
 
@@ -1066,13 +1018,23 @@
     }
 
     function eksekusiAuto() {
+      if (isTransitioning) return;
+      isTransitioning = true;
+
       if (liveState.isFtb) toggleFtb();
 
       const rateMs = parseInt(document.getElementById('sliderTransitionRate').value) || 500;
       const pgmContainer = document.getElementById('pgmScreenContainer');
+      const btnAuto = document.getElementById('btnAtemAuto');
 
-      pgmContainer.style.transition = `opacity ${rateMs / 2}ms ease-in-out`;
-      pgmContainer.style.opacity = '0.25';
+      if (btnAuto) {
+        btnAuto.classList.add('ring-2', 'ring-emerald-400', 'animate-pulse');
+      }
+
+      if (pgmContainer) {
+        pgmContainer.style.transition = `opacity ${rateMs / 2}ms ease-in-out`;
+        pgmContainer.style.opacity = '0.25';
+      }
 
       setTimeout(() => {
         const temp = liveState.programSource;
@@ -1084,9 +1046,14 @@
         updateMonitors();
         broadcastLiveState();
 
-        pgmContainer.style.opacity = '1';
+        if (pgmContainer) {
+          pgmContainer.style.opacity = '1';
+        }
+
         setTimeout(() => {
-          pgmContainer.style.transition = '';
+          if (pgmContainer) pgmContainer.style.transition = '';
+          if (btnAuto) btnAuto.classList.remove('ring-2', 'ring-emerald-400', 'animate-pulse');
+          isTransitioning = false;
         }, rateMs / 2);
       }, rateMs / 2);
     }
@@ -1097,11 +1064,11 @@
       const btnFtb = document.getElementById('btnFtb');
 
       if (liveState.isFtb) {
-        pgmCard.classList.add('opacity-10');
-        btnFtb.className = "atem-btn w-full py-2.5 rounded-xl border border-red-500 bg-red-600 text-white font-brand font-black text-xs tracking-wider animate-pulse";
+        if (pgmCard) pgmCard.classList.add('opacity-10');
+        if (btnFtb) btnFtb.className = "atem-btn w-full py-2.5 rounded-xl border border-red-500 bg-red-600 text-white font-brand font-black text-xs tracking-wider animate-pulse";
       } else {
-        pgmCard.classList.remove('opacity-10');
-        btnFtb.className = "atem-btn w-full py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs tracking-wider transition";
+        if (pgmCard) pgmCard.classList.remove('opacity-10');
+        if (btnFtb) btnFtb.className = "atem-btn w-full py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs tracking-wider transition";
       }
     }
 
