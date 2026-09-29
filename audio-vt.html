@@ -11,7 +11,7 @@
   <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -52,7 +52,7 @@
     }
     .deck-btn:active { transform: scale(0.96); }
     .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 255, 0, 0.05));
       background-size: 100% 2px, 3px 100%;
       pointer-events: none;
     }
@@ -586,6 +586,9 @@
     let pendingExitType = 'ganti';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
 
+    // Default Video Standby ID aktif (Dapat diubah dinamis oleh Admin)
+    let currentActiveStandbyYtId = 'XhwSTlXTJRc';
+
     // Playlist Default Murni (1 Video Standby Awal)
     const DEFAULT_SKASA_CLIP = {
       id: 'vt_default_skawan',
@@ -598,12 +601,12 @@
 
     let vtPlaylist = [ { ...DEFAULT_SKASA_CLIP } ];
     let activePlaylistIndex = 0;
-    let loopMode = 'loop_all'; // 'no_loop', 'loop_all', 'loop_single'
-    let endAction = 'auto_cue'; // 'auto_cue', 'auto_roll'
+    let loopMode = 'loop_all';
+    let endAction = 'auto_cue';
 
     // Status Playback VT yang Disiarkan
     let vtPlaybackState = {
-      status: 'stopped', // 'playing', 'paused', 'stopped'
+      status: 'stopped',
       currentTime: 0,
       totalDuration: 120,
       clipId: DEFAULT_SKASA_CLIP.id,
@@ -643,7 +646,24 @@
       master: { gain: 90, isMuted: false, label: 'MASTER' }
     };
 
-    // Inisialisasi YouTube API Resmi (Clean Feed tanpa CC dan tanpa Anotasi Pop-up)
+    // Helper untuk mematikan modul takarir (CC / Subtitle) YouTube secara agresif
+    function matikanSubtitleYouTube(player) {
+      if (!player) return;
+      try {
+        if (typeof player.unloadModule === 'function') {
+          player.unloadModule('captions');
+          player.unloadModule('cc');
+        }
+        if (typeof player.setOption === 'function') {
+          player.setOption('captions', 'track', {});
+          player.setOption('cc', 'track', {});
+        }
+      } catch (e) {
+        // Abaikan jika modul belum dimuat oleh YouTube API
+      }
+    }
+
+    // Inisialisasi YouTube API Resmi (Clean Feed tanpa CC, pop-up, atau takarir otomatis)
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
       try {
@@ -659,15 +679,21 @@
             mute: 0,
             modestbranding: 1,
             disablekb: 1,
-            cc_load_policy: 0, // Matikan takarir otomatis
-            iv_load_policy: 3  // Matikan anotasi pop-up
+            cc_load_policy: 0, // Matikan muat takarir otomatis
+            cc_lang_pref: 'none', // Cegah preferensi bahasa subtitle
+            iv_load_policy: 3 // Sembunyikan anotasi & banner interaktif video
           },
           events: {
             onReady: () => {
-              console.log("[Audio-VT] YouTube Player siap.");
+              console.log("[Audio-VT] YouTube Player siap (Clean Feed, Subtitle OFF).");
+              matikanSubtitleYouTube(audioYtPlayer);
               muatKlipKePlayer(activePlaylistIndex, false);
             },
             onStateChange: (e) => {
+              // Pastikan subtitle tetap nonaktif saat video mulai berputar
+              if (e.data === YT.PlayerState.PLAYING) {
+                matikanSubtitleYouTube(audioYtPlayer);
+              }
               if (e.data === YT.PlayerState.ENDED) {
                 tanganiKlipSelesai();
               }
@@ -679,14 +705,12 @@
       }
     };
 
-    // Inisialisasi Utama DOM
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
       const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
 
-      // Default selalu SKASA
       currentRoomToken = (roomParam || sessionRoom || 'SKASA').toUpperCase();
       currentSiswaUser = sessionUser || 'Audio Operator';
 
@@ -694,7 +718,6 @@
       const userBadge = document.getElementById('navUserName');
       if (userBadge) userBadge.innerText = currentSiswaUser;
 
-      // Inisialisasi antrean playlist (Dual-Storage)
       initPlaylistStorage();
       initAudioVtSystem(currentRoomToken);
       startVuMeterAnimationLoop();
@@ -735,8 +758,15 @@
               renderPlaylistUI();
             }
           } else {
-            // Jika kosong, simpan playlist default
             simpanPlaylistKeStorage();
+          }
+        });
+
+        // Pantau jika ada perubahan defaultStandbyYtId di Firebase
+        activeDb.ref(`rooms/${currentRoomToken}/meta/defaultStandbyYtId`).on('value', snap => {
+          if (snap.exists() && snap.val()) {
+            currentActiveStandbyYtId = snap.val();
+            renderPlaylistUI();
           }
         });
       }
@@ -758,11 +788,12 @@
     function initAudioVtSystem(token) {
       const activeDb = getDatabase();
       if (activeDb) {
-        // Pantau status ruangan
         activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
           if (!snap.exists()) return;
           const meta = snap.val();
-          // Room SKASA selalu live ON-AIR dan tidak terpengaruh pengakhiran
+          if (meta.defaultStandbyYtId) {
+            currentActiveStandbyYtId = meta.defaultStandbyYtId;
+          }
           if (token === 'SKASA' && meta.status !== 'live') {
             activeDb.ref('rooms/SKASA/meta/status').set('live');
           } else if (token !== 'SKASA' && meta.status === 'ended') {
@@ -770,7 +801,6 @@
           }
         });
 
-        // Pantau Live State dari Switcher untuk status Tally VT ON-AIR
         activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
           if (!snap.exists()) return;
           currentLiveState = snap.val();
@@ -778,7 +808,6 @@
           renderPgmReturnMonitor();
         });
 
-        // Pantau instruksi komando Program Director (PD)
         activeDb.ref(`rooms/${token}/director_cues`).on('value', snap => {
           if (!snap.exists()) return;
           const cue = snap.val();
@@ -794,7 +823,6 @@
         });
       }
 
-      // WebRTC Streamer untuk Menerima Feed Kamera Studio di PGM Return
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -877,6 +905,7 @@
       vtPlaylist.forEach((clip, index) => {
         const isActive = index === activePlaylistIndex;
         const isPlaying = isActive && vtPlaybackState.status === 'playing';
+        const isDefaultStandby = (clip.youtubeId && clip.youtubeId === currentActiveStandbyYtId) || (index === 0 && !currentActiveStandbyYtId);
 
         const row = document.createElement('div');
         row.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2 ${
@@ -889,16 +918,23 @@
           ? (isPlaying ? '<span class="px-2 py-0.5 rounded bg-emerald-600 text-white font-mono text-[9px] font-black animate-pulse">ROLLING</span>' : '<span class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-mono text-[9px] font-bold">CUE / READY</span>')
           : '<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[9px]">STANDBY</span>';
 
+        let standbyBadge = isDefaultStandby
+          ? `<span class="px-1.5 py-0.5 rounded bg-amber-900/60 border border-amber-600 text-amber-300 font-mono text-[8px] font-bold tracking-tight">⭐ STANDBY DEFAULT</span>`
+          : '';
+
         row.innerHTML = `
           <div class="flex items-center gap-2 overflow-hidden flex-1 cursor-pointer" onclick="pilihKlipPlaylist(${index})">
             <span class="font-mono font-bold text-xs ${isActive ? 'text-amber-400' : 'text-slate-500'} w-5 shrink-0">
               #${index + 1}
             </span>
             <div class="truncate">
-              <span class="text-xs font-brand font-bold text-white block truncate ${isActive ? 'text-amber-200' : ''}">
-                ${clip.title}
-              </span>
-              <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-brand font-bold text-white truncate ${isActive ? 'text-amber-200' : ''}">
+                  ${clip.title}
+                </span>
+                ${standbyBadge}
+              </div>
+              <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
                 <span class="uppercase text-amber-400/90 font-bold">${clip.sourceType}</span>
                 <span>&bull;</span>
                 <span>${formatDurasi(clip.durationSec || 120)}</span>
@@ -908,6 +944,14 @@
 
           <div class="flex items-center gap-1 shrink-0">
             ${statusBadge}
+
+            <!-- Tombol Jadikan Default Standby VT untuk Index.html -->
+            ${clip.sourceType === 'youtube' && clip.youtubeId ? `
+              <button onclick="tetapkanSebagaiDefaultStandby(${index})" class="px-2 py-1 rounded bg-slate-800 hover:bg-amber-600 hover:text-slate-950 text-amber-400 text-[10px] font-mono font-bold border border-slate-700 transition flex items-center gap-1" title="Jadikan video ini sebagai tayangan Standby default di Index.html">
+                <span>⭐</span>
+                <span class="hidden md:inline">Standby</span>
+              </button>
+            ` : ''}
 
             <!-- Tombol Pengatur Urutan (Move Up / Down) -->
             <button onclick="geserUrutanKlip(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] font-bold flex items-center justify-center transition" title="Naikkan Urutan">
@@ -928,6 +972,26 @@
       });
     }
 
+    // Fungsi Mengubah Default Standby VT (Otomatis Tersinkron ke index.html)
+    function tetapkanSebagaiDefaultStandby(index) {
+      const clip = vtPlaylist[index];
+      if (!clip || !clip.youtubeId) return;
+
+      currentActiveStandbyYtId = clip.youtubeId;
+      const activeDb = getDatabase();
+
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/meta/defaultStandbyYtId`).set(clip.youtubeId).then(() => {
+          renderPlaylistUI();
+          alert(`Klip "${clip.title}" berhasil dijadikan video STANDBY DEFAULT!\n\nLayar index.html secara otomatis akan memutar video ini saat siaran standby.`);
+        }).catch(err => {
+          console.warn(err);
+        });
+      } else {
+        renderPlaylistUI();
+      }
+    }
+
     function geserUrutanKlip(index, delta) {
       const targetIndex = index + delta;
       if (targetIndex < 0 || targetIndex >= vtPlaylist.length) return;
@@ -936,7 +1000,6 @@
       vtPlaylist[index] = vtPlaylist[targetIndex];
       vtPlaylist[targetIndex] = temp;
 
-      // Pertahankan indeks klip aktif jika ikut bergeser
       if (activePlaylistIndex === index) {
         activePlaylistIndex = targetIndex;
       } else if (activePlaylistIndex === targetIndex) {
@@ -959,8 +1022,14 @@
     function resetPlaylistDefault() {
       vtPlaylist = [ { ...DEFAULT_SKASA_CLIP } ];
       activePlaylistIndex = 0;
+      currentActiveStandbyYtId = DEFAULT_SKASA_CLIP.youtubeId;
       muatKlipKePlayer(0, false);
       simpanPlaylistKeStorage();
+
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/meta/defaultStandbyYtId`).set(DEFAULT_SKASA_CLIP.youtubeId);
+      }
     }
 
     function ubahLoopMode(mode) {
@@ -1003,7 +1072,6 @@
       document.getElementById('lblRemainingTime').innerText = `-${formatDurasi(clip.durationSec || 120)}`;
       document.getElementById('lblCurrentTime').innerText = '00:00';
 
-      // Update Playback State
       vtPlaybackState.status = autoPlay ? 'playing' : 'stopped';
       vtPlaybackState.currentTime = 0;
       vtPlaybackState.totalDuration = clip.durationSec || 120;
@@ -1027,6 +1095,7 @@
         ytWrap.classList.remove('hidden');
 
         if (isYtReady && audioYtPlayer && typeof audioYtPlayer.loadVideoById === 'function') {
+          matikanSubtitleYouTube(audioYtPlayer);
           if (autoPlay) {
             audioYtPlayer.loadVideoById({ videoId: clip.youtubeId, startSeconds: 0 });
           } else {
@@ -1083,6 +1152,7 @@
 
       const html5El = document.getElementById('audioVtHtml5');
       if (clip.sourceType === 'youtube' && isYtReady && audioYtPlayer && typeof audioYtPlayer.playVideo === 'function') {
+        matikanSubtitleYouTube(audioYtPlayer);
         audioYtPlayer.playVideo();
       } else if (clip.sourceType === 'html5') {
         html5El.play().catch(()=>{});
@@ -1153,7 +1223,6 @@
             eksekusiCue();
           }
         } else {
-          // No Loop
           eksekusiCue();
         }
       } else {
@@ -1197,12 +1266,10 @@
         document.getElementById('vtScrubber').value = cur;
         document.getElementById('vtScrubber').max = dur;
 
-        // Broadcast periodik setiap 2 detik ke Firebase
         if (Math.floor(cur) % 2 === 0) {
           broadcastVtPlaybackState();
         }
 
-        // Cek selesai untuk HTML5
         if (clip.sourceType === 'html5' && cur >= dur - 0.5) {
           tanganiKlipSelesai();
         }
@@ -1238,7 +1305,6 @@
       const lbl = document.getElementById('lblBtnMicHw');
 
       if (isMicHardwareActive) {
-        // Matikan mic fisik
         if (micStream) {
           micStream.getTracks().forEach(t => t.stop());
           micStream = null;
@@ -1280,7 +1346,6 @@
         micSourceNode.connect(micGainNode);
         micGainNode.connect(micAnalyserNode);
 
-        // Sambungkan ke speaker jika anti-feedback dimatikan
         if (!isMuteLocalFeedback) {
           micGainNode.connect(audioCtx.destination);
         }
@@ -1322,13 +1387,11 @@
       const num = parseInt(val);
       mixerState[chKey].gain = num;
 
-      // Konversi nilai 0-100 ke dB aproximasi
       const dbVal = num === 0 ? '-∞' : (num >= 80 ? `+${Math.round((num-80)/5)}` : `-${Math.round((80-num)/4)}`);
       const lblEl = document.getElementById(`lblGain${capitalizeFirst(chKey)}`);
       if (lblEl) lblEl.innerText = `${dbVal} dB`;
 
       if (chKey === 'ch4') {
-        // Kontrol langsung suara VT Player
         const volRatio = mixerState.ch4.isMuted ? 0 : num / 100;
         const html5El = document.getElementById('audioVtHtml5');
         html5El.volume = volRatio;
@@ -1366,10 +1429,9 @@
           micAnalyserNode.getByteFrequencyData(dataArray);
           let sum = 0;
           for (let i = 0; i < 16; i++) sum += dataArray[i];
-          micLevel = (sum / 16) / 255; // Nilai 0.0 - 1.0
+          micLevel = (sum / 16) / 255;
         }
 
-        // Render VU bar untuk masing-masing channel
         ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'master'].forEach(chKey => {
           const container = document.getElementById(`vuMeter${capitalizeFirst(chKey)}`);
           if (!container) return;
@@ -1381,7 +1443,6 @@
             if (chKey === targetMicChannel && isMicHardwareActive) {
               level = micLevel * (mixerState[chKey].gain / 100);
             } else if (chKey === 'ch4') {
-              // Level dinamis jika VT sedang berputar
               level = vtPlaybackState.status === 'playing' ? (0.3 + Math.random() * 0.5) * (mixerState.ch4.gain / 100) : 0;
             } else if (chKey === 'master') {
               const activeCount = (vtPlaybackState.status === 'playing' ? 0.5 : 0) + (micLevel > 0.1 ? 0.5 : 0);
@@ -1526,7 +1587,6 @@
       return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    // Prosedur Keluar Sesi & Ganti Peran
     function bukaModalKeluar(type) {
       pendingExitType = type;
       const modal = document.getElementById('exitConfirmModal');
@@ -1554,7 +1614,6 @@
     }
 
     function tanganiSesiDiakhiriGuru() {
-      // Room SKASA selalu live ON-AIR dan tidak dialihkan
       if (currentRoomToken === 'SKASA') return;
 
       if (micStream) {
