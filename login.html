@@ -74,14 +74,15 @@
 
   <header class="text-center mb-6">
     <div class="flex items-center justify-center gap-2 mb-3 flex-wrap">
+      <!-- 2. Badge Status: PORTAL STUDIO -->
       <div class="inline-flex items-center gap-2 bg-red-100 border border-red-200 text-red-700 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm">
         <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
-        CREW, GURU & ADMIN PORTAL
+        PORTAL STUDIO
       </div>
       
-      <div id="connStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm transition-all duration-300">
-        <span id="connStatusDot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-        <span id="connStatusText">Menghubungkan Database...</span>
+      <!-- 3. Status Firebase: Icon Saja dengan Indikator Status Warna & Tooltip -->
+      <div id="connStatusBadge" title="Menghubungkan Database..." class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-700 border border-amber-300 shadow-sm transition-all duration-300 cursor-help">
+        <span id="connStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
       </div>
     </div>
     
@@ -93,30 +94,16 @@
         SKAWAN <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600">TV</span>
       </h1>
     </div>
+    <!-- 1. Subjudul Header: SKASA WAHANA TELEVISI -->
     <p class="text-xs sm:text-sm tracking-widest uppercase font-semibold text-slate-500 mt-1">
-      PORTAL LOGIN KRU, GURU & ADMIN &bull; SMKN 1 PACITAN
+      SKASA WAHANA TELEVISI
     </p>
   </header>
 
   <main class="w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 relative overflow-hidden space-y-5">
     <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-rose-500 to-blue-600"></div>
 
-    <!-- BANNER PINTAS KE SIARAN UTAMA (INDEX.HTML) -->
-    <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl p-4 shadow-md flex items-center justify-between gap-3 border border-slate-700">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg bg-red-600/30 border border-red-500/50 flex items-center justify-center text-xl shrink-0">
-          📺
-        </div>
-        <div>
-          <span class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold block">PENONTON DI LUAR KRU:</span>
-          <span class="text-xs sm:text-sm font-brand font-black text-white">Layar Siaran Langsung (PGM Live)</span>
-        </div>
-      </div>
-      <a href="index.html" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-3.5 py-2 rounded-lg text-xs transition shadow-md shadow-red-600/30 flex items-center gap-1.5 shrink-0">
-        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-        <span>Tonton Siaran</span>
-      </a>
-    </div>
+    <!-- 4. Banner Penonton di Luar Kru Telah Dihapus dari Sini -->
 
     <!-- Tab Navigasi (Siswa vs Guru vs Admin) -->
     <div id="tabContainer" class="flex border-b border-slate-200 pt-1">
@@ -148,8 +135,9 @@
         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Nama Lengkap Siswa</label>
         <input type="text" id="siswaName" placeholder="Masukkan nama Anda" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-100 focus:bg-white outline-none transition placeholder-slate-400">
       </div>
+      <!-- 5. Tombol: Akses Lobby Studio -->
       <button onclick="masukLobbySiswa()" class="w-full mt-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-red-600/25 active:scale-[0.99]">
-        Buka Daftar Peran Produksi
+        Akses Lobby Studio
       </button>
     </section>
 
@@ -296,14 +284,13 @@
     function setupConnectionMonitor() {
       const badge = document.getElementById('connStatusBadge');
       const dot = document.getElementById('connStatusDot');
-      const text = document.getElementById('connStatusText');
       const activeDb = getDatabase();
 
       if (!activeDb) {
         isFirebaseReady = false;
-        badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-600 border border-slate-300 shadow-sm";
-        dot.className = "w-2 h-2 rounded-full bg-slate-400";
-        text.innerText = "Mode Demo / Offline";
+        badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 border border-slate-300 shadow-sm transition-all duration-300 cursor-help";
+        badge.title = "Mode Demo / Offline";
+        if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-slate-400";
         return;
       }
 
@@ -311,13 +298,13 @@
 
       activeDb.ref('.info/connected').on('value', snap => {
         if (snap.val() === true) {
-          badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm";
-          dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-          text.innerText = "🟢 Firebase Terhubung";
+          badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 border border-emerald-300 shadow-sm transition-all duration-300 cursor-help";
+          badge.title = "Firebase Terhubung (Online)";
+          if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
         } else {
-          badge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm";
-          dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
-          text.innerText = "Menghubungkan Server...";
+          badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 border border-amber-300 shadow-sm transition-all duration-300 cursor-help";
+          badge.title = "Menghubungkan Server...";
+          if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping";
         }
       });
     }
