@@ -167,10 +167,10 @@
 
         <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="pvwScreenContainer">
           <!-- Video Kamera HP jika PVW adalah Kamera -->
-          <video id="pvwCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+          <video id="pvwCamVideo" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-200 z-10 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
-          <!-- Video VT Player Preview jika PVW adalah VT -->
-          <div id="pvwVtWrapper" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center pointer-events-none">
+          <!-- Video VT Player Preview jika PVW adalah VT (Layering Visual Aktif) -->
+          <div id="pvwVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center transition-opacity duration-200 z-10 opacity-0 pointer-events-none">
             <video id="pvwVtHtml5" class="w-full h-full object-contain hidden" playsinline muted autoplay></video>
             <div id="pvwVtYtWrap" class="w-full h-full hidden pointer-events-none">
               <div id="pvwVtYtEl" class="w-full h-full"></div>
@@ -179,13 +179,13 @@
           </div>
 
           <!-- Fallback Text jika belum ada sinyal -->
-          <div id="pvwFallbackBox" class="text-center space-y-1 relative z-10">
+          <div id="pvwFallbackBox" class="text-center space-y-1 relative z-0">
             <span id="pvwScreenLabel" class="font-brand font-black text-3xl sm:text-4xl text-slate-300 tracking-wider">CAM 2</span>
             <span class="text-[10px] font-mono text-emerald-400 block uppercase">STANDBY FOR CUT / AUTO</span>
           </div>
 
-          <div class="scanline absolute inset-0 pointer-events-none"></div>
-          <div class="absolute bottom-2 left-2 bg-emerald-600/90 text-white font-mono text-[9px] px-2 py-0.5 rounded font-bold z-10">
+          <div class="scanline absolute inset-0 pointer-events-none z-20"></div>
+          <div class="absolute bottom-2 left-2 bg-emerald-600/90 text-white font-mono text-[9px] px-2 py-0.5 rounded font-bold z-20">
             PREVIEW BUS
           </div>
         </div>
@@ -205,10 +205,10 @@
 
         <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 transition-opacity duration-300" id="pgmScreenContainer">
           <!-- Video Kamera HP jika PGM adalah Kamera -->
-          <video id="pgmCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+          <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-200 z-10 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
-          <!-- Video VT Player Program jika PGM adalah VT -->
-          <div id="pgmVtWrapper" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center pointer-events-none">
+          <!-- Video VT Player Program jika PGM adalah VT (Layering Visual Aktif) -->
+          <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center transition-opacity duration-200 z-10 opacity-0 pointer-events-none">
             <video id="pgmVtHtml5" class="w-full h-full object-contain hidden" playsinline muted autoplay></video>
             <div id="pgmVtYtWrap" class="w-full h-full hidden pointer-events-none">
               <div id="pgmVtYtEl" class="w-full h-full"></div>
@@ -217,7 +217,7 @@
           </div>
 
           <!-- Fallback Text jika belum ada sinyal video -->
-          <div id="pgmFallbackBox" class="text-center space-y-1 relative z-10">
+          <div id="pgmFallbackBox" class="text-center space-y-1 relative z-0">
             <span id="pgmScreenLabel" class="font-brand font-black text-3xl sm:text-4xl text-red-500 tracking-wider">CAM 1</span>
             <span class="text-[10px] font-mono text-red-400 block uppercase">LIVE BROADCAST</span>
           </div>
@@ -249,7 +249,7 @@
             </div>
           </div>
 
-          <div class="scanline absolute inset-0 pointer-events-none"></div>
+          <div class="scanline absolute inset-0 pointer-events-none z-20"></div>
 
           <!-- On-Air Bug Badge -->
           <div class="absolute top-2 left-2 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded flex items-center gap-1 shadow z-30">
@@ -501,15 +501,26 @@
       return null;
     }
 
-    // Eksekusi aman untuk metode YouTube Player agar tidak pernah menghentikan thread JS
+    function matikanSubtitleYouTube(player) {
+      if (!player) return;
+      try {
+        if (typeof player.unloadModule === 'function') {
+          player.unloadModule('captions');
+          player.unloadModule('cc');
+        }
+        if (typeof player.setOption === 'function') {
+          player.setOption('captions', 'track', {});
+          player.setOption('cc', 'track', {});
+        }
+      } catch (e) {}
+    }
+
     function safeYt(player, callback) {
       try {
         if (player && typeof player.getPlayerState === 'function') {
           callback(player);
         }
-      } catch (err) {
-        // Abaikan galat sementara saat player belum siap
-      }
+      } catch (err) {}
     }
 
     window.onYouTubeIframeAPIReady = function() {
@@ -518,10 +529,11 @@
         playsinline: 1,
         controls: 0,
         rel: 0,
-        mute: 1, // Mute di switcher agar suara murni dialirkan dari audio-vt
+        mute: 1, // Mute di switcher visual agar audio murni dari audio-vt
         modestbranding: 1,
         disablekb: 1,
         cc_load_policy: 0,
+        cc_lang_pref: 'none',
         iv_load_policy: 3
       };
 
@@ -531,7 +543,15 @@
             height: '100%', width: '100%',
             videoId: 'XhwSTlXTJRc',
             playerVars: playerDefaults,
-            events: { onReady: () => syncVtDisplay() }
+            events: {
+              onReady: () => {
+                matikanSubtitleYouTube(switcherPgmYt);
+                syncVtDisplay();
+              },
+              onStateChange: (e) => {
+                if (e.data === YT.PlayerState.PLAYING) matikanSubtitleYouTube(switcherPgmYt);
+              }
+            }
           });
         }
 
@@ -540,7 +560,15 @@
             height: '100%', width: '100%',
             videoId: 'XhwSTlXTJRc',
             playerVars: playerDefaults,
-            events: { onReady: () => syncVtDisplay() }
+            events: {
+              onReady: () => {
+                matikanSubtitleYouTube(switcherPvwYt);
+                syncVtDisplay();
+              },
+              onStateChange: (e) => {
+                if (e.data === YT.PlayerState.PLAYING) matikanSubtitleYouTube(switcherPvwYt);
+              }
+            }
           });
         }
 
@@ -549,7 +577,15 @@
             height: '100%', width: '100%',
             videoId: 'XhwSTlXTJRc',
             playerVars: playerDefaults,
-            events: { onReady: () => syncVtDisplay() }
+            events: {
+              onReady: () => {
+                matikanSubtitleYouTube(switcherMvYt);
+                syncVtDisplay();
+              },
+              onStateChange: (e) => {
+                if (e.data === YT.PlayerState.PLAYING) matikanSubtitleYouTube(switcherMvYt);
+              }
+            }
           });
         }
       } catch (e) {
@@ -577,7 +613,6 @@
       setupKeyboardShortcuts();
     });
 
-    // Jam WIB Real-Time Live Ticker (HH:mm WIB)
     function startWibLiveClock() {
       const updateClock = () => {
         const now = new Date();
@@ -766,52 +801,74 @@
       if (badgePvw) badgePvw.innerText = pvwLabel;
       if (pvwScreenLbl) pvwScreenLbl.innerText = pvwLabel;
 
-      // 1. Program Monitor (PGM)
+      // 1. Program Monitor (PGM) - Gunakan Layering Opacity agar tidak freeze
       const pgmVideo = document.getElementById('pgmCamVideo');
       const pgmFallback = document.getElementById('pgmFallbackBox');
       const pgmVtWrap = document.getElementById('pgmVtWrapper');
 
       if (liveState.programSource === 'vt') {
-        if (pgmVideo) pgmVideo.classList.add('hidden');
+        if (pgmVideo) {
+          pgmVideo.classList.remove('opacity-100');
+          pgmVideo.classList.add('opacity-0', 'pointer-events-none');
+        }
         if (pgmFallback) pgmFallback.classList.add('hidden');
-        if (pgmVtWrap) pgmVtWrap.classList.remove('hidden');
+        if (pgmVtWrap) {
+          pgmVtWrap.classList.remove('opacity-0', 'pointer-events-none');
+          pgmVtWrap.classList.add('opacity-100');
+        }
       } else {
-        if (pgmVtWrap) pgmVtWrap.classList.add('hidden');
+        if (pgmVtWrap) {
+          pgmVtWrap.classList.remove('opacity-100');
+          pgmVtWrap.classList.add('opacity-0', 'pointer-events-none');
+        }
         const stream = getCameraStream(liveState.programSource);
         if (stream && pgmVideo) {
-          if (pgmVideo.srcObject !== stream) {
-            pgmVideo.srcObject = stream;
-          }
-          pgmVideo.classList.remove('hidden');
+          if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+          pgmVideo.classList.remove('opacity-0', 'pointer-events-none');
+          pgmVideo.classList.add('opacity-100');
           if (pgmFallback) pgmFallback.classList.add('hidden');
           pgmVideo.play().catch(() => {});
         } else {
-          if (pgmVideo) pgmVideo.classList.add('hidden');
+          if (pgmVideo) {
+            pgmVideo.classList.remove('opacity-100');
+            pgmVideo.classList.add('opacity-0', 'pointer-events-none');
+          }
           if (pgmFallback) pgmFallback.classList.remove('hidden');
         }
       }
 
-      // 2. Preview Monitor (PVW)
+      // 2. Preview Monitor (PVW) - Gunakan Layering Opacity
       const pvwVideo = document.getElementById('pvwCamVideo');
       const pvwFallback = document.getElementById('pvwFallbackBox');
       const pvwVtWrap = document.getElementById('pvwVtWrapper');
 
       if (liveState.previewSource === 'vt') {
-        if (pvwVideo) pvwVideo.classList.add('hidden');
+        if (pvwVideo) {
+          pvwVideo.classList.remove('opacity-100');
+          pvwVideo.classList.add('opacity-0', 'pointer-events-none');
+        }
         if (pvwFallback) pvwFallback.classList.add('hidden');
-        if (pvwVtWrap) pvwVtWrap.classList.remove('hidden');
+        if (pvwVtWrap) {
+          pvwVtWrap.classList.remove('opacity-0', 'pointer-events-none');
+          pvwVtWrap.classList.add('opacity-100');
+        }
       } else {
-        if (pvwVtWrap) pvwVtWrap.classList.add('hidden');
+        if (pvwVtWrap) {
+          pvwVtWrap.classList.remove('opacity-100');
+          pvwVtWrap.classList.add('opacity-0', 'pointer-events-none');
+        }
         const stream = getCameraStream(liveState.previewSource);
         if (stream && pvwVideo) {
-          if (pvwVideo.srcObject !== stream) {
-            pvwVideo.srcObject = stream;
-          }
-          pvwVideo.classList.remove('hidden');
+          if (pvwVideo.srcObject !== stream) pvwVideo.srcObject = stream;
+          pvwVideo.classList.remove('opacity-0', 'pointer-events-none');
+          pvwVideo.classList.add('opacity-100');
           if (pvwFallback) pvwFallback.classList.add('hidden');
           pvwVideo.play().catch(() => {});
         } else {
-          if (pvwVideo) pvwVideo.classList.add('hidden');
+          if (pvwVideo) {
+            pvwVideo.classList.remove('opacity-100');
+            pvwVideo.classList.add('opacity-0', 'pointer-events-none');
+          }
           if (pvwFallback) pvwFallback.classList.remove('hidden');
         }
       }
@@ -870,6 +927,7 @@
         if (isYtReady) {
           // 1. Program Player
           safeYt(switcherPgmYt, (player) => {
+            matikanSubtitleYouTube(player);
             if (currentPgmYtId !== ytId) {
               currentPgmYtId = ytId;
               if (isPlaying && isPgmVt) player.loadVideoById(ytId, latestVtState.currentTime || 0);
@@ -889,6 +947,7 @@
 
           // 2. Preview Player
           safeYt(switcherPvwYt, (player) => {
+            matikanSubtitleYouTube(player);
             if (currentPvwYtId !== ytId) {
               currentPvwYtId = ytId;
               if (isPlaying && isPvwVt) player.loadVideoById(ytId, latestVtState.currentTime || 0);
@@ -908,6 +967,7 @@
 
           // 3. Multiview Thumbnail VT Player (Selalu Live)
           safeYt(switcherMvYt, (player) => {
+            matikanSubtitleYouTube(player);
             if (currentMvYtId !== ytId) {
               currentMvYtId = ytId;
               if (isPlaying) player.loadVideoById(ytId, latestVtState.currentTime || 0);
