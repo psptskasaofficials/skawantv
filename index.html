@@ -41,8 +41,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
-  <!-- PeerJS WebRTC Streamer & YouTube API -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Native WebRTC Streamer & YouTube API (Tanpa Dependensi PeerJS) -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -80,7 +79,7 @@
               <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
               <span class="font-brand font-black text-red-500 text-base leading-none">TV</span>
             </div>
-            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">Layar Siaran Langsung (PGM Live)</span>
+            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">SKASA WAHANA TV</span>
           </div>
         </a>
         <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
@@ -97,10 +96,10 @@
           <span id="navRoomToken" class="font-mono font-bold text-xs text-red-400">SKASA</span>
         </div>
 
-        <!-- Tombol Masuk Portal Kru & Guru (Dinamis Mengikuti Ruangan yang Dipilih) -->
+        <!-- Tombol Akses Studio (Dinamis Mengikuti Ruangan yang Dipilih) -->
         <a id="btnMasukKruNav" href="login.html?room=SKASA" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-95 text-white font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs transition shadow-md shadow-red-600/25 flex items-center gap-1.5">
           <span>🎬</span>
-          <span class="font-brand font-bold">Masuk Kru / Studio</span>
+          <span class="font-brand font-bold">Akses Studio</span>
         </a>
       </div>
     </div>
@@ -120,7 +119,7 @@
         <!-- Player HTML5 Native (MP4) -->
         <video id="pgmVtHtml5" class="w-full h-full object-contain hidden" playsinline></video>
         
-        <!-- Player YouTube API Wrap -->
+        <!-- Player YouTube API Wrap (Bebas Iklan via youtube-nocookie) -->
         <div id="pgmVtYtWrap" class="w-full h-full pointer-events-none">
           <div id="pgmVtYtEl" class="w-full h-full"></div>
         </div>
@@ -210,18 +209,11 @@
 
     </div>
 
-    <!-- Informasi Program & Status Sumber Siaran -->
-    <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 px-1">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span>Sumber On-Air Saat Ini: <strong id="lblActivePgmSource" class="text-white font-mono uppercase">VT (PLAYLIST)</strong></span>
-      </div>
-
-      <div class="flex items-center gap-3 font-mono text-[11px]">
-        <span>Resolusi: <strong class="text-slate-200">16:9 HD Broadcast</strong></span>
-        <span>&bull;</span>
-        <span>Status: <strong id="lblBroadcastStatus" class="text-red-500 font-bold animate-pulse">ON-AIR (LIVE)</strong></span>
-      </div>
+    <!-- Informasi Resolusi & Status Siaran (Sumber VT Telah Dihapus) -->
+    <div class="w-full flex items-center justify-end gap-3 text-xs text-slate-400 px-1 font-mono text-[11px]">
+      <span>Resolusi: <strong class="text-slate-200">16:9 HD Broadcast</strong></span>
+      <span>&bull;</span>
+      <span>Status: <strong id="lblBroadcastStatus" class="text-red-500 font-bold animate-pulse">ON-AIR (LIVE)</strong></span>
     </div>
 
     <!-- PANEL DAFTAR RUANGAN SIARAN AKTIF -->
@@ -263,8 +255,8 @@
       cgRef: null
     };
 
-    // Default standby YT ID (Dapat diperbarui dinamis via Firebase meta/defaultStandbyYtId)
-    let dynamicStandbyYtId = 'XhwSTlXTJRc';
+    // Default standby YT ID: Jnp3esoHb9k (https://www.youtube.com/watch?v=Jnp3esoHb9k)
+    let dynamicStandbyYtId = 'Jnp3esoHb9k';
 
     let liveState = {
       programSource: 'vt',
@@ -272,7 +264,14 @@
       tally: { cam_1: 'green' }
     };
 
-    let latestVtState = { status: 'playing', currentTime: 0, url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc', youtubeId: 'XhwSTlXTJRc', sourceType: 'youtube' };
+    let latestVtState = { 
+      status: 'playing', 
+      currentTime: 0, 
+      url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k', 
+      youtubeId: 'Jnp3esoHb9k', 
+      sourceType: 'youtube' 
+    };
+
     let livePgmYt = null;
     let isYtReady = false;
     let currentYtId = '';
@@ -288,7 +287,7 @@
       return null;
     }
 
-    // Jam WIB Live Real-Time (HANYA Jam dan Menit: HH:mm WIB)
+    // Jam WIB Live Real-Time (HH:mm WIB)
     function startWibLiveClock() {
       const updateClock = () => {
         const now = new Date();
@@ -306,7 +305,7 @@
       setInterval(updateClock, 1000);
     }
 
-    // Pastikan Room SKASA Selalu Ada & Terkunci ON-AIR
+    // Pastikan Room SKASA Selalu Ada & Terkunci ON-AIR dengan Default Video Baru
     function ensureDefaultSkasaRoom() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -328,11 +327,11 @@
               cam_1: "", cam_2: "", cam_3: ""
             },
             live_state: { programSource: "vt", previewSource: "cam_1" },
-            vt_state: { status: "playing", currentTime: 0, youtubeId: dynamicStandbyYtId, sourceType: "youtube", title: "Profil SKAWAN TV Studio" },
+            vt_state: { status: "playing", currentTime: 0, youtubeId: dynamicStandbyYtId, sourceType: "youtube", title: "SKAWAN TV Broadcast" },
             vt_playlist: [
               {
                 id: 'vt_default_skawan',
-                title: 'Profil SKAWAN TV Studio',
+                title: 'SKAWAN TV Broadcast',
                 sourceType: 'youtube',
                 youtubeId: dynamicStandbyYtId,
                 url: `https://www.youtube.com/watch?v=${dynamicStandbyYtId}`,
@@ -350,7 +349,7 @@
       });
     }
 
-    // Inisialisasi YouTube API Player (Clean feed, no ads via youtube-nocookie.com, no playlist trigger)
+    // Inisialisasi YouTube API Player (Clean feed, no ads via youtube-nocookie.com)
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
       try {
@@ -431,7 +430,7 @@
     function updateNavAndStorage(token) {
       document.getElementById('navRoomToken').innerText = token;
       
-      // Update link Masuk Kru agar langsung membawa ke ruangan yang sedang aktif ditonton
+      // Update link Akses Studio agar langsung membawa ke ruangan yang sedang aktif ditonton
       const btnKru = document.getElementById('btnMasukKruNav');
       if (btnKru) {
         btnKru.href = `login.html?room=${token}`;
@@ -475,7 +474,13 @@
 
       // Reset state visual ke default ruangan
       liveState = { programSource: 'vt', previewSource: 'cam_1', tally: { cam_1: 'green' } };
-      latestVtState = { status: 'stopped', currentTime: 0, url: '', youtubeId: '', sourceType: 'youtube' };
+      latestVtState = { 
+        status: 'stopped', 
+        currentTime: 0, 
+        url: `https://www.youtube.com/watch?v=${dynamicStandbyYtId}`, 
+        youtubeId: dynamicStandbyYtId, 
+        sourceType: 'youtube' 
+      };
 
       if (activeDb) {
         activeChannelListeners.token = token;
@@ -535,11 +540,12 @@
         updateRoomStatusUI('live');
       }
 
-      // 5. Hubungkan WebRTC Streamer untuk Menerima Feed Kamera HP Ruangan Terpilih
+      // 5. Hubungkan WebRTC Streamer Native untuk Menerima Feed Kamera HP Ruangan Terpilih
       if (typeof SkawanStreamer !== 'undefined') {
+        const viewerRoleUnique = `viewer_${Math.random().toString(36).substring(2, 7)}`;
         streamerInstance = new SkawanStreamer({
           roomToken: token,
-          roleKey: 'viewer',
+          roleKey: viewerRoleUnique,
           onRemoteStream: (camKey, stream) => {
             console.log(`[PGM Viewer - ${token}] Feed kamera diterima: ${camKey}`);
             remoteCamStreams.set(camKey, stream);
@@ -563,7 +569,7 @@
       gdriveEl.classList.add('hidden');
       ytWrap.classList.remove('hidden');
 
-      const targetId = dynamicStandbyYtId || 'XhwSTlXTJRc';
+      const targetId = dynamicStandbyYtId || 'Jnp3esoHb9k';
 
       if (isYtReady && livePgmYt && typeof livePgmYt.loadVideoById === 'function') {
         if (currentYtId !== targetId) {
@@ -612,7 +618,6 @@
 
     function renderPgmDisplay() {
       const activeSrc = liveState.programSource || 'vt';
-      document.getElementById('lblActivePgmSource').innerText = activeSrc === 'vt' ? 'VT (PLAYLIST)' : activeSrc.toUpperCase().replace('_', ' ');
 
       const camVideo = document.getElementById('pgmCamVideo');
       const vtWrapper = document.getElementById('pgmVtWrapper');
