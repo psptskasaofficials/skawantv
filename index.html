@@ -372,12 +372,20 @@
             playlist: dynamicStandbyYtId,
             modestbranding: 1,
             disablekb: 1,
-            cc_load_policy: 0,
+            cc_load_policy: 0, // Matikan subtitle/CC otomatis
+            cc_lang_pref: 'none',
             iv_load_policy: 3
           },
           events: {
             onReady: () => {
               currentYtId = dynamicStandbyYtId;
+              try {
+                if (typeof livePgmYt.unloadModule === 'function') {
+                  livePgmYt.unloadModule('captions');
+                  livePgmYt.unloadModule('cc');
+                }
+              } catch (e) {}
+
               if (isAudioUnmuted) {
                 livePgmYt.unMute();
                 livePgmYt.setVolume(100);
@@ -387,6 +395,14 @@
               putarDefaultStandbyVt();
             },
             onStateChange: (e) => {
+              if (e.data === YT.PlayerState.PLAYING) {
+                try {
+                  if (typeof livePgmYt.unloadModule === 'function') {
+                    livePgmYt.unloadModule('captions');
+                    livePgmYt.unloadModule('cc');
+                  }
+                } catch (e) {}
+              }
               if (e.data === YT.PlayerState.ENDED) {
                 livePgmYt.seekTo(0, true);
                 livePgmYt.playVideo();
