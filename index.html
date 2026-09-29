@@ -133,7 +133,7 @@
       <div id="pgmStandbyScreen" class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-between text-center p-4 sm:p-6 z-20 pointer-events-none transition-all duration-500">
         <div class="flex items-center gap-2 bg-black/80 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold text-amber-400 shadow-lg">
           <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-          <span id="standbyStatusText">STUDIO STANDBY &bull; TAYANGAN PROFIL SKAWAN TV</span>
+          <span id="standbyStatusText">STUDIO STANDBY &bull; TAYANGAN STANDBY SKAWAN TV</span>
         </div>
 
         <div class="bg-black/80 backdrop-blur-md border border-white/10 p-5 rounded-2xl max-w-md mx-auto shadow-2xl space-y-2">
@@ -175,10 +175,10 @@
         </div>
       </div>
 
-      <!-- Running Text / Ticker Bar di Dasar Layar Siaran -->
+      <!-- Running Text / Ticker Bar di Dasar Layar Siaran (Format Jam: HH:mm WIB) -->
       <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 sm:h-7 bg-red-700 text-white z-30 overflow-hidden flex items-center border-t border-red-500 shadow-md">
         <div id="indexTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] sm:text-[10px] text-amber-400 shrink-0 border-r border-red-900 tracking-wider">
-          00:00:00 WIB
+          00:00 WIB
         </div>
         <div class="w-full overflow-hidden text-[10px] sm:text-xs font-medium px-2">
           <span id="cgTickerText" class="marquee-text">Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan &bull; SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast</span>
@@ -254,7 +254,8 @@
     let streamerInstance = null;
     const remoteCamStreams = new Map();
 
-    const DEFAULT_STANDBY_YT_ID = 'XhwSTlXTJRc';
+    // Default standby YT ID (Dapat diperbarui dinamis via Firebase meta/defaultStandbyYtId)
+    let dynamicStandbyYtId = 'XhwSTlXTJRc';
 
     let liveState = {
       programSource: 'vt',
@@ -278,21 +279,22 @@
       return null;
     }
 
-    // Jam WIB Live Real-Time
+    // Jam WIB Live Real-Time (HANYA Jam dan Menit: HH:mm WIB)
     function startWibLiveClock() {
-      setInterval(() => {
+      const updateClock = () => {
         const now = new Date();
         const formatter = new Intl.DateTimeFormat('id-ID', {
           timeZone: 'Asia/Jakarta',
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit',
           hour12: false
         });
-        const wibStr = `${formatter.format(now)} WIB`;
+        const wibStr = `${formatter.format(now).replace('.', ':')} WIB`;
         const clockEl = document.getElementById('indexTickerWibHeader');
         if (clockEl) clockEl.innerText = wibStr;
-      }, 1000);
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
     }
 
     // Pastikan Room SKASA Selalu Ada & Terkunci ON-AIR
@@ -309,6 +311,7 @@
               status: "live",
               pin: "123456",
               creatorRole: "guru",
+              defaultStandbyYtId: dynamicStandbyYtId,
               createdAt: Date.now()
             },
             roles: {
@@ -316,20 +319,24 @@
               cam_1: "", cam_2: "", cam_3: ""
             },
             live_state: { programSource: "vt", previewSource: "cam_1" },
-            vt_state: { status: "playing", currentTime: 0, youtubeId: "XhwSTlXTJRc", sourceType: "youtube", title: "Profil SKAWAN TV Studio" },
+            vt_state: { status: "playing", currentTime: 0, youtubeId: dynamicStandbyYtId, sourceType: "youtube", title: "Profil SKAWAN TV Studio" },
             vt_playlist: [
               {
                 id: 'vt_default_skawan',
                 title: 'Profil SKAWAN TV Studio',
                 sourceType: 'youtube',
-                youtubeId: 'XhwSTlXTJRc',
-                url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc',
+                youtubeId: dynamicStandbyYtId,
+                url: `https://www.youtube.com/watch?v=${dynamicStandbyYtId}`,
                 durationSec: 120
               }
             ]
           });
         } else {
           activeDb.ref('rooms/SKASA/meta/status').set('live');
+          const meta = snap.val();
+          if (meta.defaultStandbyYtId) {
+            dynamicStandbyYtId = meta.defaultStandbyYtId;
+          }
           activeDb.ref('rooms/SKASA/vt_playlist').once('value', pSnap => {
             if (!pSnap.exists()) {
               activeDb.ref('rooms/SKASA/vt_playlist').set([
@@ -337,8 +344,8 @@
                   id: 'vt_default_skawan',
                   title: 'Profil SKAWAN TV Studio',
                   sourceType: 'youtube',
-                  youtubeId: 'XhwSTlXTJRc',
-                  url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc',
+                  youtubeId: dynamicStandbyYtId,
+                  url: `https://www.youtube.com/watch?v=${dynamicStandbyYtId}`,
                   durationSec: 120
                 }
               ]);
@@ -355,14 +362,14 @@
         livePgmYt = new YT.Player('pgmVtYtEl', {
           height: '100%',
           width: '100%',
-          videoId: DEFAULT_STANDBY_YT_ID,
+          videoId: dynamicStandbyYtId,
           playerVars: {
             playsinline: 1,
             controls: 0,
             rel: 0,
             autoplay: 1,
             loop: 1,
-            playlist: DEFAULT_STANDBY_YT_ID,
+            playlist: dynamicStandbyYtId,
             modestbranding: 1,
             disablekb: 1,
             cc_load_policy: 0,
@@ -370,7 +377,7 @@
           },
           events: {
             onReady: () => {
-              currentYtId = DEFAULT_STANDBY_YT_ID;
+              currentYtId = dynamicStandbyYtId;
               if (isAudioUnmuted) {
                 livePgmYt.unMute();
                 livePgmYt.setVolume(100);
@@ -397,7 +404,7 @@
       const roomParam = urlParams.get('room');
       
       // Default selalu ke SKASA jika tidak ada parameter URL
-      currentRoomToken = roomParam || 'SKASA';
+      currentRoomToken = (roomParam || 'SKASA').toUpperCase();
       document.getElementById('navRoomToken').innerText = currentRoomToken;
 
       startWibLiveClock();
@@ -409,7 +416,7 @@
     function initChannelViewer(token) {
       const activeDb = getDatabase();
       if (activeDb) {
-        // 1. Pantau Status & Metadata Ruangan
+        // 1. Pantau Status & Metadata Ruangan (Termasuk Default Standby YT ID dari Audio-VT / Admin)
         activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
           if (!snap.exists()) {
             if (token === 'SKASA') {
@@ -425,6 +432,15 @@
           }
           if (meta.episode) {
             document.getElementById('standbyEpisodeDesc').innerText = meta.episode;
+          }
+
+          // Sinkronisasi Video Standby Baru jika diset oleh Admin di audio-vt.html
+          if (meta.defaultStandbyYtId && meta.defaultStandbyYtId !== dynamicStandbyYtId) {
+            console.log(`[Index PGM] Mengupdate Default Standby YT ID ke: ${meta.defaultStandbyYtId}`);
+            dynamicStandbyYtId = meta.defaultStandbyYtId;
+            if (liveState.programSource !== 'vt' || currentRoomStatus !== 'live') {
+              putarDefaultStandbyVt();
+            }
           }
           
           currentRoomStatus = token === 'SKASA' ? 'live' : (meta.status || 'waiting');
@@ -491,11 +507,13 @@
       gdriveEl.classList.add('hidden');
       ytWrap.classList.remove('hidden');
 
+      const targetId = dynamicStandbyYtId || 'XhwSTlXTJRc';
+
       if (isYtReady && livePgmYt && typeof livePgmYt.loadVideoById === 'function') {
-        if (currentYtId !== DEFAULT_STANDBY_YT_ID) {
-          currentYtId = DEFAULT_STANDBY_YT_ID;
+        if (currentYtId !== targetId) {
+          currentYtId = targetId;
           livePgmYt.loadVideoById({
-            videoId: DEFAULT_STANDBY_YT_ID,
+            videoId: targetId,
             startSeconds: 0
           });
         } else {
@@ -686,7 +704,6 @@
       }
     }
 
-    // Mendengarkan Daftar Saluran / Ruangan Aktif di Sistem
     function listenActiveChannels() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -698,7 +715,6 @@
         const roomsData = snap.val() || {};
         const roomKeys = Object.keys(roomsData);
 
-        // Pastikan SKASA selalu ada di urutan pertama
         if (!roomKeys.includes('SKASA')) {
           roomKeys.unshift('SKASA');
         } else {
@@ -760,7 +776,6 @@
       currentRoomToken = newToken;
       document.getElementById('navRoomToken').innerText = newToken;
 
-      // Update URL query string tanpa reload halaman
       const newUrl = `${window.location.pathname}?room=${newToken}`;
       window.history.pushState({ path: newUrl }, '', newUrl);
 
