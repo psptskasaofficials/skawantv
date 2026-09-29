@@ -32,8 +32,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
-  <!-- PeerJS WebRTC Streamer & YouTube API -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Native WebRTC Streamer & YouTube API (No PeerJS Dependency) -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -52,7 +51,7 @@
     }
     .deck-btn:active { transform: scale(0.96); }
     .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 255, 0, 0.05));
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
       background-size: 100% 2px, 3px 100%;
       pointer-events: none;
     }
@@ -61,6 +60,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black pb-6">
 
+  <!-- Top Navigation Bar -->
   <nav class="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -104,6 +104,7 @@
     </div>
   </nav>
 
+  <!-- Banner Instruksi PD -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full space-y-2">
     <div id="directorCueBanner" class="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition">
       <div class="flex items-center gap-2.5">
@@ -159,7 +160,7 @@
                 🎬
               </div>
               <span id="overlayClipTitle" class="font-brand font-black text-sm sm:text-base text-white line-clamp-1 max-w-sm">
-                Profil SKAWAN TV Studio
+                SKAWAN TV Broadcast
               </span>
               <span id="overlayClipStatus" class="font-mono text-[10px] font-bold text-amber-400 uppercase tracking-wider bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-slate-700">
                 STANDBY / CUE AT 00:00
@@ -174,7 +175,7 @@
             <div class="flex items-center justify-between font-mono text-[11px]">
               <span id="lblCurrentTime" class="font-bold text-amber-400">00:00</span>
               <span id="lblClipTitlePlaying" class="text-xs text-slate-300 font-semibold truncate max-w-[220px] text-center">
-                Profil SKAWAN TV Studio
+                SKAWAN TV Broadcast
               </span>
               <div class="flex items-center gap-1.5">
                 <span class="text-slate-500">Sisa:</span>
@@ -345,7 +346,6 @@
               <div class="flex items-center gap-1.5 my-1">
                 <input type="range" min="0" max="100" value="80" oninput="ubahVolumeKanal('ch1', this.value)" class="vertical-slider accent-amber-500">
                 <div class="w-2.5 h-36 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden" id="vuMeterCh1">
-                  <!-- 8 Bar Segmen VU -->
                   <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
                   <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
                   <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
@@ -525,7 +525,7 @@
 
         <div>
           <label class="block font-bold text-slate-400 uppercase mb-1">Tautan / ID Media:</label>
-          <input type="text" id="inputVtUrl" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500 font-mono text-[11px]">
+          <input type="text" id="inputVtUrl" placeholder="https://www.youtube.com/watch?v=... atau ID" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500 font-mono text-[11px]">
         </div>
 
         <div class="grid grid-cols-2 gap-2">
@@ -586,16 +586,16 @@
     let pendingExitType = 'ganti';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
 
-    // Default Video Standby ID aktif (Dapat diubah dinamis oleh Admin)
-    let currentActiveStandbyYtId = 'XhwSTlXTJRc';
+    // Default Video Standby ID aktif (Jnp3esoHb9k)
+    let currentActiveStandbyYtId = 'Jnp3esoHb9k';
 
     // Playlist Default Murni (1 Video Standby Awal)
     const DEFAULT_SKASA_CLIP = {
       id: 'vt_default_skawan',
-      title: 'Profil SKAWAN TV Studio',
+      title: 'SKAWAN TV Broadcast',
       sourceType: 'youtube',
-      youtubeId: 'XhwSTlXTJRc',
-      url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc',
+      youtubeId: 'Jnp3esoHb9k',
+      url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
       durationSec: 120
     };
 
@@ -646,7 +646,6 @@
       master: { gain: 90, isMuted: false, label: 'MASTER' }
     };
 
-    // Helper untuk mematikan modul takarir (CC / Subtitle) YouTube secara agresif
     function matikanSubtitleYouTube(player) {
       if (!player) return;
       try {
@@ -658,18 +657,17 @@
           player.setOption('captions', 'track', {});
           player.setOption('cc', 'track', {});
         }
-      } catch (e) {
-        // Abaikan jika modul belum dimuat oleh YouTube API
-      }
+      } catch (e) {}
     }
 
-    // Inisialisasi YouTube API Resmi (Clean Feed tanpa CC, pop-up, atau takarir otomatis)
+    // Inisialisasi YouTube API Resmi (Clean Feed tanpa CC via youtube-nocookie)
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
       try {
         audioYtPlayer = new YT.Player('audioVtYtEl', {
           height: '100%',
           width: '100%',
+          host: 'https://www.youtube-nocookie.com',
           videoId: DEFAULT_SKASA_CLIP.youtubeId,
           playerVars: {
             playsinline: 1,
@@ -679,18 +677,17 @@
             mute: 0,
             modestbranding: 1,
             disablekb: 1,
-            cc_load_policy: 0, // Matikan muat takarir otomatis
-            cc_lang_pref: 'none', // Cegah preferensi bahasa subtitle
-            iv_load_policy: 3 // Sembunyikan anotasi & banner interaktif video
+            cc_load_policy: 0,
+            cc_lang_pref: 'none',
+            iv_load_policy: 3,
+            origin: window.location.origin || 'http://localhost'
           },
           events: {
             onReady: () => {
-              console.log("[Audio-VT] YouTube Player siap (Clean Feed, Subtitle OFF).");
               matikanSubtitleYouTube(audioYtPlayer);
               muatKlipKePlayer(activePlaylistIndex, false);
             },
             onStateChange: (e) => {
-              // Pastikan subtitle tetap nonaktif saat video mulai berputar
               if (e.data === YT.PlayerState.PLAYING) {
                 matikanSubtitleYouTube(audioYtPlayer);
               }
@@ -945,7 +942,6 @@
           <div class="flex items-center gap-1 shrink-0">
             ${statusBadge}
 
-            <!-- Tombol Jadikan Default Standby VT untuk Index.html -->
             ${clip.sourceType === 'youtube' && clip.youtubeId ? `
               <button onclick="tetapkanSebagaiDefaultStandby(${index})" class="px-2 py-1 rounded bg-slate-800 hover:bg-amber-600 hover:text-slate-950 text-amber-400 text-[10px] font-mono font-bold border border-slate-700 transition flex items-center gap-1" title="Jadikan video ini sebagai tayangan Standby default di Index.html">
                 <span>⭐</span>
@@ -953,7 +949,6 @@
               </button>
             ` : ''}
 
-            <!-- Tombol Pengatur Urutan (Move Up / Down) -->
             <button onclick="geserUrutanKlip(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] font-bold flex items-center justify-center transition" title="Naikkan Urutan">
               ▲
             </button>
@@ -961,7 +956,6 @@
               ▼
             </button>
 
-            <!-- Tombol Hapus (Kecuali jika hanya 1 video) -->
             <button onclick="hapusKlipPlaylist(${index})" ${vtPlaylist.length <= 1 ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 disabled:opacity-20 disabled:cursor-not-allowed text-xs flex items-center justify-center transition ml-1" title="Hapus dari Playlist">
               ✕
             </button>
@@ -972,7 +966,6 @@
       });
     }
 
-    // Fungsi Mengubah Default Standby VT (Otomatis Tersinkron ke index.html)
     function tetapkanSebagaiDefaultStandby(index) {
       const clip = vtPlaylist[index];
       if (!clip || !clip.youtubeId) return;
@@ -983,7 +976,6 @@
       if (activeDb) {
         activeDb.ref(`rooms/${currentRoomToken}/meta/defaultStandbyYtId`).set(clip.youtubeId).then(() => {
           renderPlaylistUI();
-          alert(`Klip "${clip.title}" berhasil dijadikan video STANDBY DEFAULT!\n\nLayar index.html secara otomatis akan memutar video ini saat siaran standby.`);
         }).catch(err => {
           console.warn(err);
         });
@@ -1034,12 +1026,10 @@
 
     function ubahLoopMode(mode) {
       loopMode = mode;
-      console.log(`[Audio-VT] Mode Putar: ${loopMode}`);
     }
 
     function ubahEndAction(action) {
       endAction = action;
-      console.log(`[Audio-VT] Aksi Akhir Klip: ${endAction}`);
     }
 
     function pilihKlipPlaylist(index) {
@@ -1199,8 +1189,6 @@
     }
 
     function tanganiKlipSelesai() {
-      console.log("[Audio-VT] Klip telah selesai diputar.");
-
       if (loopMode === 'loop_single') {
         if (endAction === 'auto_roll') {
           seekVideo(0);
@@ -1358,7 +1346,6 @@
 
       } catch (err) {
         console.warn("[Audio-VT] Gagal membuka mic fisik:", err);
-        alert("Tidak dapat mengakses mikrofon: " + err.message);
       }
     }
 
@@ -1517,7 +1504,6 @@
       const pos = document.getElementById('selectInsertPosition').value;
 
       if (!rawUrl) {
-        alert("Harap masukkan tautan atau ID video!");
         return;
       }
 
@@ -1527,7 +1513,6 @@
       if (type === 'youtube') {
         parsedYtId = ekstrakYouTubeId(rawUrl);
         if (!parsedYtId) {
-          alert("Tautan YouTube tidak valid! Masukkan tautan YouTube lengkap atau 11-digit ID video.");
           return;
         }
         parsedUrl = `https://www.youtube.com/watch?v=${parsedYtId}`;
@@ -1630,7 +1615,6 @@
       sessionStorage.removeItem('skawan_role');
       sessionStorage.removeItem('skawan_role_title');
 
-      alert("Sesi Siaran Telah Diakhiri oleh Guru. Mengalihkan ke pemilihan peran...");
       window.location.href = `login.html?room=${currentRoomToken}`;
     }
 
