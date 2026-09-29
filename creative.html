@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tim Kreatif | SKAWAN TV</title>
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -24,11 +26,11 @@
             skawan: {
               red: '#E50914',
               redHover: '#C70812',
-              lightBg: '#F8FAFC',
-              cardBg: '#FFFFFF',
-              borderLight: '#E2E8F0',
+              darkBg: '#090D14',
+              cardDark: '#121824',
+              borderDark: '#1E293B',
               accentBlue: '#2563EB',
-              warningAmber: '#D97706'
+              warningAmber: '#F59E0B'
             }
           }
         }
@@ -40,126 +42,239 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
-</head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white">
 
-  <!-- Top Navigation Bar -->
-  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+  <style>
+    .deck-btn {
+      transition: all 0.12s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .deck-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Transisi Halus Pergantian Tema */
+    body, nav, .theme-transition {
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Penyesuaian Tema Terang (Light Mode Overrides) */
+    body.theme-light {
+      background-color: #f8fafc !important; /* slate-50 */
+      color: #0f172a !important; /* slate-900 */
+    }
+    body.theme-light nav {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+    }
+    body.theme-light nav span.text-white {
+      color: #0f172a !important;
+    }
+    body.theme-light .bg-slate-900 {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+    }
+    body.theme-light .bg-slate-950 {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+    }
+    body.theme-light .border-slate-800 {
+      border-color: #e2e8f0 !important;
+    }
+    body.theme-light .border-slate-700 {
+      border-color: #cbd5e1 !important;
+    }
+    body.theme-light .text-white {
+      color: #0f172a !important;
+    }
+    body.theme-light .text-slate-300 {
+      color: #334155 !important;
+    }
+    body.theme-light .text-slate-400 {
+      color: #64748b !important;
+    }
+    body.theme-light .text-slate-100 {
+      color: #0f172a !important;
+    }
+    body.theme-light .bg-slate-800 {
+      background-color: #e2e8f0 !important;
+      color: #1e293b !important;
+      border-color: #cbd5e1 !important;
+    }
+    body.theme-light .bg-slate-800:hover {
+      background-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    body.theme-light input,
+    body.theme-light textarea,
+    body.theme-light select {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    body.theme-light input::placeholder,
+    body.theme-light textarea::placeholder {
+      color: #94a3b8 !important;
+    }
+    body.theme-light tr:hover {
+      background-color: rgba(241, 245, 249, 0.9) !important;
+    }
+    body.theme-light #segmentModal > div,
+    body.theme-light #infoModal > div,
+    body.theme-light #noticeModal > div,
+    body.theme-light #exitConfirmModal > div {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+    }
+    body.theme-light .bg-violet-950\/40,
+    body.theme-light .bg-violet-950\/60,
+    body.theme-light .bg-violet-950\/70,
+    body.theme-light .bg-violet-950\/80 {
+      background-color: #f5f3ff !important;
+      border-color: #ddd6fe !important;
+    }
+    body.theme-light .text-violet-300,
+    body.theme-light .text-violet-400 {
+      color: #7c3aed !important;
+    }
+    body.theme-light .divide-slate-800\/80 > :not([hidden]) ~ :not([hidden]) {
+      border-color: #e2e8f0 !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-violet-600 selection:text-white pb-6">
+
+  <!-- ============================================== -->
+  <!-- TOP NAVIGATION BAR (DARK THEME)               -->
+  <!-- ============================================== -->
+  <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="index.html" class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-sm">
-            SK
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center font-brand font-black text-lg text-white shadow-md shadow-violet-600/30">
+            CR
           </div>
           <div>
             <div class="flex items-center gap-1.5">
-              <span class="font-brand font-black tracking-wide text-slate-900 text-lg leading-none">SKAWAN</span>
-              <span class="font-brand font-black text-red-600 text-lg leading-none">TV</span>
+              <span class="font-brand font-black tracking-wide text-white text-lg leading-none">SKAWAN</span>
+              <span class="font-brand font-black text-violet-500 text-lg leading-none">TV</span>
             </div>
             <span class="text-[10px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Creative & Script Department</span>
           </div>
         </a>
-        <span class="hidden sm:inline-block h-5 w-px bg-slate-200 mx-2"></span>
-        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
-          <span class="w-2 h-2 rounded-full bg-violet-600 animate-pulse"></span>
+        <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-2"></span>
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-violet-950/80 text-violet-300 border border-violet-800">
+          <span class="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
           Tim Kreatif / Rundown
         </span>
       </div>
 
-      <div class="flex items-center gap-3">
-        <div class="hidden sm:flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg">
-          <span class="text-xs text-slate-500 font-medium">Ruangan:</span>
-          <span id="navDisplayToken" class="font-mono font-bold text-xs text-red-600">STUDIO-1</span>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
+          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
+          <span id="navDisplayToken" class="font-mono font-bold text-xs text-violet-400">STUDIO-1</span>
         </div>
         <!-- Indikator Pengguna Aktif -->
-        <div class="hidden md:flex items-center gap-1.5 bg-violet-50 border border-violet-200 px-3 py-1 rounded-lg text-violet-800 text-xs font-semibold">
+        <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
           <span>👤</span>
-          <span id="navDisplayUser">Kreatif</span>
+          <span id="navDisplayUser">Kru Kreatif</span>
         </div>
+        <!-- Tombol Alih Mode Tema (Dark / Light Mode) -->
+        <button id="btnThemeToggle" onclick="toggleThemeMode()" class="deck-btn text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Beralih Antara Mode Terang dan Gelap">
+          <span id="themeToggleIcon">☀️</span>
+          <span id="themeToggleText" class="hidden sm:inline">Mode Terang</span>
+        </button>
         <!-- Tombol Ganti Peran -->
-        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-600 hover:text-violet-600 bg-slate-50 hover:bg-violet-50 border border-slate-200 hover:border-violet-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Lepaskan posisi ini dan pilih peran lain">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+        <button onclick="bukaModalKeluar('ganti')" class="deck-btn text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Lepaskan posisi ini dan pilih peran lain">
+          <span>🔄</span>
           <span class="hidden sm:inline">Ganti Peran</span>
         </button>
         <!-- Tombol Keluar Sesi -->
-        <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
-          <span>Keluar</span>
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        <button onclick="bukaModalKeluar('keluar')" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5" title="Keluar dari sesi studio">
+          <span>🚪</span>
+          <span class="hidden sm:inline">Keluar</span>
         </button>
       </div>
     </div>
   </nav>
 
-  <!-- Container Konten Utama -->
+  <!-- ============================================== -->
+  <!-- CONTAINER KONTEN UTAMA                         -->
+  <!-- ============================================== -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 space-y-6">
 
     <!-- Header Program & Durasi Total -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
-      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 via-rose-500 to-red-600"></div>
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 via-indigo-500 to-rose-600"></div>
 
       <div class="space-y-1">
         <div class="flex items-center gap-2">
-          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200" id="badgeEpisode">
+          <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700" id="badgeEpisode">
             Episode 01
           </span>
-          <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Sync Aktif
+          <span class="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Sync Real-Time
           </span>
         </div>
-        <h1 id="displayProgramTitle" class="text-2xl sm:text-3xl font-brand font-black text-slate-900">
+        <h1 id="displayProgramTitle" class="text-2xl sm:text-3xl font-brand font-black text-white">
           Bincang Sore SKAWAN
         </h1>
-        <p id="displayEpisodeDesc" class="text-xs sm:text-sm text-slate-500">
+        <p id="displayEpisodeDesc" class="text-xs sm:text-sm text-slate-400">
           Pengenalan Studio Broadcast & Praktik Simulasi Produksi Siaran
         </p>
       </div>
 
       <!-- Quick Metrics: Total Durasi & Jumlah Segmen -->
       <div class="flex items-center gap-3">
-        <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-center min-w-[110px]">
-          <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Segmen</span>
-          <span id="statTotalSegments" class="text-xl font-brand font-black text-slate-800">0</span>
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-center min-w-[110px]">
+          <span class="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Total Segmen</span>
+          <span id="statTotalSegments" class="text-xl font-brand font-black text-white">0</span>
         </div>
-        <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-center min-w-[130px]">
-          <span class="block text-[11px] font-bold uppercase tracking-wider text-red-600">Total Durasi</span>
-          <span id="statTotalDuration" class="text-xl font-mono font-black text-red-600">00:00</span>
+        <div class="bg-violet-950/40 border border-violet-800/80 rounded-2xl px-4 py-3 text-center min-w-[130px]">
+          <span class="block text-[10px] font-mono font-bold uppercase tracking-wider text-violet-300">Total Durasi</span>
+          <span id="statTotalDuration" class="text-xl font-mono font-black text-violet-400">00:00</span>
         </div>
-        <button onclick="bukaModalEditInfo()" class="p-3 text-slate-600 hover:text-violet-600 bg-slate-50 hover:bg-violet-50 border border-slate-200 hover:border-violet-200 rounded-xl transition" title="Edit Info Program">
+        <button onclick="bukaModalEditInfo()" class="deck-btn p-3 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl transition shadow" title="Edit Identitas Program">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
         </button>
       </div>
     </div>
-
     <!-- Rundown Table Card -->
-    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 sm:p-6 space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl p-5 sm:p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
         <div>
-          <h2 class="text-lg font-brand font-bold text-slate-900">Susunan Mata Acara (Rundown Sheet)</h2>
-          <p class="text-xs text-slate-500">Seluruh perubahan segmen disinkronkan secara langsung ke layar PD dan Floor Director.</p>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-violet-500 shadow"></span>
+            <h2 class="text-base sm:text-lg font-brand font-bold text-white">Susunan Mata Acara (Rundown Sheet)</h2>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Seluruh perubahan segmen disinkronkan secara langsung ke layar Program Director (PD) dan Floor Director (FD).</p>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="bukaModalTambahSegmen()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition shadow-md shadow-violet-600/20 flex items-center gap-1.5 active:scale-95">
+          <button onclick="bukaModalTambahSegmen()" class="deck-btn bg-violet-600 hover:bg-violet-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition shadow-lg shadow-violet-600/30 flex items-center gap-1.5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            <span>Tambah Segmen</span>
+            <span>+ Tambah Segmen</span>
           </button>
         </div>
       </div>
 
       <!-- Tabel Segmen Rundown -->
-      <div class="overflow-x-auto rounded-xl border border-slate-200">
+      <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
         <table class="w-full text-left text-xs sm:text-sm">
-          <thead class="bg-slate-50 text-slate-600 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
+          <thead class="bg-slate-900 text-slate-400 uppercase font-bold text-[10px] sm:text-[11px] font-mono tracking-wider border-b border-slate-800">
             <tr>
-              <th class="py-3 px-4 w-12 text-center">Seg</th>
-              <th class="py-3 px-4 min-w-[180px]">Nama Segmen</th>
-              <th class="py-3 px-4 w-28 text-center">Durasi</th>
-              <th class="py-3 px-4 min-w-[220px]">Deskripsi Aksi Talent</th>
-              <th class="py-3 px-4 min-w-[200px]">Catatan Teknis (Cues)</th>
-              <th class="py-3 px-4 w-28 text-center">Aksi</th>
+              <th class="py-3.5 px-4 w-12 text-center">Seg</th>
+              <th class="py-3.5 px-4 min-w-[180px]">Nama Segmen</th>
+              <th class="py-3.5 px-4 w-28 text-center">Durasi</th>
+              <th class="py-3.5 px-4 min-w-[220px]">Deskripsi Aksi Talent</th>
+              <th class="py-3.5 px-4 min-w-[200px]">Catatan Teknis (Cues)</th>
+              <th class="py-3.5 px-4 w-28 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody id="rundownTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+          <tbody id="rundownTableBody" class="divide-y divide-slate-800/80 font-medium text-slate-300">
             <!-- Render otomatis via JavaScript -->
           </tbody>
         </table>
@@ -167,144 +282,191 @@
     </div>
 
     <!-- Panduan Tim Kreatif Banner -->
-    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-slate-600">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-slate-300 shadow-md">
       <div class="flex items-start gap-3">
-        <div class="p-2 rounded-xl bg-violet-100 text-violet-700 shrink-0">
+        <div class="p-2.5 rounded-2xl bg-violet-950/70 border border-violet-800 text-violet-400 shrink-0">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
         <div>
-          <span class="font-bold text-slate-900 block mb-0.5">Pedoman Penyusunan Rundown SKAWAN TV:</span>
-          Pastikan setiap segmen memiliki catatan teknis yang spesifik (misal: <em>"Roll VT Profil di Drive"</em> atau <em>"Lower Third Host On"</em>) agar Program Director dan Audio Operator dapat mengeksekusi instruksi tepat waktu.
+          <span class="font-brand font-bold text-white block mb-0.5 text-sm">Pedoman Penyusunan Rundown SKAWAN TV:</span>
+          <p class="text-slate-400 leading-relaxed">
+            Pastikan setiap segmen memiliki catatan teknis yang spesifik (misal: <em>"Roll VT Profil di Drive"</em> atau <em>"Lower Third Host ON"</em>) agar Program Director, Audio Operator, dan Floor Director dapat mengeksekusi instruksi tepat waktu.
+          </p>
         </div>
       </div>
     </div>
 
   </main>
-
-  <!-- MODAL: Tambah / Edit Segmen -->
-  <div id="segmentModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h3 id="modalSegmentTitle" class="text-base font-brand font-bold text-slate-900">Tambah Segmen Baru</h3>
-        <button onclick="tutupModalSegmen()" class="text-slate-400 hover:text-slate-600">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+  <!-- ============================================== -->
+  <!-- MODAL: TAMBAH / EDIT SEGMEN                   -->
+  <!-- ============================================== -->
+  <div id="segmentModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-white">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>
+          <h3 id="modalSegmentTitle" class="text-base font-brand font-black text-white">Tambah Segmen Baru</h3>
+        </div>
+        <button onclick="tutupModalSegmen()" class="text-slate-400 hover:text-white transition">
+          ✕
         </button>
       </div>
 
       <input type="hidden" id="editSegmentIndex" value="-1">
 
-      <div class="space-y-3">
+      <div class="space-y-3.5 text-xs">
         <div>
-          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Judul Segmen</label>
-          <input type="text" id="inputSegTitle" placeholder="Contoh: Sapa Host & Bumper Pembuka" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none">
+          <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Judul Segmen</label>
+          <input type="text" id="inputSegTitle" placeholder="Contoh: Sapa Host & Bumper Pembuka" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500">
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Durasi (Menit)</label>
-            <input type="number" id="inputSegMinutes" min="0" max="60" value="2" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none font-mono">
+            <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Durasi (Menit)</label>
+            <input type="number" id="inputSegMinutes" min="0" max="60" value="2" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white outline-none font-mono focus:border-violet-500">
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Durasi (Detik)</label>
-            <input type="number" id="inputSegSeconds" min="0" max="59" value="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none font-mono">
+            <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Durasi (Detik)</label>
+            <input type="number" id="inputSegSeconds" min="0" max="59" value="0" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white outline-none font-mono focus:border-violet-500">
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Aksi Talent / Presenter</label>
-          <textarea id="inputSegTalent" rows="2" placeholder="Contoh: Host menyapa pemirsa di Cam 1, membuka tema bincang santai" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none"></textarea>
+          <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Aksi Talent / Presenter</label>
+          <textarea id="inputSegTalent" rows="2" placeholder="Contoh: Host menyapa pemirsa di Cam 1, membuka tema bincang santai" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white outline-none focus:border-violet-500"></textarea>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Catatan Teknis (Audio / CG / VT)</label>
-          <input type="text" id="inputSegNote" placeholder="Contoh: Lower Third Nama Host ON, Bumper VT Roll" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none">
+          <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Catatan Teknis (Audio / CG / VT / Cues)</label>
+          <input type="text" id="inputSegNote" placeholder="Contoh: Lower Third Nama Host ON, Bumper VT Roll" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white outline-none focus:border-violet-500">
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-        <button onclick="tutupModalSegmen()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="tutupModalSegmen()" class="deck-btn px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">
           Batal
         </button>
-        <button onclick="simpanSegmen()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow">
+        <button onclick="simpanSegmen()" class="deck-btn bg-violet-600 hover:bg-violet-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-md shadow-violet-600/30">
           Simpan Segmen
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: Edit Info Acara -->
-  <div id="infoModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h3 class="text-base font-brand font-bold text-slate-900">Ubah Identitas Program</h3>
-        <button onclick="tutupModalInfo()" class="text-slate-400 hover:text-slate-600">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+  <!-- ============================================== -->
+  <!-- MODAL: EDIT INFO ACARA                         -->
+  <!-- ============================================== -->
+  <div id="infoModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-white">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>
+          <h3 class="text-base font-brand font-black text-white">Ubah Identitas Program</h3>
+        </div>
+        <button onclick="tutupModalInfo()" class="text-slate-400 hover:text-white transition">
+          ✕
         </button>
       </div>
 
-      <div class="space-y-3">
+      <div class="space-y-3.5 text-xs">
         <div>
-          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nama Program</label>
-          <input type="text" id="editProgName" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none">
+          <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Program</label>
+          <input type="text" id="editProgName" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white outline-none focus:border-violet-500">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Episode / Subjudul</label>
-          <input type="text" id="editEpisode" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-100 focus:bg-white outline-none">
+          <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Episode / Subjudul</label>
+          <input type="text" id="editEpisode" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white outline-none focus:border-violet-500">
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-        <button onclick="tutupModalInfo()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="tutupModalInfo()" class="deck-btn px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">
           Batal
         </button>
-        <button onclick="simpanInfoProgram()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow">
+        <button onclick="simpanInfoProgram()" class="deck-btn bg-violet-600 hover:bg-violet-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-md shadow-violet-600/30">
           Perbarui Info
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Dialog Notifikasi Modal -->
-  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
-      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">✓</div>
-      <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
-      <p id="noticeMessage" class="text-sm text-slate-600 mb-5"></p>
-      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+  <!-- ============================================== -->
+  <!-- MODAL: NOTIFIKASI DIALOG                       -->
+  <!-- ============================================== -->
+  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
+      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-violet-600/20 text-violet-400 border border-violet-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold">✓</div>
+      <h4 id="noticeTitle" class="text-base font-bold text-white mb-1">Pemberitahuan</h4>
+      <p id="noticeMessage" class="text-xs text-slate-300 leading-relaxed"></p>
+      <button onclick="closeNotice()" class="deck-btn w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-700">
         Tutup
       </button>
     </div>
   </div>
 
-  <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN -->
-  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
-      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">
+  <!-- ============================================== -->
+  <!-- MODAL: KONFIRMASI KELUAR / GANTI PERAN         -->
+  <!-- ============================================== -->
+  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">
         🔄
       </div>
       <div>
-        <h4 id="exitModalTitle" class="text-base font-brand font-black text-slate-900">Ganti Peran Kru?</h4>
-        <p id="exitModalMessage" class="text-xs text-slate-500 mt-1 leading-relaxed">
-          Slot posisi <strong>Tim Kreatif</strong> akan dilepaskan di studio sehingga siswa lain dapat mengambil peran ini. Anda akan kembali ke daftar peran.
+        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Kru?</h4>
+        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">
+          Slot posisi <strong>Tim Kreatif</strong> akan dilepaskan di sistem studio sehingga siswa lain dapat mengambil peran ini. Anda akan langsung diarahkan ke layar pemilihan peran.
         </p>
       </div>
       <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
+        <button onclick="tutupModalKeluar()" class="deck-btn w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
           Batal
         </button>
-        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
+        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
           Ya, Lepaskan Slot
         </button>
       </div>
     </div>
   </div>
-
+  <!-- ============================================== -->
+  <!-- LOGIKA JAVASCRIPT TIM KREATIF                 -->
+  <!-- ============================================== -->
   <script>
-    // State Aplikasi
     let currentRoomToken = 'STUDIO-1';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
     let pendingExitType = 'ganti'; // 'ganti' atau 'keluar'
     let currentSiswaUser = '';
+    let currentThemeMode = 'dark'; // 'dark' atau 'light'
+
+    // Inisialisasi dan Pergantian Mode Tema (Dark / Light)
+    function initThemeMode() {
+      const savedTheme = localStorage.getItem('skawan_creative_theme') || 'dark';
+      applyTheme(savedTheme);
+    }
+
+    function toggleThemeMode() {
+      const nextTheme = currentThemeMode === 'dark' ? 'light' : 'dark';
+      applyTheme(nextTheme);
+      showNotice("Tema Berubah", `Tampilan beralih ke ${nextTheme === 'light' ? 'Mode Terang' : 'Mode Gelap'}.`, true);
+    }
+
+    function applyTheme(theme) {
+      currentThemeMode = theme;
+      localStorage.setItem('skawan_creative_theme', theme);
+
+      const icon = document.getElementById('themeToggleIcon');
+      const text = document.getElementById('themeToggleText');
+
+      if (theme === 'light') {
+        document.body.classList.add('theme-light');
+        if (icon) icon.innerText = "🌙";
+        if (text) text.innerText = "Mode Gelap";
+      } else {
+        document.body.classList.remove('theme-light');
+        if (icon) icon.innerText = "☀️";
+        if (text) text.innerText = "Mode Terang";
+      }
+    }
 
     // Mock data awal untuk demo preview
     let mockRundown = [
@@ -312,7 +474,7 @@
         title: "Opening & Bumper Utama",
         duration: "01:30",
         durationSeconds: 90,
-        talent: "Host membuka acara di area presenter",
+        talent: "Host membuka acara di area presenter, menyapa pemirsa",
         note: "Roll VT Bumper dari Drive, Lower Third Program ON"
       },
       {
@@ -336,16 +498,15 @@
       episode: "Eps 01 - Pengenalan Studio Broadcast"
     };
 
-    // Modal Helper
     function showNotice(title, message, isSuccess = true) {
       document.getElementById('noticeTitle').innerText = title;
       document.getElementById('noticeMessage').innerText = message;
       const icon = document.getElementById('noticeIcon');
       if (isSuccess) {
-        icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.className = "w-12 h-12 rounded-full bg-violet-600/20 text-violet-400 border border-violet-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold";
         icon.innerText = "✓";
       } else {
-        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.className = "w-12 h-12 rounded-full bg-rose-600/20 text-rose-400 border border-rose-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold";
         icon.innerText = "!";
       }
       document.getElementById('noticeModal').classList.remove('hidden');
@@ -361,13 +522,14 @@
       const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
       const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
       
-      currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
+      currentRoomToken = (roomParam || sessionRoom || 'STUDIO-1').toUpperCase();
       currentSiswaUser = sessionUser || 'Kru Kreatif';
 
       document.getElementById('navDisplayToken').innerText = currentRoomToken;
       const userBadge = document.getElementById('navDisplayUser');
       if (userBadge) userBadge.innerText = currentSiswaUser;
 
+      initThemeMode();
       muatDataRundown(currentRoomToken);
     });
 
@@ -379,7 +541,7 @@
           const meta = snapshot.val();
           currentProgramInfo.programName = meta.programName || currentProgramInfo.programName;
           currentProgramInfo.episode = meta.episode || currentProgramInfo.episode;
-          if (meta.status === 'ended') {
+          if (meta.status === 'ended' && token !== 'SKASA') {
             tanganiSesiDiakhiriGuru();
           }
           renderHeaderInfo();
@@ -417,8 +579,8 @@
       if (!mockRundown || mockRundown.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" class="py-8 text-center text-slate-400 italic">
-              Belum ada segmen rundown. Klik tombol "Tambah Segmen" untuk memulai.
+            <td colspan="6" class="py-8 text-center text-slate-500 italic font-mono">
+              Belum ada segmen rundown. Klik tombol "+ Tambah Segmen" di atas untuk memulai.
             </td>
           </tr>
         `;
@@ -432,27 +594,27 @@
         totalSecs += sec;
 
         const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50/80 transition";
+        tr.className = "hover:bg-slate-900/60 transition border-b border-slate-800/80";
         tr.innerHTML = `
-          <td class="py-3 px-4 text-center font-mono font-bold text-slate-500">${idx + 1}</td>
-          <td class="py-3 px-4">
-            <span class="font-bold text-slate-900 block">${seg.title || '-'}</span>
+          <td class="py-3.5 px-4 text-center font-mono font-bold text-slate-400">${idx + 1}</td>
+          <td class="py-3.5 px-4">
+            <span class="font-brand font-bold text-white block">${seg.title || '-'}</span>
           </td>
-          <td class="py-3 px-4 text-center font-mono font-bold text-violet-700 bg-violet-50/40 rounded-lg">
+          <td class="py-3.5 px-4 text-center font-mono font-bold text-violet-300 bg-violet-950/40 rounded-xl border border-violet-900/50">
             ${seg.duration || '00:00'}
           </td>
-          <td class="py-3 px-4 text-slate-600 text-xs">${seg.talent || '-'}</td>
-          <td class="py-3 px-4">
-            <span class="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200 block truncate max-w-xs font-mono">
+          <td class="py-3.5 px-4 text-slate-300 text-xs">${seg.talent || '-'}</td>
+          <td class="py-3.5 px-4">
+            <span class="text-xs bg-slate-900 text-amber-300 px-2.5 py-1 rounded-lg border border-slate-800 block truncate max-w-xs font-mono">
               ${seg.note || '-'}
             </span>
           </td>
-          <td class="py-3 px-4 text-center">
+          <td class="py-3.5 px-4 text-center">
             <div class="flex items-center justify-center gap-1.5">
-              <button onclick="editSegmen(${idx})" class="p-1.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition" title="Edit">
+              <button onclick="editSegmen(${idx})" class="p-2 text-slate-400 hover:text-violet-400 hover:bg-violet-950/60 rounded-xl transition border border-transparent hover:border-violet-800" title="Edit Segmen">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
               </button>
-              <button onclick="hapusSegmen(${idx})" class="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus">
+              <button onclick="hapusSegmen(${idx})" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/60 rounded-xl transition border border-transparent hover:border-rose-800" title="Hapus Segmen">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               </button>
             </div>
@@ -561,7 +723,6 @@
       }
     }
 
-    // Modal Edit Info Program
     function bukaModalEditInfo() {
       document.getElementById('editProgName').value = currentProgramInfo.programName;
       document.getElementById('editEpisode').value = currentProgramInfo.episode;
@@ -594,7 +755,6 @@
       showNotice("Diperbarui", "Informasi program berhasil diperbarui.");
     }
 
-    // Modal Keluar / Ganti Peran
     function bukaModalKeluar(type) {
       pendingExitType = type;
       const modal = document.getElementById('exitConfirmModal');
@@ -605,18 +765,18 @@
 
       if (type === 'ganti') {
         icon.innerText = "🔄";
-        icon.className = "w-12 h-12 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center mx-auto text-xl font-bold";
+        icon.className = "w-12 h-12 rounded-full bg-violet-600/20 text-violet-400 border border-violet-500/40 flex items-center justify-center mx-auto text-xl font-bold";
         title.innerText = "Ganti Peran Kru?";
         message.innerHTML = `Slot posisi <strong>Tim Kreatif</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.`;
         btn.innerText = "Ya, Ganti Peran";
-        btn.className = "w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs transition shadow-sm";
+        btn.className = "deck-btn w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition shadow-sm";
       } else {
         icon.innerText = "🚪";
-        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold";
+        icon.className = "w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl font-bold";
         title.innerText = "Keluar dari Sesi Siaran?";
         message.innerHTML = `Slot posisi <strong>Tim Kreatif</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.`;
         btn.innerText = "Ya, Keluar Sesi";
-        btn.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm";
+        btn.className = "deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm";
       }
 
       modal.classList.remove('hidden');
@@ -632,22 +792,22 @@
       sessionStorage.removeItem('skawan_role');
       sessionStorage.removeItem('skawan_role_title');
 
-      alert("Sesi Siaran Telah Diakhiri oleh Guru. Mengalihkan ke pemilihan peran...");
-      window.location.href = `index.html?room=${currentRoomToken}`;
+      showNotice("Sesi Diakhiri", "Sesi siaran telah diselesaikan oleh Guru. Mengalihkan ke halaman pemilihan peran...", false);
+      setTimeout(() => {
+        window.location.href = `login.html?room=${currentRoomToken}`;
+      }, 1500);
     }
 
     function eksekusiKeluarSesi() {
-      // 1. Lepas slot kru di Firebase secara atomik jika pengguna ini yang memegangnya
       if (isFirebaseReady && currentRoomToken && currentSiswaUser) {
         db.ref(`rooms/${currentRoomToken}/roles/creative`).transaction(currentVal => {
           if (currentVal === currentSiswaUser) {
-            return ""; // Kosongkan kembali slot peran ini
+            return "";
           }
           return currentVal;
         });
       }
 
-      // 2. Bersihkan penanda role di storage agar index.html TIDAK melakukan auto-redirect kembali ke halaman ini
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
@@ -655,15 +815,12 @@
 
       tutupModalKeluar();
 
-      // 3. Arahkan kembali ke lobby index.html
-      // Jika keluar total, bersihkan juga ruangan dan user
       if (pendingExitType === 'keluar') {
         localStorage.removeItem('skawan_user');
         sessionStorage.removeItem('skawan_user');
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
       } else {
-        // Jika hanya ingin ganti peran, pertahankan token & nama agar langsung melihat daftar peran
-        window.location.href = `index.html?room=${currentRoomToken}`;
+        window.location.href = `login.html?room=${currentRoomToken}`;
       }
     }
   </script>
