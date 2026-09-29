@@ -488,9 +488,9 @@
 
     function initFirebaseTallyListener(token, camKey) {
       if (isFirebaseReady) {
-        // Pantau jika Guru mengakhiri sesi (status === 'ended')
+        // Pantau jika Guru mengakhiri sesi (status === 'ended') - Room SKASA kebal proteksi
         db.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
+          if (!snapshot.exists() || token === 'SKASA') return;
           const status = snapshot.val();
           if (status === 'ended') {
             tanganiSesiDiakhiriGuru();
@@ -623,6 +623,8 @@
 
     // Fungsi otomatis saat Guru mengakhiri sesi siaran di admin.html
     function tanganiSesiDiakhiriGuru() {
+      if (currentRoomToken === 'SKASA') return; // Room SKASA terlindungi dari auto-end
+
       const overlay = document.getElementById('sessionEndedOverlay');
       if (overlay) overlay.classList.remove('hidden');
 
