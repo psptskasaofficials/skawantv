@@ -3,13 +3,13 @@
  * Modul Streaming WebRTC Peer-to-Peer SKAWAN TV
  * SMK Negeri 1 Pacitan
  * 
- * Arsitektur: Camera Push Stream (Publisher -> Receiver) dengan metadata peran eksplisit.
+ * Versi Stabil: Anti-Drop Heartbeat, Dynamic Peer Reconnection, No False-Alarm Error
  */
 
 class SkawanStreamer {
   constructor(options = {}) {
-    this.rawRoomToken = (options.roomToken || 'STUDIO-1').trim().toUpperCase();
-    this.roomToken = this.rawRoomToken.replace(/[^A-Z0-9]/g, '').toLowerCase() || 'studio1';
+    this.rawRoomToken = (options.roomToken || 'SKASA').trim().toUpperCase();
+    this.roomToken = this.rawRoomToken.replace(/[^A-Z0-9]/g, '').toLowerCase() || 'skasa';
     this.roleKey = options.roleKey || 'cam_1';
     this.localStream = options.localStream || null;
     this.onRemoteStream = options.onRemoteStream || (() => {});
@@ -18,8 +18,8 @@ class SkawanStreamer {
     this.peer = null;
     this.peerId = null;
     this.activeCalls = new Map();
-    // Penerima stream murni: Switcher, PD, Admin Inspector, dan Penonton Publik
-    this.isReceiver = ['switcher', 'pd', 'admin', 'viewer', 'inspector'].includes(this.roleKey);
+    // Penerima stream murni: Switcher, PD, Admin Inspector, Viewer, Audio-VT, CG
+    this.isReceiver = ['switcher', 'pd', 'admin', 'viewer', 'inspector', 'audio_vt', 'cg'].includes(this.roleKey);
     this.dbRef = null;
     this.isDestroyed = false;
     this.reconnectTimer = null;
@@ -38,8 +38,7 @@ class SkawanStreamer {
   }
 
   _generatePeerId() {
-    // Format alfanumerik murni tanpa simbol agar bebas dari kesalahan invalid-id
-    const cleanToken = this.roomToken.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'studio1';
+    const cleanToken = this.roomToken.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'skasa';
     const cleanRole = this.roleKey.toLowerCase().replace(/[^a-z0-9]/g, '') || 'cam1';
     const randomSuffix = Math.floor(10000 + Math.random() * 90000);
     return `skawan${cleanToken}${cleanRole}${randomSuffix}`;
@@ -83,45 +82,62 @@ class SkawanStreamer {
     }
 
     this.peer.on('open', (id) => {
-      console.log(`[WebRTC Streamer] Peer terhubung: ${id} (${this.roleKey})`);
+      console.log(`[WebRTC Streamer] Peer terhubung ke server: ${id} (${this.roleKey})`);
       this.peerId = id;
-      this.onStatusChange('ready', `ID: ${id.substring(0, 12)}...`);
-
       this._registerToFirebase(id);
       this._listenTargetPeers();
 
-      // Mulai heartbeat auto-reconnect untuk kamera
       if (!this.isReceiver) {
+        this.onStatusChange('ready', 'Siap (Menunggu Switcher/PD)');
         this._startHeartbeat();
+      } else {
+        this.onStatusChange('ready', 'Penerima Siap');
       }
     });
 
     this.peer.on('error', (err) => {
-      console.warn('[WebRTC Streamer Error]:', err.type, err.message);
-      if (err.type === 'invalid-id' || err.type === 'unavailable-id') {
-        this.peer.destroy();
-        this.peer = new Peer(peerOptions);
-      } else if (err.type === 'peer-unavailable') {
+      console.warn('[WebRTC Streamer Error Event]:', err.type, err.message);
+
+      // Tangani peer-unavailable sebagai target yang belum online (bukan error fatal kamera)
+      if (err.type === 'peer-unavailable') {
         this.activeCalls.forEach((call, targetRole) => {
           if (call.peer === err.peer) this.activeCalls.delete(targetRole);
         });
+
+        // Hapus ID yang sudah tidak berlaku dari cache lokal
+        Object.keys(this.knownPeers).forEach(key => {
+          if (this.knownPeers[key] && this.knownPeers[key].peerId === err.peer) {
+            delete this.knownPeers[key];
+          }
+        });
+
+        this._updateConnectionStatus();
+        return; // Jangan lemparkan ke status error fatal
       }
-      this.onStatusChange('error', err.type || 'Koneksi error');
+
+      if (err.type === 'invalid-id' || err.type === 'unavailable-id') {
+        this.peer.destroy();
+        this.peer = new Peer(peerOptions);
+      } else if (err.type === 'disconnected' || err.type === 'network') {
+        if (!this.peer.destroyed) {
+          try { this.peer.reconnect(); } catch(e){}
+        }
+      }
+
+      this.onStatusChange('error', err.type || 'Koneksi jaringan');
     });
 
-    // RECEIVER (Switcher / PD / Viewer): Menerima dan menjawab panggilan kamera
+    // RECEIVER (Switcher / PD / Viewer): Menjawab panggilan kamera studio
     this.peer.on('call', (call) => {
-      console.log('[WebRTC Streamer] Panggilan masuk dari:', call.peer);
+      console.log('[WebRTC Streamer] Panggilan video masuk dari:', call.peer);
 
-      // Jawab dengan dummy canvas track aktif agar negosiasi SDP berjalan mulus di semua browser
       const dummyStream = this._createActiveCanvasStream();
       call.answer(dummyStream || undefined);
 
       call.on('stream', (remoteStream) => {
-        // Ambil nama peran langsung dari metadata panggilan atau dari mapping peer ID
         const rawRole = call.metadata?.role || this._extractRoleFromPeer(call.peer) || 'cam_1';
         const normRole = rawRole.includes('_') ? rawRole : rawRole.replace('cam', 'cam_');
-        console.log(`[WebRTC Streamer] Stream aktif diterima dari: ${normRole}`);
+        console.log(`[WebRTC Streamer] Stream video aktif diterima dari: ${normRole}`);
         this.activeCalls.set(normRole, call);
         this.activeCalls.set(rawRole, call);
         this.onRemoteStream(normRole, remoteStream);
@@ -175,10 +191,13 @@ class SkawanStreamer {
     }
 
     activeDb.ref(`rooms/${this.rawRoomToken}/peers`).on('value', (snapshot) => {
-      if (!snapshot.exists() || this.isDestroyed) return;
+      if (!snapshot.exists() || this.isDestroyed) {
+        this.knownPeers = {};
+        this._updateConnectionStatus();
+        return;
+      }
       this.knownPeers = snapshot.val() || {};
 
-      // PUBLISHER (KAMERA HP): Kirim stream ke Switcher, PD, dan Seluruh Receiver
       if (!this.isReceiver && this.localStream) {
         this._pushStreamToTargets();
       }
@@ -188,12 +207,12 @@ class SkawanStreamer {
   _pushStreamToTargets() {
     if (!this.knownPeers || !this.localStream || this.isDestroyed) return;
 
-    const receiverTargetKeys = ['switcher', 'pd', 'cg', 'inspector', 'audio_vt'];
+    const receiverTargetKeys = ['switcher', 'pd', 'admin', 'inspector'];
 
     Object.keys(this.knownPeers).forEach(key => {
       const p = this.knownPeers[key];
       if (!p || !p.peerId) return;
-      if (p.peerId === this.peerId) return; // Jangan panggil diri sendiri
+      if (p.peerId === this.peerId) return;
 
       if (receiverTargetKeys.includes(key) || key.startsWith('viewer_') || key.startsWith('inspector_')) {
         this._callTarget(key, p.peerId);
@@ -204,14 +223,16 @@ class SkawanStreamer {
   _callTarget(targetRole, targetPeerId) {
     if (!this.peer || this.peer.disconnected || this.isDestroyed || !this.localStream) return;
 
-    // Cek apakah ada panggilan yang sedang aktif ke target ini
+    // Periksa apakah sudah ada koneksi yang sedang aktif / tersambung ke target yang sama
     const existingCall = this.activeCalls.get(targetRole);
     if (existingCall) {
-      // Jika masih terhubung ke peerId yang sama persis dan status open, pertahankan
-      if (existingCall.peer === targetPeerId && existingCall.open) {
-        return;
+      if (existingCall.peer === targetPeerId) {
+        const pc = existingCall.peerConnection;
+        // JANGAN putus panggilan jika state masih connected atau checking
+        if (pc && (pc.connectionState === 'connected' || pc.connectionState === 'connecting' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'checking')) {
+          return;
+        }
       }
-      // Jika peerId target berubah (misal Switcher / PD di-refresh), tutup panggilan lama
       try { existingCall.close(); } catch(e){}
       this.activeCalls.delete(targetRole);
     }
@@ -226,35 +247,66 @@ class SkawanStreamer {
 
       this.activeCalls.set(targetRole, call);
 
-      call.on('stream', () => {
-        this.onStatusChange('connected', `Terhubung ke ${targetRole.toUpperCase()}`);
-      });
+      // Pantau perubahan status RTCPeerConnection langsung
+      if (call.peerConnection) {
+        call.peerConnection.onconnectionstatechange = () => {
+          const state = call.peerConnection.connectionState;
+          console.log(`[WebRTC Streamer] RTCPeerConnection state ${targetRole}: ${state}`);
+          if (state === 'connected') {
+            this._updateConnectionStatus();
+          } else if (state === 'disconnected' || state === 'failed') {
+            this.activeCalls.delete(targetRole);
+            this._updateConnectionStatus();
+          }
+        };
+      }
 
       call.on('close', () => {
         this.activeCalls.delete(targetRole);
+        this._updateConnectionStatus();
       });
 
       call.on('error', (err) => {
-        console.warn(`[WebRTC Streamer] Panggilan ke ${targetRole} terputus:`, err);
+        console.warn(`[WebRTC Streamer] Panggilan ke ${targetRole} ditutup:`, err);
         this.activeCalls.delete(targetRole);
+        this._updateConnectionStatus();
       });
 
-      this.onStatusChange('connected', `Tersambung ke ${targetRole.toUpperCase()}`);
+      this._updateConnectionStatus();
     } catch (err) {
       console.warn('[WebRTC Streamer] Gagal memanggil target:', err);
       this.activeCalls.delete(targetRole);
     }
   }
 
+  _updateConnectionStatus() {
+    if (this.isReceiver || this.isDestroyed) return;
+
+    const connectedRoles = [];
+    this.activeCalls.forEach((call, role) => {
+      const pc = call.peerConnection;
+      if (pc && (pc.connectionState === 'connected' || pc.iceConnectionState === 'connected')) {
+        connectedRoles.push(role.toUpperCase());
+      }
+    });
+
+    if (connectedRoles.length > 0) {
+      this.onStatusChange('connected', `Terhubung ke ${connectedRoles.join(' & ')}`);
+    } else if (this.activeCalls.size > 0) {
+      this.onStatusChange('connecting', 'Menghubungkan ke Studio...');
+    } else {
+      this.onStatusChange('ready', 'Siap (Menunggu Switcher/PD)');
+    }
+  }
+
   _startHeartbeat() {
     if (this.reconnectTimer) clearInterval(this.reconnectTimer);
-    // Cek setiap 2.5 detik untuk memastikan koneksi ke Switcher & PD tetap hidup
     this.reconnectTimer = setInterval(() => {
       if (this.isDestroyed) return;
       if (!this.isReceiver && this.localStream && this.peer && !this.peer.disconnected) {
         this._pushStreamToTargets();
       }
-    }, 2500);
+    }, 3000);
   }
 
   _extractRoleFromPeer(peerId) {
@@ -278,7 +330,6 @@ class SkawanStreamer {
       }
       if (canvas.captureStream) {
         const stream = canvas.captureStream(5);
-        // Segarkan kanvas secara berkala agar track dianggap aktif oleh peramban
         setInterval(() => {
           if (ctx && !this.isDestroyed) {
             ctx.fillStyle = '#000000';
@@ -305,7 +356,6 @@ class SkawanStreamer {
         }
       }
     });
-    // Picu pengiriman jika belum ada panggilan aktif
     if (this.activeCalls.size === 0) {
       this._pushStreamToTargets();
     }
@@ -320,7 +370,9 @@ class SkawanStreamer {
     if (this.dbRef) {
       this.dbRef.remove().catch(() => {});
     }
-    this.activeCalls.forEach((call) => call.close());
+    this.activeCalls.forEach((call) => {
+      try { call.close(); } catch(e){}
+    });
     this.activeCalls.clear();
     if (this.peer) {
       this.peer.destroy();
