@@ -1,31 +1,17 @@
 /**
- * SKAWAN TV - Native WebRTC Streamer (No PeerJS Dependency)
+ * SKAWAN TV - Robust Native WebRTC Streamer
  * Menggunakan RTCPeerConnection Asli Browser + Firebase Realtime Database Signaling
- * Dilengkapi STUN Google/Cloudflare & TURN OpenRelay (Port 80/443 TCP)
- * Mendukung Multicast: Switcher, Program Director (PD), dan Layar Publik (Viewer)
+ * STUN Google & Cloudflare Berkecepatan Tinggi (Koneksi P2P Milidetik)
+ * Dilengkapi Anti-Race Mutex Lock & W3C Standard Zero-Latency Playout
  */
 
 const SKAWAN_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun.cloudflare.com:3478' },
-  // TURN Relay Resmi OpenRelay Gratis (Tembus NAT Seluler 4G & Wi-Fi Sekolah)
-  {
-    urls: 'turn:openrelay.metered.ca:80',
-    username: 'openrelayproject',
-    credential: 'openrelayproject'
-  },
-  {
-    urls: 'turn:openrelay.metered.ca:443',
-    username: 'openrelayproject',
-    credential: 'openrelayproject'
-  },
-  {
-    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-    username: 'openrelayproject',
-    credential: 'openrelayproject'
-  }
+  { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun4.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' }
 ];
 
 class SkawanStreamer {
@@ -43,6 +29,8 @@ class SkawanStreamer {
     this.peerConnections = new Map(); // targetRole -> RTCPeerConnection
     this.iceCandidateQueues = new Map(); // targetRole -> Array of RTCIceCandidate
     this.activeRemoteStreams = new Map(); // camRole -> MediaStream
+    this.callingInProgress = new Set(); // targetRole -> boolean (Mutex Lock)
+    this.watchedChannels = new Set(); // channelId -> boolean (mencegah duplicate listener)
     this.lastProcessedOfferTimestamps = new Map(); // camRole -> timestamp
     this.listeners = []; // Firebase listeners untuk cleanup
     this.heartbeatTimer = null;
@@ -119,39 +107,6 @@ class SkawanStreamer {
   }
 
   // ==========================================
-  // HELPER PENGOPTIMAL LATENSI & JITTER BUFFER
-  // ==========================================
-  _tuneLowLatencySDP(sdp) {
-    if (!sdp) return sdp;
-    // a=playout-delay:0:0 menginstruksikan browser mematikan jitter buffer buatan (memangkas delay ~200ms)
-    let tuned = sdp.replace(/(m=video[^\r\n]*[\r\n]+)/g, '$1a=playout-delay:0:0\r\n');
-    return tuned;
-  }
-
-  _optimizeSenderParameters(pc) {
-    try {
-      pc.getSenders().forEach(sender => {
-        if (sender.track && sender.track.kind === 'video') {
-          const params = sender.getParameters();
-          if (params) {
-            params.degradationPreference = 'maintain-framerate'; // Prioritaskan FPS real-time
-            if (!params.encodings || params.encodings.length === 0) {
-              params.encodings = [{}];
-            }
-            params.encodings[0].networkPriority = 'high';
-            params.encodings[0].priority = 'high';
-            // Batasi bitrate secukupnya agar tidak terjadi bufferbloat di Wi-Fi
-            params.encodings[0].maxBitrate = 2200000;
-            sender.setParameters(params).catch(() => {});
-          }
-        }
-      });
-    } catch (e) {
-      console.warn("[SkawanStreamer] Optimasi sender dilewati:", e);
-    }
-  }
-
-  // ==========================================
   // LOGIKA PEMANCAR KAMERA HP (SENDER / CALLER)
   // ==========================================
   _setupCameraSignaling() {
@@ -165,36 +120,30 @@ class SkawanStreamer {
       Object.keys(peers).forEach(targetRole => {
         if (targetRole === this.roleKey) return;
 
-        // Validasi apakah target ini adalah receiver yang sah
+        // Validasi receiver yang sah
         const isReceiverRole = ['switcher', 'pd', 'audio_vt', 'cg'].includes(targetRole) || targetRole.startsWith('viewer');
         if (!isReceiverRole) return;
 
         const data = peers[targetRole];
-        // Toleransi perbedaan jam perangkat hingga 120 detik (2 menit)
         const isTargetOnline = data && (data.online === true) && (Math.abs(Date.now() - (data.lastSeen || Date.now())) < 120000);
 
         if (isTargetOnline) {
           anyReceiverActive = true;
           const currentPc = this.peerConnections.get(targetRole);
-          const needsCall = !currentPc || ['failed', 'closed'].includes(currentPc.connectionState) || ['failed', 'closed'].includes(currentPc.iceConnectionState);
+          const isConnected = currentPc && (currentPc.connectionState === 'connected' || currentPc.iceConnectionState === 'connected');
+          const isConnecting = this.callingInProgress.has(targetRole) || (currentPc && currentPc.connectionState === 'connecting');
 
-          if (needsCall) {
-            console.log(`[SkawanStreamer] Target receiver ${targetRole} terdeteksi online! Memulai panggilan WebRTC...`);
+          // Hanya panggil jika belum terhubung dan tidak sedang dalam proses negosiasi
+          if (!isConnected && !isConnecting) {
+            console.log(`[SkawanStreamer] Memulai koneksi P2P ke ${targetRole}...`);
             this._startCallToReceiver(targetRole);
           }
         } else {
-          // Jika target offline, tutup koneksi lama
+          // Tutup koneksi jika target offline
           if (this.peerConnections.has(targetRole)) {
-            console.log(`[SkawanStreamer] Target receiver ${targetRole} offline, menutup sambungan.`);
+            console.log(`[SkawanStreamer] Target ${targetRole} offline, menutup sambungan.`);
             this._closePeerConnection(targetRole);
           }
-        }
-      });
-
-      // Bersihkan sambungan jika target telah hilang dari database
-      this.peerConnections.forEach((pc, targetRole) => {
-        if (!peers[targetRole] || !peers[targetRole].online) {
-          this._closePeerConnection(targetRole);
         }
       });
 
@@ -205,10 +154,12 @@ class SkawanStreamer {
   }
 
   async _startCallToReceiver(targetRole) {
-    if (!this.localStream) {
-      console.warn("[SkawanStreamer] Belum ada localStream kamera!");
+    if (!this.localStream || this.callingInProgress.has(targetRole)) {
       return;
     }
+
+    // Pasang kunci mutex agar tidak dipanggil dobel oleh heartbeat
+    this.callingInProgress.add(targetRole);
 
     try {
       const channelId = `${this.roleKey}_to_${targetRole}`;
@@ -217,62 +168,77 @@ class SkawanStreamer {
       // Tutup sambungan lama jika ada
       this._closePeerConnection(targetRole);
 
-      // Bersihkan sinyal usang sebelum panggilan baru
+      // Bersihkan sinyal usang
       await signalRef.remove().catch(() => {});
 
       const pc = new RTCPeerConnection({
         iceServers: SKAWAN_ICE_SERVERS,
-        bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require',
-        iceCandidatePoolSize: 2 // Pra-kumpulkan kandidat agar negosiasi instan
+        bundlePolicy: 'max-bundle'
       });
       this.peerConnections.set(targetRole, pc);
 
-      // Tambahkan track video kamera ke koneksi P2P
+      // Tambahkan track video kamera
       this.localStream.getTracks().forEach(track => {
         pc.addTrack(track, this.localStream);
       });
 
-      // Terapkan optimasi latensi rendah pada pengirim video
-      this._optimizeSenderParameters(pc);
+      // Optimasi parameter pengirim video
+      try {
+        pc.getSenders().forEach(sender => {
+          if (sender.track && sender.track.kind === 'video') {
+            const params = sender.getParameters();
+            if (params) {
+              params.degradationPreference = 'maintain-framerate';
+              sender.setParameters(params).catch(() => {});
+            }
+          }
+        });
+      } catch (e) {}
 
       // Pantau status koneksi WebRTC
       pc.onconnectionstatechange = () => {
         console.log(`[SkawanStreamer] State ke ${targetRole}: ${pc.connectionState}`);
-        if (pc.connectionState === 'failed') {
-          console.warn(`[SkawanStreamer] Koneksi ke ${targetRole} gagal, panggil ulang dalam 2 detik...`);
+        if (pc.connectionState === 'connected') {
+          this.callingInProgress.delete(targetRole);
+        } else if (pc.connectionState === 'failed') {
+          this.callingInProgress.delete(targetRole);
           this._closePeerConnection(targetRole);
           setTimeout(() => {
             if (!this.isDestroyed && this.localStream) {
               this._startCallToReceiver(targetRole);
             }
-          }, 2000);
+          }, 1500);
         }
         this._updateCameraConnectionStatus();
       };
 
       pc.oniceconnectionstatechange = () => {
         console.log(`[SkawanStreamer] ICE State ke ${targetRole}: ${pc.iceConnectionState}`);
+        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+          this.callingInProgress.delete(targetRole);
+        }
         this._updateCameraConnectionStatus();
       };
 
-      // Kirim kandidat ICE lokal kamera ke Firebase
+      // Kirim kandidat ICE kamera ke Firebase
       pc.onicecandidate = event => {
-        if (event.candidate) {
-          signalRef.child('caller_candidates').push(event.candidate.toJSON());
+        if (event.candidate && event.candidate.candidate) {
+          signalRef.child('caller_candidates').push({
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          });
         }
       };
 
-      // Buat Offer WebRTC dan injeksikan playout-delay:0:0
+      // Buat Offer WebRTC murni tanpa regex SDP yang merusak parser
       const offer = await pc.createOffer();
-      const lowLatencySdp = this._tuneLowLatencySDP(offer.sdp);
-      const tunedOffer = new RTCSessionDescription({ type: offer.type, sdp: lowLatencySdp });
-      await pc.setLocalDescription(tunedOffer);
+      await pc.setLocalDescription(offer);
 
-      // Tulis offer secara atomik ke Firebase
+      // Tulis offer ke Firebase
       await signalRef.child('offer').set({
-        type: tunedOffer.type,
-        sdp: tunedOffer.sdp,
+        type: offer.type,
+        sdp: offer.sdp,
         timestamp: Date.now()
       });
 
@@ -283,9 +249,12 @@ class SkawanStreamer {
         if (answer && answer.sdp && pc.signalingState === 'have-local-offer') {
           console.log(`[SkawanStreamer] Menerima Answer dari ${targetRole}`);
           try {
-            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            await pc.setRemoteDescription(new RTCSessionDescription({
+              type: answer.type,
+              sdp: answer.sdp
+            }));
 
-            // Terapkan kandidat callee yang mungkin sudah tiba
+            // Terapkan antrean kandidat ICE yang sudah tiba
             const queue = this.iceCandidateQueues.get(targetRole) || [];
             for (const cand of queue) {
               await pc.addIceCandidate(cand).catch(() => {});
@@ -298,11 +267,11 @@ class SkawanStreamer {
       });
       this.listeners.push({ ref: answerRef, listener: answerListener });
 
-      // Dengarkan kandidat ICE dari Receiver
+      // Dengarkan kandidat ICE callee (Switcher/PD)
       const calleeCandRef = signalRef.child('callee_candidates');
       const candListener = calleeCandRef.on('child_added', async snap => {
         const candData = snap.val();
-        if (candData) {
+        if (candData && candData.candidate) {
           try {
             const candidate = new RTCIceCandidate(candData);
             if (pc.remoteDescription && pc.remoteDescription.type) {
@@ -321,6 +290,7 @@ class SkawanStreamer {
 
     } catch (err) {
       console.error(`[SkawanStreamer] Gagal membuat panggilan ke ${targetRole}:`, err);
+      this.callingInProgress.delete(targetRole);
     }
   }
 
@@ -335,7 +305,7 @@ class SkawanStreamer {
 
     if (connectedTargets.length > 0) {
       this.onStatusChange('connected', `Terhubung ke ${connectedTargets.join(' & ')}`);
-    } else if (this.peerConnections.size > 0) {
+    } else if (this.callingInProgress.size > 0 || this.peerConnections.size > 0) {
       this.onStatusChange('connecting', 'Menghubungkan ke Switcher...');
     } else if (anyReceiverOnline) {
       this.onStatusChange('connecting', 'Menyiapkan panggilan...');
@@ -351,19 +321,18 @@ class SkawanStreamer {
     const signalsRootRef = this.db.ref(`rooms/${this.roomToken}/signals`);
 
     const handleChannel = (channelId) => {
-      if (!channelId) return;
+      if (!channelId || this.watchedChannels.has(channelId)) return;
       const suffix = `_to_${this.roleKey}`;
       if (channelId.endsWith(suffix)) {
+        this.watchedChannels.add(channelId);
         const camRole = channelId.slice(0, -suffix.length);
         this._watchChannelFromCamera(camRole, channelId);
       }
     };
 
+    // Cukup gunakan child_added agar tidak memicu listener ganda saat child_changed
     const addListener = signalsRootRef.on('child_added', snap => handleChannel(snap.key));
-    const changeListener = signalsRootRef.on('child_changed', snap => handleChannel(snap.key));
-
     this.listeners.push({ ref: signalsRootRef, listener: addListener });
-    this.listeners.push({ ref: signalsRootRef, listener: changeListener });
   }
 
   _watchChannelFromCamera(camRole, channelId) {
@@ -374,7 +343,6 @@ class SkawanStreamer {
       const offer = snap.val();
       if (!offer || !offer.sdp) return;
 
-      // Hindari memproses ulang offer yang sama
       if (this.lastProcessedOfferTimestamps.get(camRole) === offer.timestamp) {
         return;
       }
@@ -390,7 +358,6 @@ class SkawanStreamer {
   async _handleIncomingOfferFromCamera(camRole, channelId, offer) {
     const signalRef = this.db.ref(`rooms/${this.roomToken}/signals/${channelId}`);
 
-    // Tutup koneksi lama jika ada
     if (this.peerConnections.has(camRole)) {
       this._closePeerConnection(camRole);
     }
@@ -398,24 +365,20 @@ class SkawanStreamer {
     try {
       const pc = new RTCPeerConnection({
         iceServers: SKAWAN_ICE_SERVERS,
-        bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require',
-        iceCandidatePoolSize: 2
+        bundlePolicy: 'max-bundle'
       });
       this.peerConnections.set(camRole, pc);
 
-      // Tangkap stream video yang tiba dari kamera (kompatibel semua browser)
+      // Tangkap video track kamera
       pc.ontrack = event => {
-        console.log(`[SkawanStreamer Receiver] Video track diterima dari ${camRole}!`, event);
+        console.log(`[SkawanStreamer Receiver] Video track diterima dari ${camRole}!`);
 
-        // Matikan buffering buatan receiver peramban (zero-latency hint)
+        // W3C Standard: Set penundaan jitter buffer nol langsung pada receiver
         if (event.receiver) {
-          if ('playoutDelayHint' in event.receiver) {
-            try { event.receiver.playoutDelayHint = 0; } catch (e) {}
-          }
-          if ('jitterBufferTarget' in event.receiver) {
-            try { event.receiver.jitterBufferTarget = 0; } catch (e) {}
-          }
+          try {
+            if ('playoutDelayHint' in event.receiver) event.receiver.playoutDelayHint = 0;
+            if ('jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = 0;
+          } catch (e) {}
         }
 
         let remoteStream = (event.streams && event.streams[0]) ? event.streams[0] : null;
@@ -433,32 +396,41 @@ class SkawanStreamer {
         console.log(`[SkawanStreamer Receiver] Koneksi ${camRole}: ${pc.connectionState}`);
       };
 
+      pc.oniceconnectionstatechange = () => {
+        console.log(`[SkawanStreamer Receiver] ICE ${camRole}: ${pc.iceConnectionState}`);
+      };
+
       // Kirim kandidat ICE receiver ke Firebase
       pc.onicecandidate = event => {
-        if (event.candidate) {
-          signalRef.child('callee_candidates').push(event.candidate.toJSON());
+        if (event.candidate && event.candidate.candidate) {
+          signalRef.child('callee_candidates').push({
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          });
         }
       };
 
       // Terapkan Offer
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      await pc.setRemoteDescription(new RTCSessionDescription({
+        type: offer.type,
+        sdp: offer.sdp
+      }));
 
-      // Terapkan kandidat caller yang sudah ada dalam antrean
+      // Terapkan antrean kandidat caller yang mungkin sudah ada
       const q = this.iceCandidateQueues.get(camRole) || [];
       for (const cand of q) {
         await pc.addIceCandidate(cand).catch(() => {});
       }
       this.iceCandidateQueues.delete(camRole);
 
-      // Buat Answer P2P dengan penyesuaian delay nol
+      // Buat Answer P2P standar yang sah
       const answer = await pc.createAnswer();
-      const lowLatencyAnswerSdp = this._tuneLowLatencySDP(answer.sdp);
-      const tunedAnswer = new RTCSessionDescription({ type: answer.type, sdp: lowLatencyAnswerSdp });
-      await pc.setLocalDescription(tunedAnswer);
+      await pc.setLocalDescription(answer);
 
       await signalRef.child('answer').set({
-        type: tunedAnswer.type,
-        sdp: tunedAnswer.sdp,
+        type: answer.type,
+        sdp: answer.sdp,
         timestamp: Date.now()
       });
 
@@ -466,7 +438,7 @@ class SkawanStreamer {
       const callerCandRef = signalRef.child('caller_candidates');
       const candListener = callerCandRef.on('child_added', async snap => {
         const candData = snap.val();
-        if (candData) {
+        if (candData && candData.candidate) {
           try {
             const candidate = new RTCIceCandidate(candData);
             if (pc.remoteDescription && pc.remoteDescription.type) {
@@ -501,7 +473,6 @@ class SkawanStreamer {
     if (!newVideoTrack) return;
 
     if (this.peerConnections.size === 0) {
-      // Jika belum ada koneksi yang terbentuk, inisiasi ulang pemantauan peer
       this._setupCameraSignaling();
       return;
     }
@@ -518,6 +489,7 @@ class SkawanStreamer {
   }
 
   _closePeerConnection(targetRole) {
+    this.callingInProgress.delete(targetRole);
     if (this.peerConnections.has(targetRole)) {
       try {
         const pc = this.peerConnections.get(targetRole);
@@ -539,7 +511,7 @@ class SkawanStreamer {
 
     // Lepaskan listeners Firebase
     this.listeners.forEach(({ ref, listener }) => {
-      try { ref.off('value', listener); ref.off('child_added', listener); ref.off('child_changed', listener); } catch (e) {}
+      try { ref.off('value', listener); ref.off('child_added', listener); } catch (e) {}
     });
     this.listeners = [];
 
@@ -555,8 +527,10 @@ class SkawanStreamer {
     this.peerConnections.clear();
     this.iceCandidateQueues.clear();
     this.activeRemoteStreams.clear();
+    this.callingInProgress.clear();
+    this.watchedChannels.clear();
   }
 }
 
-// Pasang ke objek Window global agar selalu dapat diakses di seluruh aplikasi
+// Pasang ke objek global window
 window.SkawanStreamer = SkawanStreamer;
