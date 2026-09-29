@@ -97,8 +97,8 @@
           <span id="navRoomToken" class="font-mono font-bold text-xs text-red-400">SKASA</span>
         </div>
 
-        <!-- Tombol Masuk Portal Kru & Guru -->
-        <a href="login.html" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-95 text-white font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs transition shadow-md shadow-red-600/25 flex items-center gap-1.5">
+        <!-- Tombol Masuk Portal Kru & Guru (Dinamis Mengikuti Ruangan yang Dipilih) -->
+        <a id="btnMasukKruNav" href="login.html?room=SKASA" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-95 text-white font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs transition shadow-md shadow-red-600/25 flex items-center gap-1.5">
           <span>🎬</span>
           <span class="font-brand font-bold">Masuk Kru / Studio</span>
         </a>
@@ -129,7 +129,7 @@
         <iframe id="pgmVtGdrive" class="w-full h-full border-0 hidden pointer-events-none" allow="autoplay"></iframe>
       </div>
 
-      <!-- 3. KARTU ACARA STANDBY JIKA BELUM ON-AIR (Khusus Room Siswa yang Belum Live) -->
+      <!-- 3. KARTU ACARA STANDBY JIKA BELUM ON-AIR -->
       <div id="pgmStandbyScreen" class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-between text-center p-4 sm:p-6 z-20 pointer-events-none transition-all duration-500">
         <div class="flex items-center gap-2 bg-black/80 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold text-amber-400 shadow-lg">
           <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
@@ -254,6 +254,15 @@
     let streamerInstance = null;
     const remoteCamStreams = new Map();
 
+    // Referensi listener aktif agar dapat dibersihkan saat berganti ruangan
+    let activeChannelListeners = {
+      token: '',
+      metaRef: null,
+      liveRef: null,
+      vtRef: null,
+      cgRef: null
+    };
+
     // Default standby YT ID (Dapat diperbarui dinamis via Firebase meta/defaultStandbyYtId)
     let dynamicStandbyYtId = 'XhwSTlXTJRc';
 
@@ -334,28 +343,14 @@
         } else {
           activeDb.ref('rooms/SKASA/meta/status').set('live');
           const meta = snap.val();
-          if (meta.defaultStandbyYtId) {
+          if (meta.defaultStandbyYtId && currentRoomToken === 'SKASA') {
             dynamicStandbyYtId = meta.defaultStandbyYtId;
           }
-          activeDb.ref('rooms/SKASA/vt_playlist').once('value', pSnap => {
-            if (!pSnap.exists()) {
-              activeDb.ref('rooms/SKASA/vt_playlist').set([
-                {
-                  id: 'vt_default_skawan',
-                  title: 'Profil SKAWAN TV Studio',
-                  sourceType: 'youtube',
-                  youtubeId: dynamicStandbyYtId,
-                  url: `https://www.youtube.com/watch?v=${dynamicStandbyYtId}`,
-                  durationSec: 120
-                }
-              ]);
-            }
-          });
         }
       });
     }
 
-    // Inisialisasi YouTube API Player
+    // Inisialisasi YouTube API Player (Clean feed, no CC)
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
       try {
@@ -372,7 +367,7 @@
             playlist: dynamicStandbyYtId,
             modestbranding: 1,
             disablekb: 1,
-            cc_load_policy: 0, // Matikan subtitle/CC otomatis
+            cc_load_policy: 0,
             cc_lang_pref: 'none',
             iv_load_policy: 3
           },
@@ -392,7 +387,9 @@
               } else {
                 livePgmYt.mute();
               }
-              putarDefaultStandbyVt();
+              if (currentRoomStatus !== 'live' || liveState.programSource === 'vt') {
+                putarDefaultStandbyVt();
+              }
             },
             onStateChange: (e) => {
               if (e.data === YT.PlayerState.PLAYING) {
@@ -403,7 +400,7 @@
                   }
                 } catch (e) {}
               }
-              if (e.data === YT.PlayerState.ENDED) {
+              if (e.data === YT.PlayerState.ENDED && currentRoomStatus !== 'live') {
                 livePgmYt.seekTo(0, true);
                 livePgmYt.playVideo();
               }
@@ -418,28 +415,75 @@
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
+      const savedRoom = localStorage.getItem('skawan_room');
       
-      // Default selalu ke SKASA jika tidak ada parameter URL
-      currentRoomToken = (roomParam || 'SKASA').toUpperCase();
-      document.getElementById('navRoomToken').innerText = currentRoomToken;
-
+      // Prioritas: Parameter URL -> LocalStorage -> SKASA
+      currentRoomToken = (roomParam || savedRoom || 'SKASA').toUpperCase();
+      
+      updateNavAndStorage(currentRoomToken);
       startWibLiveClock();
       ensureDefaultSkasaRoom();
       initChannelViewer(currentRoomToken);
       listenActiveChannels();
     });
 
+    function updateNavAndStorage(token) {
+      document.getElementById('navRoomToken').innerText = token;
+      
+      // Update link Masuk Kru agar langsung membawa ke ruangan yang sedang aktif ditonton
+      const btnKru = document.getElementById('btnMasukKruNav');
+      if (btnKru) {
+        btnKru.href = `login.html?room=${token}`;
+      }
+
+      // Simpan preferensi room di localStorage
+      localStorage.setItem('skawan_room', token);
+    }
+
+    // Membersihkan listener ruangan lama sebelum memasang ruangan baru
+    function detachOldChannelListeners() {
+      if (activeChannelListeners.metaRef) {
+        activeChannelListeners.metaRef.off();
+        activeChannelListeners.metaRef = null;
+      }
+      if (activeChannelListeners.liveRef) {
+        activeChannelListeners.liveRef.off();
+        activeChannelListeners.liveRef = null;
+      }
+      if (activeChannelListeners.vtRef) {
+        activeChannelListeners.vtRef.off();
+        activeChannelListeners.vtRef = null;
+      }
+      if (activeChannelListeners.cgRef) {
+        activeChannelListeners.cgRef.off();
+        activeChannelListeners.cgRef = null;
+      }
+    }
+
     function initChannelViewer(token) {
       const activeDb = getDatabase();
+
+      // Putuskan listener dan koneksi WebRTC ruangan sebelumnya
+      detachOldChannelListeners();
+
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+      remoteCamStreams.clear();
+
+      // Reset state visual ke default ruangan
+      liveState = { programSource: 'vt', previewSource: 'cam_1', tally: { cam_1: 'green' } };
+      latestVtState = { status: 'stopped', currentTime: 0, url: '', youtubeId: '', sourceType: 'youtube' };
+
       if (activeDb) {
-        // 1. Pantau Status & Metadata Ruangan (Termasuk Default Standby YT ID dari Audio-VT / Admin)
-        activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
+        activeChannelListeners.token = token;
+
+        // 1. Pantau Status & Metadata Ruangan
+        activeChannelListeners.metaRef = activeDb.ref(`rooms/${token}/meta`);
+        activeChannelListeners.metaRef.on('value', snap => {
           if (!snap.exists()) {
-            if (token === 'SKASA') {
-              updateRoomStatusUI('live');
-            } else {
-              updateRoomStatusUI('waiting');
-            }
+            updateRoomStatusUI(token === 'SKASA' ? 'live' : 'waiting');
             return;
           }
           const meta = snap.val();
@@ -450,9 +494,7 @@
             document.getElementById('standbyEpisodeDesc').innerText = meta.episode;
           }
 
-          // Sinkronisasi Video Standby Baru jika diset oleh Admin di audio-vt.html
           if (meta.defaultStandbyYtId && meta.defaultStandbyYtId !== dynamicStandbyYtId) {
-            console.log(`[Index PGM] Mengupdate Default Standby YT ID ke: ${meta.defaultStandbyYtId}`);
             dynamicStandbyYtId = meta.defaultStandbyYtId;
             if (liveState.programSource !== 'vt' || currentRoomStatus !== 'live') {
               putarDefaultStandbyVt();
@@ -464,7 +506,8 @@
         });
 
         // 2. Pantau Live State dari Switcher
-        activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
+        activeChannelListeners.liveRef = activeDb.ref(`rooms/${token}/live_state`);
+        activeChannelListeners.liveRef.on('value', snap => {
           if (!snap.exists()) return;
           const remoteLive = snap.val();
           liveState.programSource = remoteLive.programSource || liveState.programSource;
@@ -473,14 +516,16 @@
         });
 
         // 3. Pantau Sinkronisasi Video VT dari Audio-VT
-        activeDb.ref(`rooms/${token}/vt_state`).on('value', snap => {
+        activeChannelListeners.vtRef = activeDb.ref(`rooms/${token}/vt_state`);
+        activeChannelListeners.vtRef.on('value', snap => {
           if (!snap.exists()) return;
           latestVtState = snap.val();
           syncVtPlayback();
         });
 
         // 4. Pantau Lapisan Grafis CG
-        activeDb.ref(`rooms/${token}/cg_state`).on('value', snap => {
+        activeChannelListeners.cgRef = activeDb.ref(`rooms/${token}/cg_state`);
+        activeChannelListeners.cgRef.on('value', snap => {
           if (!snap.exists()) return;
           const cg = snap.val();
           applyCgOverlay(cg);
@@ -489,24 +534,18 @@
         updateRoomStatusUI('live');
       }
 
-      // 5. Hubungkan WebRTC Streamer untuk Menerima Feed Kamera HP Langsung
+      // 5. Hubungkan WebRTC Streamer untuk Menerima Feed Kamera HP Ruangan Terpilih
       if (typeof SkawanStreamer !== 'undefined') {
-        if (streamerInstance) {
-          streamerInstance.destroy();
-          streamerInstance = null;
-        }
-        remoteCamStreams.clear();
-
         streamerInstance = new SkawanStreamer({
           roomToken: token,
           roleKey: 'viewer',
           onRemoteStream: (camKey, stream) => {
-            console.log(`[PGM Viewer] Feed kamera diterima: ${camKey}`);
+            console.log(`[PGM Viewer - ${token}] Feed kamera diterima: ${camKey}`);
             remoteCamStreams.set(camKey, stream);
             renderPgmDisplay();
           },
           onStatusChange: (status, info) => {
-            console.log(`[PGM Viewer] Status WebRTC: ${status} - ${info}`);
+            console.log(`[PGM Viewer - ${token}] WebRTC: ${status} - ${info}`);
           }
         });
       }
@@ -755,7 +794,7 @@
           
           let cardStyle = "p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between ";
           if (isCurrentSelected) {
-            cardStyle += "bg-red-950/40 border-red-500 shadow-lg shadow-red-950/40";
+            cardStyle += "bg-red-950/60 border-red-500 shadow-lg shadow-red-950/50 ring-1 ring-red-500";
           } else {
             cardStyle += "bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900";
           }
@@ -789,12 +828,17 @@
 
     function gantiSaluranSiaran(newToken) {
       if (newToken === currentRoomToken) return;
+      
+      console.log(`[Index PGM] Berpindah saluran dari ${currentRoomToken} ke ${newToken}`);
       currentRoomToken = newToken;
-      document.getElementById('navRoomToken').innerText = newToken;
 
+      updateNavAndStorage(newToken);
+
+      // Sinkronkan URL browser tanpa reload halaman penuh
       const newUrl = `${window.location.pathname}?room=${newToken}`;
       window.history.pushState({ path: newUrl }, '', newUrl);
 
+      // Inisialisasi ulang penampil untuk saluran baru (listener lama otomatis di-off)
       initChannelViewer(newToken);
       listenActiveChannels();
     }
