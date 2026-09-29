@@ -79,7 +79,7 @@
               <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
               <span class="font-brand font-black text-red-500 text-base leading-none">TV</span>
             </div>
-            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">SKASA WAHANA TELEVISI</span>
+            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">SKASA WAHANA TV</span>
           </div>
         </a>
         <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
@@ -112,10 +112,17 @@
     <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative border-2 border-red-600/80 shadow-2xl shadow-red-950/30 flex items-center justify-center group">
 
       <!-- 1. FEED KAMERA WEBRTC HP (Jika PGM = Cam 1, 2, 3) -->
-      <video id="pgmCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+      <video id="pgmCamVideo" class="hidden absolute inset-0 w-full h-full object-cover z-10" autoplay playsinline muted></video>
+
+      <!-- Placeholder Saat PGM Switcher Memilih Kamera yang Sedang Menyambung -->
+      <div id="pgmCamConnectingScreen" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center text-center p-4 z-10">
+        <div class="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <span class="font-brand font-black text-sm sm:text-base text-white tracking-wider" id="pgmConnectingCamLabel">MENYAMBUNGKAN FEED KAMERA 1</span>
+        <span class="text-[11px] text-slate-400 font-mono mt-1">Menerima aliran video WebRTC studio langsung...</span>
+      </div>
 
       <!-- 2. PEMUTAR VT / MEDIA INSERTS (YouTube, Google Drive, HTML5 MP4) -->
-      <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center">
+      <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10">
         <!-- Player HTML5 Native (MP4) -->
         <video id="pgmVtHtml5" class="w-full h-full object-contain hidden" playsinline></video>
         
@@ -128,7 +135,7 @@
         <iframe id="pgmVtGdrive" class="w-full h-full border-0 hidden pointer-events-none" allow="autoplay"></iframe>
       </div>
 
-      <!-- 3. KARTU ACARA STANDBY JIKA BELUM ON-AIR -->
+      <!-- 3. KARTU ACARA STANDBY JIKA BELUM ON-AIR (OVERLAY) -->
       <div id="pgmStandbyScreen" class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-between text-center p-4 sm:p-6 z-20 pointer-events-none transition-all duration-500">
         <div class="flex items-center gap-2 bg-black/80 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold text-amber-400 shadow-lg">
           <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
@@ -191,7 +198,7 @@
       </div>
 
       <!-- Scanline Visual Overlay Khas Tabung TV -->
-      <div class="scanline absolute inset-0 pointer-events-none"></div>
+      <div class="scanline absolute inset-0 pointer-events-none z-20"></div>
 
       <!-- 5. KONTROL OVERLAY (UNMUTE & FULLSCREEN) -->
       <div class="absolute bottom-8 right-4 z-40 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
@@ -209,11 +216,18 @@
 
     </div>
 
-    <!-- Informasi Resolusi & Status Siaran (Sumber VT Telah Dihapus) -->
-    <div class="w-full flex items-center justify-end gap-3 text-xs text-slate-400 px-1 font-mono text-[11px]">
-      <span>Resolusi: <strong class="text-slate-200">16:9 HD Broadcast</strong></span>
-      <span>&bull;</span>
-      <span>Status: <strong id="lblBroadcastStatus" class="text-red-500 font-bold animate-pulse">ON-AIR (LIVE)</strong></span>
+    <!-- Informasi Status Siaran & Sinkronisasi -->
+    <div class="w-full flex items-center justify-between text-xs text-slate-400 px-1 font-mono text-[11px]">
+      <div class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+        <span>PGM ON-AIR: <strong id="lblActivePgmSource" class="text-white uppercase font-bold">VT</strong></span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span>Resolusi: <strong class="text-slate-200">16:9 HD Broadcast</strong></span>
+        <span>&bull;</span>
+        <span>Status: <strong id="lblBroadcastStatus" class="text-red-500 font-bold animate-pulse">ON-AIR (LIVE)</strong></span>
+      </div>
     </div>
 
     <!-- PANEL DAFTAR RUANGAN SIARAN AKTIF -->
@@ -386,9 +400,9 @@
               } else {
                 livePgmYt.mute();
               }
-              if (currentRoomStatus !== 'live' || liveState.programSource === 'vt') {
-                putarDefaultStandbyVt();
-              }
+              
+              // Sinkronkan tampilan setelah player siap
+              renderPgmDisplay();
             },
             onStateChange: (e) => {
               if (e.data === YT.PlayerState.PLAYING) {
@@ -399,8 +413,7 @@
                   }
                 } catch (e) {}
               }
-              // Pemutaran ulang manual murni tanpa parameter 'playlist' agar algoritma iklan tidak aktif
-              if (e.data === YT.PlayerState.ENDED && currentRoomStatus !== 'live') {
+              if (e.data === YT.PlayerState.ENDED) {
                 livePgmYt.seekTo(0, true);
                 livePgmYt.playVideo();
               }
@@ -475,7 +488,7 @@
       // Reset state visual ke default ruangan
       liveState = { programSource: 'vt', previewSource: 'cam_1', tally: { cam_1: 'green' } };
       latestVtState = { 
-        status: 'stopped', 
+        status: 'playing', 
         currentTime: 0, 
         url: `https://www.youtube.com/watch?v=${dynamicStandbyYtId}`, 
         youtubeId: dynamicStandbyYtId, 
@@ -502,16 +515,13 @@
 
           if (meta.defaultStandbyYtId && meta.defaultStandbyYtId !== dynamicStandbyYtId) {
             dynamicStandbyYtId = meta.defaultStandbyYtId;
-            if (liveState.programSource !== 'vt' || currentRoomStatus !== 'live') {
-              putarDefaultStandbyVt();
-            }
           }
           
           currentRoomStatus = token === 'SKASA' ? 'live' : (meta.status || 'waiting');
           updateRoomStatusUI(currentRoomStatus);
         });
 
-        // 2. Pantau Live State dari Switcher
+        // 2. Pantau Live State dari Switcher (PGM Sumber Terpilih)
         activeChannelListeners.liveRef = activeDb.ref(`rooms/${token}/live_state`);
         activeChannelListeners.liveRef.on('value', snap => {
           if (!snap.exists()) return;
@@ -548,6 +558,8 @@
           roleKey: viewerRoleUnique,
           onRemoteStream: (camKey, stream) => {
             console.log(`[PGM Viewer - ${token}] Feed kamera diterima: ${camKey}`);
+            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+            remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
             renderPgmDisplay();
           },
@@ -607,36 +619,48 @@
         navLiveStatusText.innerText = `${currentRoomToken} STANDBY`;
         lblStatus.innerText = "STANDBY (OFF-AIR)";
         lblStatus.className = "text-amber-400 font-bold";
-
-        const camVideo = document.getElementById('pgmCamVideo');
-        const vtWrapper = document.getElementById('pgmVtWrapper');
-        camVideo.classList.add('hidden');
-        vtWrapper.classList.remove('hidden');
-        putarDefaultStandbyVt();
+        renderPgmDisplay();
       }
     }
 
     function renderPgmDisplay() {
       const activeSrc = liveState.programSource || 'vt';
 
+      const labelPgm = document.getElementById('lblActivePgmSource');
+      if (labelPgm) labelPgm.innerText = activeSrc.toUpperCase().replace('_', ' ');
+
       const camVideo = document.getElementById('pgmCamVideo');
+      const camConnectingBox = document.getElementById('pgmCamConnectingScreen');
+      const connectingLabel = document.getElementById('pgmConnectingCamLabel');
       const vtWrapper = document.getElementById('pgmVtWrapper');
 
       if (activeSrc === 'vt') {
+        // Tampilkan Video VT Siaran Aktif dari Meja Switcher / Audio-VT
         camVideo.classList.add('hidden');
+        camConnectingBox.classList.add('hidden');
         vtWrapper.classList.remove('hidden');
         syncVtPlayback();
       } else {
+        // PGM Switcher sedang memilih feed Kamera HP (Cam 1, Cam 2, Cam 3)
+        // Hentikan video VT agar audio tidak tumpang tindih
+        if (isYtReady && livePgmYt && typeof livePgmYt.pauseVideo === 'function') {
+          livePgmYt.pauseVideo();
+        }
         vtWrapper.classList.add('hidden');
+
         const stream = getCameraStream(activeSrc);
         if (stream) {
+          camConnectingBox.classList.add('hidden');
           if (camVideo.srcObject !== stream) camVideo.srcObject = stream;
           camVideo.classList.remove('hidden');
           camVideo.play().catch(() => {});
         } else {
+          // Stream kamera sedang proses negosiasi P2P (JANGAN fallback ke video bumper!)
           camVideo.classList.add('hidden');
-          vtWrapper.classList.remove('hidden');
-          putarDefaultStandbyVt();
+          if (connectingLabel) {
+            connectingLabel.innerText = `MENYAMBUNGKAN FEED ${activeSrc.toUpperCase().replace('_', ' ')}`;
+          }
+          camConnectingBox.classList.remove('hidden');
         }
       }
     }
