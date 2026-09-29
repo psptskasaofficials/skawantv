@@ -2,6 +2,7 @@
  * SKAWAN TV - Native WebRTC Streamer (No PeerJS Dependency)
  * Menggunakan RTCPeerConnection Asli Browser + Firebase Realtime Database Signaling
  * Dilengkapi STUN Google/Cloudflare & TURN OpenRelay (Port 80/443 TCP)
+ * Mendukung Multicast: Switcher, Program Director (PD), dan Layar Publik (Viewer)
  */
 
 const SKAWAN_ICE_SERVERS = [
@@ -36,7 +37,7 @@ class SkawanStreamer {
     this.onStatusChange = options.onStatusChange || (() => {});
 
     this.isCamera = this.roleKey.startsWith('cam_');
-    this.isReceiver = ['switcher', 'pd'].includes(this.roleKey) || this.roleKey.startsWith('viewer');
+    this.isReceiver = ['switcher', 'pd', 'audio_vt', 'cg'].includes(this.roleKey) || this.roleKey.startsWith('viewer');
 
     this.db = this._getDb();
     this.peerConnections = new Map(); // targetRole -> RTCPeerConnection
@@ -72,10 +73,10 @@ class SkawanStreamer {
 
     // 2. Pasang alur pensinyalan berdasarkan peran
     if (this.isCamera) {
-      this.onStatusChange('connecting', 'Mencari Switcher / PD...');
+      this.onStatusChange('connecting', 'Mencari Switcher / PD / Viewer...');
       this._setupCameraSignaling();
     } else if (this.isReceiver) {
-      this.onStatusChange('ready', 'Siap menerima feed kamera');
+      this.onStatusChange('ready', 'Siap menerima feed kamera studio');
       this._setupReceiverSignaling();
     }
   }
@@ -99,45 +100,45 @@ class SkawanStreamer {
   // LOGIKA PEMANCAR KAMERA HP (SENDER / CALLER)
   // ==========================================
   _setupCameraSignaling() {
-    // Kamera HP bertugas memanggil Switcher dan PD saat mereka online
-    const targets = ['switcher', 'pd'];
+    // Pantau seluruh target receiver yang online di ruangan (Switcher, PD, dan Layar Penonton index.html)
+    const peersRef = this.db.ref(`rooms/${this.roomToken}/peers`);
+    const listener = peersRef.on('value', snap => {
+      if (this.isDestroyed) return;
+      const peers = snap.val() || {};
 
-    targets.forEach(targetRole => {
-      const peerRef = this.db.ref(`rooms/${this.roomToken}/peers/${targetRole}`);
-      const listener = peerRef.on('value', snap => {
-        if (this.isDestroyed) return;
-        const data = snap.val();
-        const isTargetOnline = data && data.online && (Date.now() - (data.lastSeen || 0) < 10000);
+      Object.keys(peers).forEach(targetRole => {
+        if (targetRole === this.roleKey) return;
+
+        // Validasi apakah target ini adalah receiver yang sah
+        const isReceiverRole = ['switcher', 'pd', 'audio_vt', 'cg'].includes(targetRole) || targetRole.startsWith('viewer');
+        if (!isReceiverRole) return;
+
+        const data = peers[targetRole];
+        const isTargetOnline = data && data.online && (Date.now() - (data.lastSeen || 0) < 12000);
 
         if (isTargetOnline) {
           if (!this.peerConnections.has(targetRole)) {
-            console.log(`[SkawanStreamer] Target ${targetRole} terdeteksi online! Memulai panggilan WebRTC...`);
+            console.log(`[SkawanStreamer] Target receiver ${targetRole} terdeteksi online! Memulai panggilan WebRTC...`);
             this._startCallToReceiver(targetRole);
           }
         } else {
           // Jika target offline, tutup koneksi lama
           if (this.peerConnections.has(targetRole)) {
-            console.log(`[SkawanStreamer] Target ${targetRole} offline, menutup sambungan.`);
+            console.log(`[SkawanStreamer] Target receiver ${targetRole} offline, menutup sambungan.`);
             this._closePeerConnection(targetRole);
           }
         }
       });
-      this.listeners.push({ ref: peerRef, listener });
+
+      // Bersihkan sambungan jika target telah hilang dari database
+      this.peerConnections.forEach((pc, targetRole) => {
+        if (!peers[targetRole] || !peers[targetRole].online) {
+          this._closePeerConnection(targetRole);
+        }
+      });
     });
 
-    // Dengarkan juga jika ada penonton publik (viewer) yang meminta feed
-    const viewerChannelRef = this.db.ref(`rooms/${this.roomToken}/signals`);
-    const viewerListener = viewerChannelRef.on('child_added', snap => {
-      const key = snap.key;
-      if (key && key.startsWith(`${this.roleKey}_to_viewer_`)) {
-        const viewerRole = key.replace(`${this.roleKey}_to_`, '');
-        if (!this.peerConnections.has(viewerRole)) {
-          console.log(`[SkawanStreamer] Permintaan viewer terdeteksi: ${viewerRole}`);
-          this._startCallToReceiver(viewerRole);
-        }
-      }
-    });
-    this.listeners.push({ ref: viewerChannelRef, listener: viewerListener });
+    this.listeners.push({ ref: peersRef, listener });
   }
 
   async _startCallToReceiver(targetRole) {
@@ -150,7 +151,7 @@ class SkawanStreamer {
       const channelId = `${this.roleKey}_to_${targetRole}`;
       const signalRef = this.db.ref(`rooms/${this.roomToken}/signals/${channelId}`);
 
-      // Bersihkan sinyal usang sebelumnya
+      // Bersihkan sinyal usang
       await signalRef.remove();
 
       const pc = new RTCPeerConnection({ iceServers: SKAWAN_ICE_SERVERS });
@@ -182,13 +183,14 @@ class SkawanStreamer {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
+      // Tulis offer secara atomik ke Firebase
       await signalRef.child('offer').set({
         type: offer.type,
         sdp: offer.sdp,
         timestamp: Date.now()
       });
 
-      // Dengarkan Answer dari Receiver (Switcher / PD)
+      // Dengarkan Answer dari Receiver (Switcher / PD / Viewer)
       const answerRef = signalRef.child('answer');
       const answerListener = answerRef.on('value', async snap => {
         const answer = snap.val();
@@ -256,7 +258,7 @@ class SkawanStreamer {
   _setupReceiverSignaling() {
     const signalsRootRef = this.db.ref(`rooms/${this.roomToken}/signals`);
 
-    // Pantau setiap saluran offer yang ditujukan ke receiver ini
+    // Pantau setiap saluran penawaran yang ditujukan ke receiver ini
     // Format channel: {camRole}_to_{myRole}
     const listener = signalsRootRef.on('child_added', snap => {
       const channelId = snap.key;
@@ -307,35 +309,40 @@ class SkawanStreamer {
         }
       };
 
-      // Ambil Offer
-      signalRef.child('offer').once('value', async snap => {
+      // Dengarkan Offer secara tanggap (menghindari offer kosong akibat latensi jaringan)
+      let hasAnswered = false;
+      const offerRef = signalRef.child('offer');
+      const offerListener = offerRef.on('value', async snap => {
         const offer = snap.val();
-        if (!offer || !offer.sdp) {
-          console.warn(`[SkawanStreamer Receiver] Offer kosong dari ${camRole}`);
-          return;
+        if (!offer || !offer.sdp || hasAnswered) return;
+        hasAnswered = true;
+
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+          // Terapkan kandidat caller yang sudah ada dalam antrean
+          const q = this.iceCandidateQueues.get(camRole) || [];
+          for (const cand of q) {
+            await pc.addIceCandidate(cand).catch(() => {});
+          }
+          this.iceCandidateQueues.delete(camRole);
+
+          // Buat Answer P2P
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+
+          await signalRef.child('answer').set({
+            type: answer.type,
+            sdp: answer.sdp,
+            timestamp: Date.now()
+          });
+
+          console.log(`[SkawanStreamer Receiver] Answer berhasil dikirim ke ${camRole}!`);
+        } catch (err) {
+          console.warn(`[SkawanStreamer Receiver] Gagal memproses offer dari ${camRole}:`, err);
         }
-
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-
-        // Terapkan kandidat caller yang sudah ada
-        const q = this.iceCandidateQueues.get(camRole) || [];
-        for (const cand of q) {
-          await pc.addIceCandidate(cand).catch(() => {});
-        }
-        this.iceCandidateQueues.delete(camRole);
-
-        // Buat Answer
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        await signalRef.child('answer').set({
-          type: answer.type,
-          sdp: answer.sdp,
-          timestamp: Date.now()
-        });
-
-        console.log(`[SkawanStreamer Receiver] Answer berhasil dikirim ke ${camRole}!`);
       });
+      this.listeners.push({ ref: offerRef, listener: offerListener });
 
       // Dengarkan kandidat ICE caller dari kamera
       const callerCandRef = signalRef.child('caller_candidates');
