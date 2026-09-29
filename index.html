@@ -164,10 +164,15 @@
 
       <!-- 4. LAPISAN GRAFIS CG (LOWER THIRD, LOGO, RUNNING TEXT) -->
 
-      <!-- Bug Logo SKAWAN TV (Pojok Kanan Atas) -->
-      <div id="cgBugLogo" class="hidden absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-white/20 shadow-md">
-        <div class="w-4 h-4 rounded bg-red-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
-        <span class="text-[10px] font-brand font-black text-white uppercase tracking-widest">SKAWAN <span class="text-red-500">TV</span></span>
+      <!-- Bug Logo SKAWAN TV (Pojok Kanan Atas - Mendukung Gambar/GIF Transparan atau Badge Default) -->
+      <div id="cgBugLogo" class="hidden absolute top-3 sm:top-4 right-3 sm:right-4 z-30 flex items-center justify-center max-w-[140px] max-h-11 transition-all duration-200">
+        <!-- Jika ada logo custom PNG/GIF transparan dari operator CG -->
+        <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-9 w-auto max-w-[130px] object-contain drop-shadow-md">
+        <!-- Fallback Badge Standar jika belum ada file logo diunggah -->
+        <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/20 shadow-md">
+          <div class="w-4 h-4 rounded bg-red-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
+          <span class="text-[10px] font-brand font-black text-white uppercase tracking-widest">SKAWAN <span class="text-red-500">TV</span></span>
+        </div>
       </div>
 
       <!-- Lower Third Dinamis (Nama & Jabatan Presenter) -->
@@ -191,9 +196,9 @@
         </div>
       </div>
 
-      <!-- Lencana Live Bug Pojok Kiri Atas -->
-      <div id="badgeLiveOnAir" class="absolute top-4 left-4 z-30 bg-red-600 text-white font-brand font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-lg">
-        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+      <!-- Lencana Live Bug Pojok Kiri Atas (Default: HIDDEN / MATI, Dikendalikan Operator CG) -->
+      <div id="badgeLiveOnAir" class="hidden absolute top-3 sm:top-4 left-3 sm:left-4 z-30 bg-red-600 text-white font-brand font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-lg animate-pulse">
+        <span class="w-2 h-2 rounded-full bg-white"></span>
         <span>LIVE</span>
       </div>
 
@@ -260,6 +265,15 @@
     let streamerInstance = null;
     const remoteCamStreams = new Map();
 
+    // Cache state grafis CG terkini
+    let currentCgState = {
+      isLiveBadgeActive: false,
+      logoActive: false,
+      logoUrl: '',
+      lowerThirdActive: false,
+      tickerActive: false
+    };
+
     // Referensi listener aktif agar dapat dibersihkan saat berganti ruangan
     let activeChannelListeners = {
       token: '',
@@ -269,7 +283,7 @@
       cgRef: null
     };
 
-    // Default standby YT ID: Jnp3esoHb9k (https://www.youtube.com/watch?v=Jnp3esoHb9k)
+    // Default standby YT ID: Jnp3esoHb9k
     let dynamicStandbyYtId = 'Jnp3esoHb9k';
 
     let liveState = {
@@ -544,6 +558,7 @@
         activeChannelListeners.cgRef.on('value', snap => {
           if (!snap.exists()) return;
           const cg = snap.val();
+          currentCgState = cg || {};
           applyCgOverlay(cg);
         });
       } else {
@@ -606,15 +621,24 @@
 
       if (currentRoomStatus === 'live') {
         standbyScreen.classList.add('hidden');
-        badgeLive.classList.remove('hidden');
         badgeLiveNav.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-950/70 text-red-400 border border-red-800";
         navLiveStatusText.innerText = `${currentRoomToken} LIVE ON-AIR`;
         lblStatus.innerText = "ON-AIR (LIVE)";
         lblStatus.className = "text-red-500 font-bold animate-pulse";
+
+        // Tanda ● LIVE di pojok kiri atas video hanya menyala jika operator CG mengaktifkannya
+        if (badgeLive) {
+          if (currentCgState && currentCgState.isLiveBadgeActive) {
+            badgeLive.classList.remove('hidden');
+          } else {
+            badgeLive.classList.add('hidden');
+          }
+        }
+
         renderPgmDisplay();
       } else {
         standbyScreen.classList.remove('hidden');
-        badgeLive.classList.add('hidden');
+        if (badgeLive) badgeLive.classList.add('hidden');
         badgeLiveNav.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-950/70 text-amber-400 border border-amber-800";
         navLiveStatusText.innerText = `${currentRoomToken} STANDBY`;
         lblStatus.innerText = "STANDBY (OFF-AIR)";
@@ -730,13 +754,20 @@
     }
 
     function applyCgOverlay(cg) {
+      if (!cg) return;
+      currentCgState = cg;
+
       const ltBox = document.getElementById('cgLowerThirdBox');
       const ltTitle = document.getElementById('cgLtTitle');
       const ltSub = document.getElementById('cgLtSubtitle');
       const logoBox = document.getElementById('cgBugLogo');
+      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
+      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
       const tickerBox = document.getElementById('cgTickerBar');
       const tickerText = document.getElementById('cgTickerText');
+      const badgeLive = document.getElementById('badgeLiveOnAir');
 
+      // 1. Lower Third Overlay
       if (cg.lowerThirdActive) {
         ltBox.classList.remove('hidden');
         if (ltTitle) ltTitle.innerText = cg.title || 'NAMA PRESENTER';
@@ -745,14 +776,43 @@
         ltBox.classList.add('hidden');
       }
 
-      if (cg.logoActive) logoBox.classList.remove('hidden');
-      else logoBox.classList.add('hidden');
+      // 2. Bug Logo (Mendukung Gambar/GIF Transparan atau Badge Default)
+      if (cg.logoActive) {
+        if (logoBox) logoBox.classList.remove('hidden');
+        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
+          // Tampilkan gambar/GIF yang diunggah
+          if (logoCustomImg) {
+            logoCustomImg.src = cg.logoUrl;
+            logoCustomImg.classList.remove('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+        } else {
+          // Tampilkan badge default
+          if (logoCustomImg) {
+            logoCustomImg.src = '';
+            logoCustomImg.classList.add('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+        }
+      } else {
+        if (logoBox) logoBox.classList.add('hidden');
+      }
 
+      // 3. Running Text (Ticker Bar)
       if (cg.tickerActive) {
         tickerBox.classList.remove('hidden');
         if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live Broadcast';
       } else {
         tickerBox.classList.add('hidden');
+      }
+
+      // 4. Lencana Siaran LIVE (Hanya tampil jika operator CG menyalakan isLiveBadgeActive)
+      if (badgeLive) {
+        if (currentRoomStatus === 'live' && cg.isLiveBadgeActive) {
+          badgeLive.classList.remove('hidden');
+        } else {
+          badgeLive.classList.add('hidden');
+        }
       }
     }
 
