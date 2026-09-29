@@ -26,12 +26,12 @@
             skawan: {
               red: '#E50914',
               redHover: '#C70812',
-              lightBg: '#F8FAFC',
-              cardBg: '#FFFFFF',
-              borderLight: '#E2E8F0',
+              darkBg: '#090D14',
+              cardDark: '#121824',
+              borderDark: '#1E293B',
               accentBlue: '#2563EB',
-              warningAmber: '#D97706',
-              studioGreen: '#059669'
+              warningAmber: '#F59E0B',
+              studioGreen: '#10B981'
             }
           }
         }
@@ -48,13 +48,13 @@
     .tally-active-red {
       background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
       color: #ffffff !important;
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.75);
       border-color: #f87171 !important;
     }
     .tally-active-green {
       background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
       color: #ffffff !important;
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.65);
       border-color: #34d399 !important;
     }
     .cue-card-touch {
@@ -64,43 +64,51 @@
     .cue-card-touch:active {
       transform: scale(0.96);
     }
+    .scanline {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(16, 185, 129, 0.03), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.03));
+      background-size: 100% 2px, 3px 100%;
+      pointer-events: none;
+    }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-emerald-600 selection:text-white pb-6">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-emerald-600 selection:text-white pb-6">
 
-  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+  <!-- ============================================== -->
+  <!-- NAVIGATION BAR (FLOOR DIRECTOR - DARK THEME)   -->
+  <!-- ============================================== -->
+  <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-2.5">
-        <a href="index.html" class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center font-brand font-black text-base text-white shadow-sm">
+        <a href="index.html" class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center font-brand font-black text-base text-white shadow-md shadow-emerald-600/30">
             FD
           </div>
           <div>
             <div class="flex items-center gap-1">
-              <span class="font-brand font-black tracking-wide text-slate-900 text-base leading-none">SKAWAN</span>
-              <span class="font-brand font-black text-emerald-600 text-base leading-none">TV</span>
+              <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
+              <span class="font-brand font-black text-emerald-500 text-base leading-none">TV</span>
             </div>
-            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">Floor Director Studio Deck</span>
+            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Floor Director Studio Deck</span>
           </div>
         </a>
       </div>
 
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
-          <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-          <span id="navDisplayToken" class="font-mono font-bold text-xs text-emerald-700">STUDIO-1</span>
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="navDisplayToken" class="font-mono font-bold text-xs text-emerald-400">STUDIO-1</span>
         </div>
-        <div class="hidden sm:flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg text-emerald-800 text-xs font-semibold">
+        <div class="hidden sm:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
           <span>👤</span>
-          <span id="navDisplayUser">FD</span>
+          <span id="navDisplayUser">Floor Director</span>
         </div>
         <!-- Tombol Ganti Peran Cepat -->
-        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-600 hover:text-emerald-700 bg-slate-50 hover:bg-emerald-50 border border-slate-200 px-2.5 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
+        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
           <span>🔄</span>
           <span class="hidden sm:inline">Ganti</span>
         </button>
         <!-- Tombol Keluar Sesi Cepat -->
-        <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 px-2.5 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar Sesi">
+        <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar Sesi">
           <span>🚪</span>
           <span class="hidden sm:inline">Keluar</span>
         </button>
@@ -111,21 +119,21 @@
   <main class="max-w-4xl mx-auto px-4 sm:px-6 py-4 w-full flex-1 space-y-4">
 
     <!-- Banner Komando Langsung dari Program Director (PD) -->
-    <div id="directorCueBanner" class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between gap-3 transition">
-      <div class="flex items-center gap-2.5">
+    <div id="directorCueBanner" class="bg-gradient-to-r from-emerald-700 via-teal-700 to-cyan-800 text-white p-3.5 rounded-2xl shadow-xl flex items-center justify-between gap-3 transition border border-emerald-500/30">
+      <div class="flex items-center gap-3">
         <div class="p-2 rounded-xl bg-white/20 shrink-0">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
         </div>
         <div>
-          <span class="text-[10px] font-black uppercase tracking-wider text-emerald-100 block">KOMANDO SUTRADARA (PD):</span>
+          <span class="text-[10px] font-black uppercase tracking-wider text-emerald-200 block">KOMANDO SUTRADARA (PD):</span>
           <span id="directorCueMessage" class="text-xs sm:text-sm font-brand font-black">Standby Studio! Talent Siap-Siap On-Air</span>
         </div>
       </div>
-      <span id="directorCueTime" class="text-[10px] font-mono bg-black/25 px-2 py-0.5 rounded font-bold shrink-0">LIVE</span>
+      <span id="directorCueTime" class="text-[10px] font-mono bg-black/40 px-2.5 py-1 rounded-lg font-bold shrink-0 border border-white/10">LIVE</span>
     </div>
 
     <!-- Banner Krisis Teknis / Time Crunch dari Guru -->
-    <div id="crisisAlertBanner" class="hidden p-3.5 rounded-2xl bg-red-600 text-white shadow-lg flex items-center justify-between animate-pulse">
+    <div id="crisisAlertBanner" class="hidden p-3.5 rounded-2xl bg-rose-600 text-white shadow-xl flex items-center justify-between animate-pulse border border-rose-400">
       <div class="flex items-center gap-2.5">
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
         <div>
@@ -133,21 +141,24 @@
           <span id="crisisAlertText" class="text-xs font-bold">Waktu Segmen Dipotong! Beri isyarat Wrap Up ke talent sekarang.</span>
         </div>
       </div>
-      <span class="text-[10px] font-mono font-bold bg-white/20 px-2 py-0.5 rounded shrink-0">CRISIS</span>
+      <span class="text-[10px] font-mono font-bold bg-white/20 px-2.5 py-0.5 rounded shrink-0">CRISIS</span>
     </div>
 
+    <!-- ============================================== -->
+    <!-- PANEL UTAMA: COUNTDOWN TIMER & DETAIL SEGMEN   -->
+    <!-- ============================================== -->
     <div class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl text-slate-100 text-center space-y-4 relative overflow-hidden">
-      <!-- Glow ambient background -->
+      <!-- Ambient Glow di belakang jam -->
       <div id="timerGlowBg" class="absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none transition-colors duration-500"></div>
 
-      <div class="flex items-center justify-between text-xs font-mono border-b border-slate-800 pb-2 relative z-10">
+      <div class="flex items-center justify-between text-xs font-mono border-b border-slate-800 pb-2.5 relative z-10">
         <span class="text-slate-400 uppercase tracking-widest text-[10px] sm:text-xs">COUNTDOWN SISA SEGMEN</span>
-        <span id="badgeCurrentSegment" class="bg-slate-800 text-emerald-400 font-bold px-2.5 py-0.5 rounded-full border border-slate-700">
+        <span id="badgeCurrentSegment" class="bg-slate-950 text-emerald-400 font-bold px-3 py-1 rounded-full border border-slate-800 text-[11px]">
           SEGMEN 1 / 3
         </span>
       </div>
 
-      <!-- Jam Digital Raksasa -->
+      <!-- Jam Digital Raksasa Floor Director -->
       <div class="py-2 relative z-10">
         <div id="displayLargeTimer" class="font-mono font-black text-6xl sm:text-7xl md:text-8xl tracking-wider text-emerald-400 drop-shadow-md">
           02:00
@@ -160,7 +171,7 @@
       </div>
 
       <!-- Detail Rundown Segmen yang Sedang Aktif -->
-      <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 text-left space-y-2 relative z-10">
+      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-left space-y-2 relative z-10">
         <div class="flex items-center justify-between">
           <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">JUDUL SEGMEN BERJALAN:</span>
           <span class="text-[10px] font-mono text-slate-500" id="displayProgramTitle">Bincang Sore SKAWAN</span>
@@ -173,7 +184,7 @@
         </p>
         <div class="pt-2 border-t border-slate-800/80 flex items-start gap-1.5 text-[11px] font-mono text-amber-400">
           <span class="font-bold shrink-0">CUES:</span>
-          <span id="displayTechnicalNote" class="truncate">Lower Third Nama Host ON, Siapkan VT profil di Drive</span>
+          <span id="displayTechnicalNote" class="truncate">Lower Third Nama Host ON, Siapkan VT profil</span>
         </div>
       </div>
 
@@ -183,24 +194,27 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
           <span>Segmen Sebelumnya</span>
         </button>
-        <button onclick="pindahSegmen(1)" class="cue-card-touch py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-600/30">
+        <button onclick="pindahSegmen(1)" class="cue-card-touch py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-600/30">
           <span>Segmen Selanjutnya</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
       </div>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+    <!-- ============================================== -->
+    <!-- ARAH PANDANGAN TALENT (STUDIO TALLY)           -->
+    <!-- ============================================== -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
-          <h3 class="font-brand font-bold text-sm text-slate-900 uppercase tracking-wider">Arah Pandangan Talent (Studio Tally)</h3>
+          <h3 class="font-brand font-bold text-sm text-white uppercase tracking-wider">Arah Pandangan Talent (Studio Tally)</h3>
         </div>
         <span class="text-[11px] font-mono text-slate-400">Sinkron ATEM Switcher</span>
       </div>
 
-      <p class="text-xs text-slate-500">
-        Arahkan kontak mata pembawa acara ke kamera yang bertanda <span class="font-bold text-red-600">MERAH (ON-AIR)</span>:
+      <p class="text-xs text-slate-400">
+        Arahkan kontak mata pembawa acara ke kamera yang bertanda <span class="font-bold text-red-500">MERAH (ON-AIR)</span>:
       </p>
 
       <div id="studioTallyGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
@@ -208,51 +222,54 @@
       </div>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+    <!-- ============================================== -->
+    <!-- PANDUAN ISYARAT TANGAN FLOOR DIRECTOR          -->
+    <!-- ============================================== -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-          <h3 class="font-brand font-bold text-sm text-slate-900 uppercase tracking-wider">Panduan Isyarat Tangan Floor Director</h3>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <h3 class="font-brand font-bold text-sm text-white uppercase tracking-wider">Panduan Isyarat Tangan Floor Director</h3>
         </div>
         <span class="text-[11px] font-mono text-slate-400">Tap untuk memandu</span>
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
         
-        <div class="cue-card-touch bg-slate-50 border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1">
+        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
           <span class="text-3xl">🖐️</span>
-          <span class="font-brand font-black text-xs text-slate-900">STANDBY / CUE</span>
-          <span class="text-[10px] text-slate-500 leading-tight">Tangan terbuka tegak lurus, siap menunjuk hitungan 5..4..3..</span>
+          <span class="font-brand font-black text-xs text-white">STANDBY / CUE</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Tangan terbuka tegak lurus, siap menunjuk hitungan 5..4..3..</span>
         </div>
 
-        <div class="cue-card-touch bg-slate-50 border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1">
+        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
           <span class="text-3xl">✌️</span>
-          <span class="font-brand font-black text-xs text-slate-900">2 MENIT SISA</span>
-          <span class="text-[10px] text-slate-500 leading-tight">Dua jari tegak lurus di depan pandangan host</span>
+          <span class="font-brand font-black text-xs text-white">2 MENIT SISA</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Dua jari tegak lurus di depan pandangan host</span>
         </div>
 
-        <div class="cue-card-touch bg-slate-50 border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1">
+        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
           <span class="text-3xl">☝️</span>
-          <span class="font-brand font-black text-xs text-slate-900">1 MENIT SISA</span>
-          <span class="text-[10px] text-slate-500 leading-tight">Satu jari telunjuk tegak ke atas, talent mulai closing</span>
+          <span class="font-brand font-black text-xs text-white">1 MENIT SISA</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Satu jari telunjuk tegak ke atas, talent mulai closing</span>
         </div>
 
-        <div class="cue-card-touch bg-slate-50 border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1">
+        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
           <span class="text-3xl">🤏</span>
-          <span class="font-brand font-black text-xs text-amber-700 bg-amber-50 rounded-lg px-2">30 DETIK</span>
-          <span class="text-[10px] text-slate-500 leading-tight">Dua jari menyilang membentuk huruf C atau X kecil</span>
+          <span class="font-brand font-black text-xs text-amber-400 bg-amber-950/60 border border-amber-800 rounded-lg px-2">30 DETIK</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Dua jari menyilang membentuk huruf C atau X kecil</span>
         </div>
 
-        <div class="cue-card-touch bg-slate-50 border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1">
+        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
           <span class="text-3xl">🔄</span>
-          <span class="font-brand font-black text-xs text-amber-700">WRAP UP</span>
-          <span class="text-[10px] text-slate-500 leading-tight">Putar jari telunjuk melingkar: percepat pembicaraan</span>
+          <span class="font-brand font-black text-xs text-amber-400">WRAP UP</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Putar jari telunjuk melingkar: percepat pembicaraan</span>
         </div>
 
-        <div class="cue-card-touch bg-slate-50 border border-slate-200 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1">
+        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
           <span class="text-3xl">✂️</span>
-          <span class="font-brand font-black text-xs text-red-600 bg-red-50 rounded-lg px-2">CUT / STOP</span>
-          <span class="text-[10px] text-slate-500 leading-tight">Gerakan memotong leher perlahan: segmen selesai</span>
+          <span class="font-brand font-black text-xs text-red-400 bg-red-950/60 border border-red-800 rounded-lg px-2">CUT / STOP</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Gerakan memotong leher perlahan: segmen selesai</span>
         </div>
 
       </div>
@@ -260,31 +277,32 @@
 
   </main>
 
-  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
-      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">✓</div>
-      <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
-      <p id="noticeMessage" class="text-sm text-slate-600 mb-5"></p>
-      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
+  <!-- MODAL NOTIFIKASI DIALOG -->
+  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
+      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold">✓</div>
+      <h4 id="noticeTitle" class="text-base font-bold text-white mb-1">Pemberitahuan</h4>
+      <p id="noticeMessage" class="text-xs text-slate-300 leading-relaxed"></p>
+      <button onclick="closeNotice()" class="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2.5 rounded-xl text-xs transition">
         Tutup
       </button>
     </div>
   </div>
 
   <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN FLOOR DIRECTOR -->
-  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
-      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl font-bold">
+  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold">
         🔄
       </div>
       <div>
-        <h4 id="exitModalTitle" class="text-base font-brand font-black text-slate-900">Ganti Peran Kru?</h4>
-        <p id="exitModalMessage" class="text-xs text-slate-500 mt-1 leading-relaxed">
+        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Kru?</h4>
+        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">
           Slot posisi <strong>Floor Director (FD)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.
         </p>
       </div>
       <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs transition">
+        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
           Batal
         </button>
         <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
@@ -342,10 +360,10 @@
       document.getElementById('noticeMessage').innerText = message;
       const icon = document.getElementById('noticeIcon');
       if (isSuccess) {
-        icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.className = "w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold";
         icon.innerText = "✓";
       } else {
-        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
+        icon.className = "w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold";
         icon.innerText = "!";
       }
       document.getElementById('noticeModal').classList.remove('hidden');
@@ -362,7 +380,7 @@
       const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
       const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
       
-      currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
+      currentRoomToken = (roomParam || sessionRoom || 'STUDIO-1').toUpperCase();
       currentSiswaUser = sessionUser || 'Floor Director';
 
       document.getElementById('navDisplayToken').innerText = currentRoomToken;
@@ -429,10 +447,9 @@
             const now = new Date(cue.timestamp || Date.now());
             document.getElementById('directorCueTime').innerText = now.toTimeString().split(' ')[0];
 
-            // Animasi sorot banner komando
             const banner = document.getElementById('directorCueBanner');
-            banner.classList.add('ring-4', 'ring-emerald-300');
-            setTimeout(() => banner.classList.remove('ring-4', 'ring-emerald-300'), 2000);
+            banner.classList.add('ring-4', 'ring-emerald-400');
+            setTimeout(() => banner.classList.remove('ring-4', 'ring-emerald-400'), 2000);
           }
         });
 
@@ -444,7 +461,6 @@
           if (crisis.isActive && (crisis.type === 'TIME_CUT' || crisis.type === 'ALL')) {
             banner.classList.remove('hidden');
             document.getElementById('crisisAlertText').innerText = crisis.message;
-            // Potong durasi 60 detik jika belum dipotong
             if (timerRemainingSeconds > 30) {
               timerRemainingSeconds = Math.max(10, timerRemainingSeconds - 60);
               renderTimerUI();
@@ -469,11 +485,11 @@
         const camKey = `cam_${i}`;
         const card = document.createElement('div');
         card.id = `fd-tally-${camKey}`;
-        card.className = "p-3 rounded-2xl border-2 border-slate-200 bg-slate-50 flex flex-col items-center justify-between text-center transition";
+        card.className = "p-3 rounded-2xl border-2 border-slate-800 bg-slate-950 flex flex-col items-center justify-between text-center transition";
         card.innerHTML = `
           <span class="text-[10px] font-mono font-bold text-slate-400">CAM ${i}</span>
-          <span class="text-xl font-brand font-black my-1 text-slate-800" id="fd-label-${camKey}">IDLE</span>
-          <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-600" id="fd-badge-${camKey}">OFF</span>
+          <span class="text-xl font-brand font-black my-1 text-slate-400" id="fd-label-${camKey}">IDLE</span>
+          <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400" id="fd-badge-${camKey}">OFF</span>
         `;
         grid.appendChild(card);
       }
@@ -489,23 +505,23 @@
         if (!card || !label || !badge) continue;
 
         if (camKey === liveState.programSource) {
-          card.className = "p-3 rounded-2xl border-2 tally-active-red text-center transition scale-105 shadow-lg";
+          card.className = "p-3 rounded-2xl border-2 tally-active-red text-center transition scale-105 shadow-xl";
           label.innerText = "ON-AIR";
           label.className = "text-xl font-brand font-black my-1 text-white animate-pulse";
           badge.innerText = "TATAP CAM INI";
-          badge.className = "text-[9px] font-mono font-black px-2 py-0.5 rounded bg-black/40 text-white";
+          badge.className = "text-[9px] font-mono font-black px-2 py-0.5 rounded bg-black/50 text-white shadow";
         } else if (camKey === liveState.previewSource) {
-          card.className = "p-3 rounded-2xl border-2 tally-active-green text-center transition";
+          card.className = "p-3 rounded-2xl border-2 tally-active-green text-center transition shadow-lg";
           label.innerText = "STANDBY";
           label.className = "text-xl font-brand font-black my-1 text-white";
           badge.innerText = "NEXT SHOT";
-          badge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-black/30 text-white";
+          badge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-black/40 text-white";
         } else {
-          card.className = "p-3 rounded-2xl border-2 border-slate-200 bg-slate-50 text-center transition opacity-60";
+          card.className = "p-3 rounded-2xl border-2 border-slate-800 bg-slate-950 text-center transition opacity-60";
           label.innerText = "OFF";
-          label.className = "text-xl font-brand font-bold my-1 text-slate-400";
+          label.className = "text-xl font-brand font-bold my-1 text-slate-500";
           badge.innerText = "IDLE";
-          badge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-500";
+          badge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-slate-500 border border-slate-800";
         }
       }
     }
@@ -592,14 +608,14 @@
 
       if (type === 'ganti') {
         icon.innerText = "🔄";
-        icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl font-bold";
+        icon.className = "w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold";
         title.innerText = "Ganti Peran Kru?";
         message.innerHTML = `Slot posisi <strong>Floor Director (FD)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.`;
         btn.innerText = "Ya, Ganti Peran";
-        btn.className = "w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-sm";
+        btn.className = "w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-sm";
       } else {
         icon.innerText = "🚪";
-        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold";
+        icon.className = "w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl font-bold";
         title.innerText = "Keluar dari Sesi Siaran?";
         message.innerHTML = `Slot posisi <strong>Floor Director (FD)</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.`;
         btn.innerText = "Ya, Keluar Sesi";
@@ -619,12 +635,13 @@
       sessionStorage.removeItem('skawan_role');
       sessionStorage.removeItem('skawan_role_title');
 
-      alert("Sesi Siaran Telah Diakhiri oleh Guru. Mengalihkan ke pemilihan peran...");
-      window.location.href = `index.html?room=${currentRoomToken}`;
+      showNotice("Sesi Diakhiri", "Sesi siaran telah diselesaikan oleh Guru. Mengalihkan ke halaman peran...", false);
+      setTimeout(() => {
+        window.location.href = `login.html?room=${currentRoomToken}`;
+      }, 1500);
     }
 
     function eksekusiKeluarSesi() {
-      // 1. Kosongkan kembali slot peran di Firebase secara atomik
       if (isFirebaseReady && currentRoomToken && currentSiswaUser) {
         db.ref(`rooms/${currentRoomToken}/roles/fd`).transaction(currentVal => {
           if (currentVal === currentSiswaUser) {
@@ -634,7 +651,6 @@
         });
       }
 
-      // 2. Bersihkan penanda role di storage agar index.html TIDAK melakukan auto-redirect kembali
       localStorage.removeItem('skawan_role');
       localStorage.removeItem('skawan_role_title');
       sessionStorage.removeItem('skawan_role');
@@ -642,13 +658,12 @@
 
       tutupModalKeluar();
 
-      // 3. Arahkan kembali ke lobby index.html
       if (pendingExitType === 'keluar') {
         localStorage.removeItem('skawan_user');
         sessionStorage.removeItem('skawan_user');
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
       } else {
-        window.location.href = `index.html?room=${currentRoomToken}`;
+        window.location.href = `login.html?room=${currentRoomToken}`;
       }
     }
   </script>
