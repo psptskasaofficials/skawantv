@@ -83,13 +83,11 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Tombol Tonton Siaran PGM -->
         <a href="index.html" target="_blank" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition" title="Buka Layar Siaran Publik PGM">
           <span>📺</span>
           <span>Layar PGM</span>
         </a>
 
-        <!-- Tombol Keluar Sesi Guru/Admin -->
         <button onclick="keluarSesiAdmin()" class="px-3.5 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white font-bold text-xs transition flex items-center gap-1.5">
           <span>Keluar</span>
           <span>🚪</span>
@@ -147,7 +145,7 @@
       </div>
     </div>
 
-    <!-- KONSOL KONTROL STUDIO LIVE (DAPAT DIAKSES GURU & ADMIN) -->
+    <!-- KONSOL KONTROL STUDIO LIVE -->
     <div id="sectionLiveControlConsole" class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5">
       
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-3">
@@ -165,7 +163,7 @@
           </p>
         </div>
 
-        <!-- Status Saat Ini & Tombol Akhiri Sesi -->
+        <!-- Status Saat Ini & Tombol Aksi Sesi -->
         <div class="flex items-center gap-2">
           <span id="consoleLiveStatusBadge" class="font-mono text-xs font-black px-3 py-1 rounded-xl bg-red-600 text-white animate-pulse shadow">
             ● ON-AIR (LIVE)
@@ -184,7 +182,7 @@
         </div>
       </div>
 
-      <!-- Pintas Masuk Langsung ke Workstation Kru (Akses Supervisor: Admin & Guru) -->
+      <!-- Pintas Masuk Langsung ke Workstation Kru (Akses Supervisor) -->
       <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-2.5">
         <div class="flex items-center justify-between text-xs">
           <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">Pintas Masuk Workstation Kru (Akses Supervisor Bebas Slot):</span>
@@ -259,10 +257,13 @@
 
       </div>
 
-      <!-- Status Okupansi Kru Studio -->
+      <!-- Status Okupansi Kru Studio & Fitur Kick / Lepas Slot Kru -->
       <div class="space-y-2 pt-2 border-t border-slate-800">
         <div class="flex items-center justify-between text-xs">
-          <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">Status Okupansi Kru Siaran (Live Crew Slots):</span>
+          <div class="flex items-center gap-2">
+            <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">Status Okupansi Kru Siaran:</span>
+            <span class="text-[10px] font-mono text-slate-500 hidden sm:inline">(Klik tombol ✕ untuk melepas slot siswa)</span>
+          </div>
           <span id="lblOccupancyRatio" class="font-mono text-[11px] text-slate-400">0/9 Terisi</span>
         </div>
 
@@ -342,6 +343,32 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- MODAL: KELUARKAN / LEPAS SLOT KRU             -->
+  <!-- ============================================== -->
+  <div id="modalKickCrew" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-600 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div class="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-2xl font-bold">
+        🚫
+      </div>
+      <div>
+        <h4 class="text-base font-brand font-black text-white">Lepaskan Slot Kru?</h4>
+        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+          Keluarkan siswa <strong id="lblKickStudentName" class="text-amber-400">Dimas</strong> dari peran <strong id="lblKickRoleTitle" class="text-white">Video Switcher</strong>? Slot akan langsung kembali kosong di studio.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="tutupModalKickCrew()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
+          Batal
+        </button>
+        <button onclick="eksekusiKickCrew()" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs transition shadow-md">
+          Ya, Lepaskan Slot
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
   <!-- MODAL: AKHIRI SESI SIARAN RUANGAN              -->
   <!-- ============================================== -->
   <div id="modalAkhiriSesi" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -404,7 +431,7 @@
     </div>
   </div>
 
-  <!-- Dialog Notifikasi Modal Pengganti Alert -->
+  <!-- Dialog Notifikasi Modal Kustom -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl font-bold">!</div>
@@ -417,17 +444,16 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- LOGIKA MASTER CONTROL JAVASCRIPT               -->
+  <!-- LOGIKA JAVASCRIPT MASTER CONTROL              -->
   <!-- ============================================== -->
   <script>
-    // State Hak Akses & Ruangan
     let userRole = 'guru'; // 'guru' atau 'admin'
     let currentControlledRoom = '';
     let targetEndRoom = '';
     let targetDeleteRoom = '';
     let allRoomsCache = {};
-    let maskedPinsState = {}; // Menyimpan status apakah PIN sedang ditampilkan atau disembunyikan
-    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let maskedPinsState = {};
+    let pendingKickData = { roleKey: '', studentName: '', roleLabel: '' };
 
     const DEFAULT_SKASA_CLIP = {
       id: 'vt_default_skawan',
@@ -447,7 +473,6 @@
       return null;
     }
 
-    // Modal Helper Pengganti alert()
     function showNotice(title, message, isSuccess = false) {
       document.getElementById('noticeTitle').innerText = title;
       document.getElementById('noticeMessage').innerText = message;
@@ -466,16 +491,13 @@
       document.getElementById('noticeModal').classList.add('hidden');
     }
 
-    // Inisialisasi awal saat halaman dimuat
     window.addEventListener('DOMContentLoaded', () => {
-      // 1. Verifikasi Otentikasi Login dari login.html
       const urlParams = new URLSearchParams(window.location.search);
       const paramRole = urlParams.get('role');
       const sessionRole = sessionStorage.getItem('skawan_role') || sessionStorage.getItem('skawan_user_level');
       const isLogged = sessionStorage.getItem('skawan_admin_logged');
 
       if (!isLogged && !paramRole) {
-        // Jika belum login, alihkan kembali ke login.html
         window.location.href = "login.html";
         return;
       }
@@ -499,7 +521,7 @@
         badgeRole.firstElementChild.className = "w-2 h-2 rounded-full bg-purple-500 animate-pulse";
         lblTitle.innerText = "Super Admin";
         headerRoleBadge.innerText = "SUPER ADMIN";
-        roleDesc.innerText = "Hak kontrol penuh: mengelola seluruh studio, mengontrol siaran, dan menghapus ruangan tanpa verifikasi PIN.";
+        roleDesc.innerText = "Hak kontrol penuh: mengelola seluruh studio, mengontrol siaran, melepas slot kru SKASA, dan menghapus ruangan tanpa verifikasi PIN.";
       } else {
         badgeRole.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-950/80 text-blue-400 border border-blue-800";
         badgeRole.firstElementChild.className = "w-2 h-2 rounded-full bg-blue-500 animate-pulse";
@@ -515,7 +537,6 @@
       if (input) input.value = pin;
     }
 
-    // Menjamin Ruangan SKASA Selalu Ada & Terkunci Permanen ON-AIR
     function ensureDefaultSkasaRoom() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -530,6 +551,7 @@
               status: "live",
               pin: "123456",
               creatorRole: "admin",
+              defaultStandbyYtId: "XhwSTlXTJRc",
               createdAt: Date.now()
             },
             roles: {
@@ -541,7 +563,6 @@
             vt_playlist: [ { ...DEFAULT_SKASA_CLIP } ]
           });
         } else {
-          // Kunci status selalu 'live' untuk SKASA
           activeDb.ref('rooms/SKASA/meta/status').set('live');
           activeDb.ref('rooms/SKASA/vt_playlist').once('value', pSnap => {
             if (!pSnap.exists()) {
@@ -552,7 +573,6 @@
       });
     }
 
-    // Mendengarkan Pembaruan Seluruh Ruangan dari Firebase
     function listenAllRooms() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -560,7 +580,6 @@
       activeDb.ref('rooms').on('value', snapshot => {
         allRoomsCache = snapshot.val() || {};
         
-        // Pastikan ruangan SKASA selalu masuk ke daftar cache
         if (!allRoomsCache['SKASA']) {
           allRoomsCache['SKASA'] = {
             meta: {
@@ -568,18 +587,17 @@
               episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
               status: "live",
               pin: "123456",
-              totalCameras: 3
+              totalCameras: 3,
+              defaultStandbyYtId: "XhwSTlXTJRc"
             }
           };
         }
 
         renderAdminRoomsList(allRoomsCache);
 
-        // Jika konsol kontrol belum memiliki target, pilih ruangan pertama
         if (!currentControlledRoom || !allRoomsCache[currentControlledRoom]) {
           const keys = Object.keys(allRoomsCache);
           if (keys.length > 0) {
-            // Jika guru, prioritaskan ruangan kelas selain SKASA jika ada
             if (userRole === 'guru' && keys.length > 1) {
               const classRoom = keys.find(k => k !== 'SKASA') || 'SKASA';
               initRoomConsole(classRoom);
@@ -588,20 +606,17 @@
             }
           }
         } else {
-          // Segarkan konsol yang sedang aktif
           updateConsoleDisplay(currentControlledRoom, allRoomsCache[currentControlledRoom]);
         }
       });
     }
 
-    // Merender Daftar Ruangan Aktif
     function renderAdminRoomsList(rooms) {
       const grid = document.getElementById('roomsListGrid');
       grid.innerHTML = '';
 
       let roomKeys = Object.keys(rooms);
 
-      // Pastikan SKASA selalu ada di posisi pertama
       if (roomKeys.includes('SKASA')) {
         roomKeys = roomKeys.filter(k => k !== 'SKASA');
         roomKeys.unshift('SKASA');
@@ -628,15 +643,12 @@
 
         card.className = cardStyle;
 
-        // Masked PIN logic
         const isPinRevealed = maskedPinsState[token] === true;
         const displayedPin = isPinRevealed ? pin : '••••••';
 
-        // Konfigurasi Tombol Aksi Ruangan Berdasarkan Hak Akses:
         let actionButtonsHtml = '';
 
         if (isSkasa) {
-          // KHUSUS RUANGAN SKASA: HANYA ADMIN YANG DAPAT KONTROL STUDIO
           if (userRole === 'admin') {
             actionButtonsHtml = `
               <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
@@ -651,7 +663,6 @@
               </div>
             `;
           } else {
-            // Guru dilarang mengontrol SKASA
             actionButtonsHtml = `
               <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
                 <button onclick="tolakAksesKontrolSkasa()" class="py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-750 text-slate-400 border border-slate-700 transition flex items-center justify-center gap-1 cursor-pointer" title="Ruangan utama SKASA dilindungi dan hanya dapat dikontrol oleh Super Admin">
@@ -666,7 +677,6 @@
             `;
           }
         } else {
-          // RUANGAN KELAS LAINNYA: BAIK ADMIN MAUPUN GURU DAPAT KONTROL STUDIO
           actionButtonsHtml = `
             <div class="space-y-2 pt-1 border-t border-slate-800">
               <div class="grid grid-cols-2 gap-2">
@@ -680,7 +690,6 @@
                 </a>
               </div>
 
-              <!-- Tombol Pengelolaan Sesi: Akhiri & Hapus Room -->
               <div class="pt-1 border-t border-slate-850 flex items-center justify-between text-xs">
                 <span class="text-[10px] font-mono text-slate-500">${userRole === 'admin' ? 'Aksi Admin:' : 'Kelola Sesi:'}</span>
                 <div class="flex items-center gap-2">
@@ -749,7 +758,6 @@
       initRoomConsole(token);
     }
 
-    // Inisialisasi Konsol Kontrol untuk Ruangan Tertentu
     function initRoomConsole(token) {
       currentControlledRoom = token;
       const room = allRoomsCache[token] || {};
@@ -766,7 +774,6 @@
       document.getElementById('consoleActiveProgramTitle').innerText = meta.programName || "Program Studio";
       document.getElementById('consoleActiveEpisodeDesc').innerText = meta.episode || "Siaran Langsung";
 
-      // Badge Status Konsol
       const badgeLive = document.getElementById('consoleLiveStatusBadge');
       if (isLive) {
         badgeLive.className = "font-mono text-xs font-black px-3 py-1 rounded-xl bg-red-600 text-white animate-pulse shadow";
@@ -776,7 +783,6 @@
         badgeLive.innerText = "🟠 GLADI BERSIH";
       }
 
-      // Proteksi tombol Akhiri Sesi untuk SKASA
       const btnEnd = document.getElementById('btnTriggerEndSession');
       const btnDelete = document.getElementById('btnTriggerDeleteSession');
 
@@ -796,7 +802,6 @@
         }
       }
 
-      // Render okupansi kru
       renderCrewOccupancy(room.roles || {}, meta.totalCameras || 3);
       renderCrewQuickLinks(token);
     }
@@ -842,6 +847,9 @@
       }
 
       let occupiedCount = 0;
+      const isSkasa = currentControlledRoom === 'SKASA';
+      // Pada room SKASA hanya Admin yang bisa kick. Pada room lain: Guru dan Admin bisa kick.
+      const canKick = !isSkasa || (userRole === 'admin');
 
       standardRoles.forEach(r => {
         const occupant = roles[r.key];
@@ -849,13 +857,31 @@
         if (isFilled) occupiedCount++;
 
         const card = document.createElement('div');
-        card.className = `p-2 rounded-xl border text-center transition flex flex-col justify-between ${
+        card.className = `p-2 rounded-xl border text-center transition flex flex-col justify-between relative group ${
           isFilled 
             ? 'bg-emerald-950/40 border-emerald-700/70 text-emerald-300' 
             : 'bg-slate-900 border-slate-800 text-slate-500'
         }`;
 
+        let kickButtonHtml = '';
+        if (isFilled) {
+          if (canKick) {
+            kickButtonHtml = `
+              <button onclick="bukaModalKickCrew('${r.key}', '${occupant.replace(/'/g, "\\'")}', '${r.label}')" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow transition border border-rose-400" title="Keluarkan / Lepaskan slot ini">
+                ✕
+              </button>
+            `;
+          } else {
+            kickButtonHtml = `
+              <span class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-800 text-slate-500 text-[10px] font-bold flex items-center justify-center border border-slate-700 cursor-not-allowed" title="Hanya Super Admin yang dapat melepas slot di room SKASA">
+                🔒
+              </span>
+            `;
+          }
+        }
+
         card.innerHTML = `
+          ${kickButtonHtml}
           <span class="text-[10px] font-mono uppercase font-bold block truncate">${r.label}</span>
           <span class="text-xs font-bold font-sans truncate my-0.5 ${isFilled ? 'text-white' : 'text-slate-500'}">
             ${isFilled ? occupant : 'Kosong'}
@@ -870,7 +896,45 @@
       document.getElementById('lblOccupancyRatio').innerText = `${occupiedCount}/${standardRoles.length} Terisi`;
     }
 
-    // Mengubah Mode Siaran Studio (Gladi Bersih / ON-AIR)
+    function bukaModalKickCrew(roleKey, studentName, roleLabel) {
+      if (currentControlledRoom === 'SKASA' && userRole !== 'admin') {
+        showNotice("Proteksi SKASA", "Hanya Super Admin yang berwenang melepas slot kru di ruangan utama SKASA.", false);
+        return;
+      }
+
+      pendingKickData = { roleKey, studentName, roleLabel };
+      document.getElementById('lblKickStudentName').innerText = studentName;
+      document.getElementById('lblKickRoleTitle').innerText = roleLabel;
+      document.getElementById('modalKickCrew').classList.remove('hidden');
+    }
+
+    function tutupModalKickCrew() {
+      document.getElementById('modalKickCrew').classList.add('hidden');
+      pendingKickData = { roleKey: '', studentName: '', roleLabel: '' };
+    }
+
+    function eksekusiKickCrew() {
+      const { roleKey, studentName, roleLabel } = pendingKickData;
+      if (!currentControlledRoom || !roleKey) {
+        tutupModalKickCrew();
+        return;
+      }
+
+      const activeDb = getDatabase();
+      if (!activeDb) {
+        tutupModalKickCrew();
+        return;
+      }
+
+      activeDb.ref(`rooms/${currentControlledRoom}/roles/${roleKey}`).set("").then(() => {
+        tutupModalKickCrew();
+        showNotice("Slot Dikosongkan", `Siswa "${studentName}" berhasil dikeluarkan dari posisi ${roleLabel}. Slot sekarang terbuka kembali.`, true);
+      }).catch(err => {
+        tutupModalKickCrew();
+        showNotice("Galat", err.message, false);
+      });
+    }
+
     function setStudioMode(status) {
       if (!currentControlledRoom) return;
 
@@ -887,7 +951,6 @@
       });
     }
 
-    // Simulator Krisis
     function triggerCrisis(type, message) {
       if (!currentControlledRoom) return;
       const activeDb = getDatabase();
@@ -922,7 +985,6 @@
       });
     }
 
-    // Modal Buat Ruangan
     function bukaModalBuatRuangan() {
       generateRandomPin();
       document.getElementById('modalBuatRuangan').classList.remove('hidden');
@@ -953,7 +1015,6 @@
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      // Inisialisasi struktur ruangan lengkap
       const initialRoles = {
         creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: ""
       };
@@ -966,9 +1027,10 @@
           programName: programName,
           episode: episode,
           totalCameras: totalCams,
-          status: "standby", // Mulai dari gladi bersih
+          status: "standby",
           pin: pin,
           creatorRole: userRole,
+          defaultStandbyYtId: "XhwSTlXTJRc",
           createdAt: Date.now()
         },
         roles: initialRoles,
@@ -996,7 +1058,6 @@
       });
     }
 
-    // Modal Akhiri Sesi Siaran
     function bukaModalAkhiriSesi() {
       bukaModalAkhiriSesiInternal(currentControlledRoom);
     }
@@ -1013,10 +1074,8 @@
       const pinHelper = document.getElementById('lblPinHelperText');
 
       if (userRole === 'admin') {
-        // Super admin bebas PIN
         boxPin.classList.add('hidden');
       } else {
-        // Guru wajib verifikasi PIN
         boxPin.classList.remove('hidden');
         document.getElementById('inputVerificationPin').value = '';
         pinHelper.innerText = `* Masukkan 6-digit PIN yang Anda buat untuk ruangan ${token}.`;
@@ -1030,7 +1089,6 @@
       targetEndRoom = '';
     }
 
-    // Modal Hapus Ruangan Permanen (Admin Only)
     function bukaModalHapusRuanganKonsol() {
       if (!currentControlledRoom) return;
       bukaModalHapusRuangan(currentControlledRoom);
@@ -1065,9 +1123,7 @@
 
       const roomToDelete = targetDeleteRoom;
 
-      // 1. Siarkan status 'ended' terlebih dahulu agar kru otomatis dialihkan
       activeDb.ref(`rooms/${roomToDelete}/meta/status`).set('ended').then(() => {
-        // 2. Hapus total node ruangan dari Firebase
         setTimeout(() => {
           activeDb.ref(`rooms/${roomToDelete}`).remove().then(() => {
             tutupModalHapusRuangan();
@@ -1084,7 +1140,6 @@
       });
     }
 
-    // Eksekusi Pengakhiran Sesi Ruangan
     function eksekusiAkhiriSesi() {
       if (!targetEndRoom || targetEndRoom === 'SKASA') return;
 
@@ -1094,7 +1149,6 @@
       const roomData = allRoomsCache[targetEndRoom] || {};
       const expectedPin = String(roomData.meta?.pin || '123456');
 
-      // Validasi PIN jika bukan Super Admin
       if (userRole !== 'admin') {
         const inputPin = document.getElementById('inputVerificationPin').value.trim();
         if (inputPin !== expectedPin) {
@@ -1103,9 +1157,7 @@
         }
       }
 
-      // Siarkan status 'ended' ke Firebase agar seluruh kru dialihkan kembali ke login.html
       activeDb.ref(`rooms/${targetEndRoom}/meta/status`).set('ended').then(() => {
-        // Kosongkan seluruh slot kru di Firebase secara bersih
         const resetRoles = {};
         if (roomData.roles) {
           Object.keys(roomData.roles).forEach(k => resetRoles[k] = "");
@@ -1119,7 +1171,6 @@
       });
     }
 
-    // Keluar Sesi Guru / Admin
     function keluarSesiAdmin() {
       sessionStorage.removeItem('skawan_admin_logged');
       sessionStorage.removeItem('skawan_role');
