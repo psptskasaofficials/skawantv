@@ -98,6 +98,12 @@
           OFF (IDLE)
         </div>
         
+        <!-- Tombol Layar Penuh (Fullscreen) di Header -->
+        <button id="btnHeaderFullscreen" onclick="toggleFullscreen()" class="bg-black/60 hover:bg-black/80 active:scale-95 text-white border border-white/20 px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Layar Penuh (Fullscreen)">
+          <span id="headerFullscreenIcon">⛶</span>
+          <span id="headerFullscreenText" class="hidden sm:inline text-[11px]">Fullscreen</span>
+        </button>
+
         <!-- Tombol Ganti Peran Cepat -->
         <button onclick="bukaModalKeluar('ganti')" class="bg-black/60 hover:bg-black/80 active:scale-95 text-white border border-white/20 px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Ganti Posisi Kru">
           <span>🔄</span>
@@ -156,11 +162,17 @@
 
     <footer class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-center justify-between gap-3">
       
-      <!-- Tombol Balik Kamera (Depan / Belakang) -->
-      <button onclick="toggleCameraFacing()" class="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-white p-3 rounded-2xl active:scale-90 transition shadow flex items-center gap-2" title="Ganti Kamera Depan/Belakang">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-        <span class="text-xs font-bold hidden sm:inline">Flip Cam</span>
-      </button>
+      <!-- Tombol Kontrol Kamera Kiri (Flip Cam & Fullscreen Cepat) -->
+      <div class="flex items-center gap-2">
+        <button onclick="toggleCameraFacing()" class="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-white p-3 rounded-2xl active:scale-90 transition shadow flex items-center gap-2" title="Ganti Kamera Depan/Belakang">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <span class="text-xs font-bold hidden sm:inline">Flip Cam</span>
+        </button>
+
+        <button onclick="toggleFullscreen()" id="btnFooterFullscreen" class="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-white p-3 rounded-2xl active:scale-90 transition shadow flex items-center gap-1.5" title="Beralih Layar Penuh">
+          <span id="footerFullscreenIcon" class="text-base leading-none">⛶</span>
+        </button>
+      </div>
 
       <!-- Indikator Kunci Layar (Wake Lock) & Status Resolusi Rendah -->
       <div class="text-center font-mono text-[10px] text-slate-300 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
@@ -277,7 +289,7 @@
   </div>
 
   <script>
-    let currentRoomToken = 'STUDIO-1';
+    let currentRoomToken = 'SKASA';
     let currentRoleKey = 'cam_1';
     let currentSiswaUser = '';
     let pendingExitType = 'ganti'; // 'ganti' atau 'keluar'
@@ -288,28 +300,28 @@
     let wakeLock = null;
     let streamerInstance = null;
 
-    // Presets Resolusi Kamera WebRTC
+    // Presets Resolusi Kamera WebRTC (Menggunakan 'ideal' murni agar ponsel portrait/landscape tidak OverconstrainedError)
     const RESOLUTION_PRESETS = {
       '360p': {
         label: '360p',
         fullName: 'HEMAT 360p',
-        width: { ideal: 640, max: 640 },
-        height: { ideal: 360, max: 480 },
-        frameRate: { ideal: 20, max: 24 }
+        width: { ideal: 640 },
+        height: { ideal: 360 },
+        frameRate: { ideal: 20 }
       },
       '720p': {
         label: '720p HD',
         fullName: 'BROADCAST 720p HD',
-        width: { ideal: 1280, max: 1280 },
-        height: { ideal: 720, max: 720 },
-        frameRate: { ideal: 30, max: 30 }
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 }
       },
       '1080p': {
         label: '1080p FHD',
         fullName: 'STUDIO 1080p FHD',
-        width: { ideal: 1920, max: 1920 },
-        height: { ideal: 1080, max: 1080 },
-        frameRate: { ideal: 30, max: 30 }
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 }
       }
     };
 
@@ -334,7 +346,6 @@
       document.getElementById('noticeModal').classList.add('hidden');
     }
 
-    // Inisialisasi awal
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
@@ -343,7 +354,7 @@
       const sessionRole = sessionStorage.getItem('skawan_role') || localStorage.getItem('skawan_role');
       const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
       
-      currentRoomToken = roomParam || sessionRoom || 'STUDIO-1';
+      currentRoomToken = (roomParam || sessionRoom || 'SKASA').toUpperCase();
       currentRoleKey = roleParam || sessionRole || 'cam_1';
       currentSiswaUser = sessionUser || '';
 
@@ -408,19 +419,16 @@
       updateResolutionUI();
       tutupModalResolusi();
 
-      // Restart camera feed dengan resolusi baru
       initCameraFeed();
     }
 
     async function initCameraFeed() {
-      // Matikan stream sebelumnya jika ada
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
       }
 
       const preset = RESOLUTION_PRESETS[currentResolutionKey] || RESOLUTION_PRESETS['720p'];
 
-      // Video-only push stream (audio false demi isolasi gema studio & bandwidth)
       const constraints = {
         audio: false,
         video: {
@@ -451,9 +459,12 @@
                 if (status === 'connected') {
                   badge.innerText = `WebRTC: ${info}`;
                   badge.className = "text-emerald-400 font-bold";
+                } else if (status === 'connecting') {
+                  badge.innerText = `WebRTC: ${info}`;
+                  badge.className = "text-amber-400 font-bold animate-pulse";
                 } else if (status === 'ready') {
-                  badge.innerText = "WebRTC: Siap (Standby)";
-                  badge.className = "text-emerald-400 font-bold";
+                  badge.innerText = `WebRTC: ${info}`;
+                  badge.className = "text-blue-400 font-bold";
                 } else if (status === 'error') {
                   badge.innerText = `WebRTC Error: ${info}`;
                   badge.className = "text-rose-400 font-bold";
@@ -485,6 +496,46 @@
         console.warn("WakeLock tidak aktif:", err);
       }
     }
+
+    // Fungsi Pengendali Layar Penuh (Fullscreen API)
+    function toggleFullscreen() {
+      const docEl = document.documentElement;
+      const isFull = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+
+      if (!isFull) {
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch(err => console.warn("Fullscreen Error:", err));
+        } else if (docEl.webkitRequestFullscreen) {
+          docEl.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(err => console.warn("Exit Fullscreen Error:", err));
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    function updateFullscreenUI() {
+      const isFull = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      const headerIcon = document.getElementById('headerFullscreenIcon');
+      const headerText = document.getElementById('headerFullscreenText');
+      const footerIcon = document.getElementById('footerFullscreenIcon');
+
+      if (isFull) {
+        if (headerIcon) headerIcon.innerText = "🗗";
+        if (headerText) headerText.innerText = "Perkecil";
+        if (footerIcon) footerIcon.innerText = "🗗";
+      } else {
+        if (headerIcon) headerIcon.innerText = "⛶";
+        if (headerText) headerText.innerText = "Fullscreen";
+        if (footerIcon) footerIcon.innerText = "⛶";
+      }
+    }
+
+    document.addEventListener('fullscreenchange', updateFullscreenUI);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
 
     function initFirebaseTallyListener(token, camKey) {
       if (isFirebaseReady) {
