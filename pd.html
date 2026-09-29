@@ -63,8 +63,7 @@
     })();
   </script>
 
-  <!-- PeerJS WebRTC Streamer & YouTube API -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Native WebRTC Streamer & YouTube API (Tanpa Dependensi PeerJS) -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -330,7 +329,7 @@
         <!-- CARD 4: VT / MEDIA (Optimized Dynamic Live Poster Thumbnail) -->
         <div id="mv-card-vt" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden transition shadow">
           <!-- Dynamic High-Res YouTube Poster Background (Enteng & Anti-Freeze) -->
-          <img id="mv-vt-poster" src="https://img.youtube.com/vi/XhwSTlXTJRc/hqdefault.jpg" class="absolute inset-0 w-full h-full object-cover opacity-85 transition-opacity" alt="VT Thumbnail">
+          <img id="mv-vt-poster" src="https://img.youtube.com/vi/Jnp3esoHb9k/hqdefault.jpg" class="absolute inset-0 w-full h-full object-cover opacity-85 transition-opacity" alt="VT Thumbnail">
           
           <div class="flex items-center justify-between relative z-10">
             <span class="font-brand font-black text-xs text-white drop-shadow">VT / MEDIA</span>
@@ -559,10 +558,10 @@
       status: 'playing',
       currentTime: 0,
       totalDuration: 120,
-      url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc',
-      youtubeId: 'XhwSTlXTJRc',
+      url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
+      youtubeId: 'Jnp3esoHb9k',
       sourceType: 'youtube',
-      title: 'Profil SKAWAN TV'
+      title: 'SKAWAN TV Broadcast'
     };
 
     // YouTube Single-Engine Players (Hanya 2 instance: PGM dan PVW, Multiview menggunakan live dynamic poster)
@@ -615,11 +614,11 @@
     }
 
     function extractCleanYtId(raw) {
-      if (!raw) return 'XhwSTlXTJRc';
+      if (!raw) return 'Jnp3esoHb9k';
       const str = String(raw).trim();
       if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
       const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-      return match ? match[1] : 'XhwSTlXTJRc';
+      return match ? match[1] : 'Jnp3esoHb9k';
     }
 
     function formatTimecode(sec) {
@@ -667,8 +666,9 @@
           pdPgmYt = new YT.Player('pgmVtYtEl', {
             height: '100%',
             width: '100%',
+            host: 'https://www.youtube-nocookie.com',
             videoId: vidId,
-            playerVars: { ...playerDefaults, loop: 1, playlist: vidId },
+            playerVars: { ...playerDefaults, loop: 1, playlist: vidId, origin: window.location.origin || 'http://localhost' },
             events: {
               onReady: (e) => {
                 isPgmYtReady = true;
@@ -696,8 +696,9 @@
           pdPvwYt = new YT.Player('pvwVtYtEl', {
             height: '100%',
             width: '100%',
+            host: 'https://www.youtube-nocookie.com',
             videoId: vidId,
-            playerVars: { ...playerDefaults, loop: 1, playlist: vidId },
+            playerVars: { ...playerDefaults, loop: 1, playlist: vidId, origin: window.location.origin || 'http://localhost' },
             events: {
               onReady: (e) => {
                 isPvwYtReady = true;
