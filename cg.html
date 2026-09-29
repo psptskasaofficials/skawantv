@@ -74,7 +74,7 @@
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-blue-600 selection:text-white pb-6">
 
   <!-- ============================================== -->
-  <!-- HEADER & NAVIGASI GRAPHIC OPERATOR (DARK THEME) -->
+  <!-- HEADER & NAVIGASI GRAPHIC OPERATOR            -->
   <!-- ============================================== -->
   <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -131,7 +131,7 @@
         </div>
         <div>
           <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-200 block">KOMANDO SUTRADARA (PD):</span>
-          <span id="directorCueMessage" class="text-xs sm:text-sm font-brand font-black">Standby Lower Third Nama Host & Ticker</span>
+          <span id="directorCueMessage" class="text-xs sm:text-sm font-brand font-black">Standby Lower Third Nama Host & Bug Logo</span>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -192,10 +192,15 @@
 
             <div class="scanline absolute inset-0 pointer-events-none"></div>
 
-            <!-- LAPISAN 1: Bug Logo Pojok Kanan Atas -->
-            <div id="previewBugLogo" class="hidden absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/20">
-              <div class="w-4 h-4 rounded bg-red-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
-              <span class="text-[10px] font-brand font-black text-white tracking-widest uppercase">SKAWAN <span class="text-red-500">TV</span></span>
+            <!-- LAPISAN 1: Bug Logo Transparan (Pojok Kanan Atas) -->
+            <div id="previewBugLogo" class="hidden absolute top-3 right-3 z-30 flex items-center justify-center max-w-[130px] max-h-10 transition-all duration-200">
+              <!-- Jika ada custom logo (PNG/GIF) -->
+              <img id="previewLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-8 w-auto max-w-[120px] object-contain drop-shadow-md">
+              <!-- Fallback Badge Standar jika belum unggah logo -->
+              <div id="previewLogoDefaultBadge" class="flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/20 shadow-md">
+                <div class="w-4 h-4 rounded bg-red-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
+                <span class="text-[10px] font-brand font-black text-white tracking-widest uppercase">SKAWAN <span class="text-red-500">TV</span></span>
+              </div>
             </div>
 
             <!-- LAPISAN 2: Lower Third Overlay (Nama & Jabatan) -->
@@ -209,7 +214,7 @@
               </div>
             </div>
 
-            <!-- LAPISAN 3: Running Text / Ticker Bar di Dasar Layar (Header Waktu WIB Live: HH:mm) -->
+            <!-- LAPISAN 3: Running Text / Ticker Bar di Dasar Layar (Header Waktu WIB Live) -->
             <div id="previewTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 bg-red-700 text-white z-20 overflow-hidden flex items-center border-t border-red-500 shadow-md">
               <div id="cgTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] uppercase tracking-wider text-amber-400 shrink-0 z-10 border-r border-red-900">
                 00:00 WIB
@@ -221,25 +226,30 @@
               </div>
             </div>
 
-            <!-- Live Bug Tag -->
-            <div class="absolute top-3 left-3 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded shadow flex items-center gap-1 z-10">
-              <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> PGM LIVE
+            <!-- LAPISAN 4: Lencana LIVE On-Air Bug (Pojok Kiri Atas - Default: MATI) -->
+            <div id="previewLiveBadge" class="hidden absolute top-3 left-3 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded shadow-lg flex items-center gap-1 z-30 animate-pulse">
+              <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE
             </div>
+
           </div>
 
-          <!-- Status Indikator Lapisan Aktif -->
-          <div class="grid grid-cols-3 gap-2 pt-1 text-center font-mono text-[11px]">
+          <!-- Status Indikator Lapisan Aktif (4 Kolom) -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center font-mono text-[10px]">
             <div id="statLtBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
               <span class="block font-bold">LOWER THIRD</span>
-              <span class="text-[10px]" id="statLtText">OFF</span>
+              <span id="statLtText">OFF</span>
             </div>
             <div id="statLogoBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
               <span class="block font-bold">BUG LOGO</span>
-              <span class="text-[10px]" id="statLogoText">OFF</span>
+              <span id="statLogoText">OFF</span>
+            </div>
+            <div id="statLiveBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
+              <span class="block font-bold">LIVE BADGE</span>
+              <span id="statLiveText">OFF</span>
             </div>
             <div id="statTickerBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
               <span class="block font-bold">RUNNING TEXT</span>
-              <span class="text-[10px]" id="statTickerText">OFF</span>
+              <span id="statTickerText">OFF</span>
             </div>
           </div>
         </div>
@@ -257,7 +267,7 @@
       <!-- ============================================== -->
       <div class="lg:col-span-7 space-y-4">
 
-        <!-- 1. KONTROL LOWER THIRD (SUPER TITLE) & MANAJER PRESET -->
+        <!-- 1. KONTROL LOWER THIRD & MANAJER PRESET -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
           <div class="flex items-center justify-between pb-2 border-b border-slate-800">
             <div class="flex items-center gap-2">
@@ -328,17 +338,52 @@
           </div>
         </div>
 
-        <!-- 2. KONTROL BUG LOGO & RUNNING TEXT -->
+        <!-- 2. KONTROL BUG LOGO & LENCANA SIARAN LIVE -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-          <!-- Kartu Bug Logo SKAWAN TV -->
+          <!-- KARTU BUG LOGO (DENGAN FITUR UNGGAH FILE & LINK) -->
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
-            <div class="space-y-1">
+            <div class="space-y-2">
               <div class="flex items-center justify-between">
-                <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Bug Logo SKAWAN TV</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Bug Logo SKAWAN TV</span>
+                  <span class="text-[9px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-1.5 py-0.2 rounded">PNG/GIF</span>
+                </div>
                 <span id="logoLivePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF</span>
               </div>
-              <p class="text-[11px] text-slate-400 leading-snug">Menampilkan watermark logo siaran di sudut kanan atas layar Program.</p>
+              <p class="text-[11px] text-slate-400 leading-snug">Unggah file logo PNG/GIF transparan atau tempel URL logo acara:</p>
+
+              <!-- Panel Unggah & Pratinjau Mini Logo -->
+              <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
+                <div class="flex items-center gap-2.5">
+                  <!-- Kotak Pratinjau Mini Transparan -->
+                  <div class="w-12 h-12 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 p-1" title="Pratinjau Logo">
+                    <img id="miniLogoPreviewImg" src="" alt="Logo" class="hidden max-h-full max-w-full object-contain">
+                    <span id="miniLogoPlaceholder" class="text-[9px] font-mono text-slate-500 text-center font-bold">DEFAULT</span>
+                  </div>
+
+                  <!-- Tombol Pilih Berkas File Lokal -->
+                  <div class="flex-1 space-y-1">
+                    <input type="file" id="inputLogoFileInput" accept="image/png, image/gif, image/webp" class="hidden" onchange="tanganiUnggahLogoFile(event)">
+                    <button type="button" onclick="document.getElementById('inputLogoFileInput').click()" class="deck-btn w-full py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5">
+                      <span>📁</span>
+                      <span>Unggah File Logo (Maks 500KB)</span>
+                    </button>
+                    <span class="text-[9px] font-mono text-slate-500 block truncate" id="lblUploadedFileName">Belum ada file dipilih</span>
+                  </div>
+                </div>
+
+                <!-- Input Alternatif: URL Gambar -->
+                <div class="flex items-center gap-1.5 pt-1 border-t border-slate-850">
+                  <input type="text" id="inputLogoUrlManual" placeholder="Atau tempel link logo/GIF di sini..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-[11px] text-slate-200 outline-none focus:border-blue-500 font-mono">
+                  <button type="button" onclick="terapkanLogoDariUrl()" class="deck-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[10px] font-bold rounded-lg">
+                    Terapkan
+                  </button>
+                  <button type="button" onclick="resetKeLogoDefault()" class="deck-btn px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-[10px] font-bold rounded-lg" title="Kembalikan ke Badge Default">
+                    Reset
+                  </button>
+                </div>
+              </div>
             </div>
             
             <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
@@ -351,36 +396,57 @@
             </div>
           </div>
 
-          <!-- Kartu Running Text / Ticker -->
+          <!-- KARTU LENCANA SIARAN LIVE (KENDALI STATUS LIVE DI PGM) -->
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
-            <div class="space-y-1">
+            <div class="space-y-2">
               <div class="flex items-center justify-between">
-                <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Running Text (Ticker)</span>
-                <span id="tickerLivePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF</span>
+                <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Lencana Siaran LIVE</span>
+                <span id="liveBadgePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF (DEFAULT)</span>
               </div>
-              <p class="text-[11px] text-slate-400 leading-snug">Menampilkan baris teks berita berjalan di dasar layar siaran.</p>
+              <p class="text-[11px] text-slate-400 leading-snug">
+                Secara default tanda <strong class="text-red-400">● LIVE</strong> di layar PGM penonton berstatus <strong>MATI</strong>. Aktifkan lencana saat siaran studio resmi On-Air.
+              </p>
+
+              <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 space-y-1.5 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400 font-medium">Status Tanda On-Air:</span>
+                  <span id="lblLiveBadgeStatusText" class="font-mono font-bold text-slate-400">TIDAK TAYANG (OFF)</span>
+                </div>
+                <div class="text-[10px] font-mono text-slate-500 leading-relaxed">
+                  * Mengontrol status tanda merah <strong>● LIVE</strong> di layar penonton (<code class="text-slate-400">index.html</code>), Switcher, dan PD.
+                </div>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-              <button id="btnTickerOn" onclick="toggleTicker(true)" class="deck-btn py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700">
-                TICKER ON
+              <button id="btnLiveBadgeOn" onclick="toggleLiveBadge(true)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700">
+                🔴 LIVE ON
               </button>
-              <button id="btnTickerOff" onclick="toggleTicker(false)" class="deck-btn py-2 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition">
-                TICKER OFF
+              <button id="btnLiveBadgeOff" onclick="toggleLiveBadge(false)" class="deck-btn py-2.5 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition">
+                ⚪ LIVE OFF
               </button>
             </div>
           </div>
 
         </div>
 
-        <!-- 3. INPUT TEKS RUNNING TEXT -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2">
+        <!-- 3. KONTROL RUNNING TEXT (TICKER) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
           <div class="flex items-center justify-between">
-            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Teks Berita Berjalan (Ticker Content):</label>
-            <span class="text-[10px] font-mono text-slate-500">Otomatis Diperbarui</span>
+            <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Running Text (Ticker Bar)</span>
+            <div class="flex items-center gap-2">
+              <span id="tickerLivePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF</span>
+              <button id="btnTickerOn" onclick="toggleTicker(true)" class="deck-btn px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700">
+                TICKER ON
+              </button>
+              <button id="btnTickerOff" onclick="toggleTicker(false)" class="deck-btn px-3 py-1 rounded-lg bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs">
+                TICKER OFF
+              </button>
+            </div>
           </div>
+
           <div class="flex gap-2">
-            <input type="text" id="inputTickerContent" value="Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan • SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast" oninput="updateTickerContent(this.value)" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+            <input type="text" id="inputTickerContent" value="Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan • SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast" oninput="updateTickerContent(this.value)" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-sans">
             <button onclick="simpanTicker()" class="deck-btn px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition shadow-md shadow-blue-600/30">
               Update
             </button>
@@ -481,12 +547,14 @@
     let pendingExitType = 'ganti';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
 
-    // State Grafis CG
+    // State Grafis CG Lengkap (Lencana LIVE default: false / OFF)
     let cgState = {
       lowerThirdActive: false,
       title: "Dimas Pratama",
       subtitle: "Presenter Utama SKAWAN TV",
       logoActive: false,
+      logoUrl: "", // Kosong = Gunakan Logo Default SKAWAN TV
+      isLiveBadgeActive: false, // Default: MATI (OFF)
       tickerActive: false,
       tickerText: "Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan • SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast"
     };
@@ -500,7 +568,7 @@
     let isCgYtReady = false;
     let currentCgYtId = '';
 
-    // Preset Data Awal Bawaan (Default List)
+    // Preset Data Awal Bawaan
     const DEFAULT_PRESETS = [
       { id: "p1", label: "[Host]", title: "Dimas Pratama", subtitle: "Presenter Utama SKAWAN TV" },
       { id: "p2", label: "[Narasumber]", title: "Ir. Anugerah Budi", subtitle: "Kepala Jurusan Broadcast & Pertelevisian" },
@@ -519,7 +587,7 @@
       return null;
     }
 
-    // Jam WIB Real-Time Live Ticker (HANYA JAM DAN MENIT: HH:mm WIB)
+    // Jam WIB Real-Time Live Ticker (HH:mm WIB)
     function startWibLiveClock() {
       const updateClock = () => {
         const now = new Date();
@@ -538,7 +606,7 @@
       setInterval(updateClock, 1000);
     }
 
-    // Inisialisasi YouTube API untuk Layar CG (Clean host & ID Jnp3esoHb9k)
+    // Inisialisasi YouTube API untuk Layar CG
     window.onYouTubeIframeAPIReady = function() {
       isCgYtReady = true;
       try {
@@ -582,7 +650,7 @@
       document.getElementById('noticeModal').classList.add('hidden');
     }
 
-    // Inisialisasi Penyimpanan Preset (Dual Storage: Firebase + LocalStorage)
+    // Inisialisasi Penyimpanan Preset
     function initPresetStorage() {
       const localKey = `skawan_cg_presets_${currentRoomToken}`;
       const localData = localStorage.getItem(localKey);
@@ -738,7 +806,6 @@
       }
 
       if (targetId) {
-        // Mode Edit
         const idx = customPresets.findIndex(p => p.id === targetId);
         if (idx !== -1) {
           customPresets[idx].label = label;
@@ -746,7 +813,6 @@
           customPresets[idx].subtitle = subtitle;
         }
       } else {
-        // Mode Tambah Baru
         const newId = `preset_${Date.now()}`;
         customPresets.push({
           id: newId,
@@ -799,13 +865,13 @@
       initPresetStorage();
       initCgSystem(currentRoomToken);
       sinkronInputPreview();
+      updateLogoPreviewVisual();
     });
 
     function initCgSystem(token) {
       const activeDb = getDatabase();
 
       if (activeDb) {
-        // Pantau jika Guru mengakhiri sesi siaran (SKASA kebal)
         activeDb.ref(`rooms/${token}/meta/status`).on('value', snap => {
           if (!snap.exists()) return;
           if (snap.val() === 'ended' && token !== 'SKASA') {
@@ -813,7 +879,7 @@
           }
         });
 
-        // 1. Pantau Live State dari Switcher (Sumber Kamera PGM Aktif)
+        // 1. Pantau Live State dari Switcher
         activeDb.ref(`rooms/${token}/live_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const live = snapshot.val();
@@ -822,14 +888,14 @@
           renderCgLiveBackground();
         });
 
-        // 2. Pantau Playback VT dari Audio-VT
+        // 2. Pantau Playback VT
         activeDb.ref(`rooms/${token}/vt_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           latestVtState = snapshot.val();
           syncCgVtPlayback();
         });
 
-        // Dengarkan instruksi komando langsung dari Program Director (PD)
+        // Dengarkan komando Sutradara (PD)
         activeDb.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const cue = snapshot.val();
@@ -844,7 +910,7 @@
           }
         });
 
-        // Dengarkan status simulasi krisis dari Guru
+        // Dengarkan simulasi krisis Guru
         activeDb.ref(`rooms/${token}/crisis`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const crisis = snapshot.val();
@@ -858,15 +924,17 @@
           }
         });
 
-        // Tarik state CG yang tersimpan
+        // Tarik state CG yang tersimpan dari Firebase
         activeDb.ref(`rooms/${token}/cg_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const remoteCg = snapshot.val();
           cgState = { ...cgState, ...remoteCg };
           updateCgUI();
+          updateLogoPreviewVisual();
         });
       } else {
         updateCgUI();
+        updateLogoPreviewVisual();
       }
 
       // Hubungkan WebRTC Streamer untuk Menerima Feed Kamera HP Langsung
@@ -997,6 +1065,18 @@
       syncCgKeFirebase();
     }
 
+    // Toggle Lencana LIVE (Default MATI/OFF)
+    function toggleLiveBadge(isActive) {
+      cgState.isLiveBadgeActive = isActive;
+      updateCgUI();
+      syncCgKeFirebase();
+      if (isActive) {
+        showNotice("LIVE On-Air Aktif", "Tanda merah '● LIVE' telah dinyalakan di seluruh monitor studio dan layar publik penonton.", true);
+      } else {
+        showNotice("LIVE Off", "Tanda '● LIVE' dimatikan di seluruh layar.", true);
+      }
+    }
+
     function toggleTicker(isActive) {
       cgState.tickerActive = isActive;
       updateCgUI();
@@ -1017,10 +1097,107 @@
       cgState.lowerThirdActive = false;
       cgState.logoActive = false;
       cgState.tickerActive = false;
+      // Catatan: isLiveBadgeActive tidak otomatis dimatikan agar status siaran live studio tidak terpotong saat hanya membersihkan teks CG
       updateCgUI();
       syncCgKeFirebase();
     }
 
+    // ==============================================
+    // LOGIKA UNGGAH & MANAJEMEN LOGO TRANSPARAN
+    // ==============================================
+    function tanganiUnggahLogoFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Validasi ukuran berkas maksimal 500 KB agar performa database RTDB tetap instan
+      if (file.size > 500 * 1024) {
+        showNotice("Ukuran File Terlalu Besar", "Harap pilih berkas PNG/GIF transparan dengan ukuran di bawah 500 KB agar sinkronisasi studio instan.", false);
+        event.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Url = e.target.result;
+        cgState.logoUrl = base64Url;
+
+        document.getElementById('lblUploadedFileName').innerText = file.name;
+        document.getElementById('inputLogoUrlManual').value = '';
+
+        updateLogoPreviewVisual();
+        if (cgState.logoActive) {
+          syncCgKeFirebase();
+        }
+        showNotice("Logo Berhasil Dimuat", `Berkas "${file.name}" siap ditayangkan On-Air sebagai Bug Logo.`, true);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function terapkanLogoDariUrl() {
+      const urlInput = document.getElementById('inputLogoUrlManual').value.trim();
+      if (!urlInput) {
+        showNotice("Tautan Kosong", "Masukkan tautan URL logo gambar atau GIF transparan terlebih dahulu.", false);
+        return;
+      }
+      cgState.logoUrl = urlInput;
+      document.getElementById('lblUploadedFileName').innerText = "Tautan Gambar Diterapkan";
+      updateLogoPreviewVisual();
+      if (cgState.logoActive) {
+        syncCgKeFirebase();
+      }
+      showNotice("Logo Diperbarui", "Logo dari tautan eksternal berhasil diterapkan.", true);
+    }
+
+    function resetKeLogoDefault() {
+      cgState.logoUrl = "";
+      document.getElementById('inputLogoUrlManual').value = '';
+      document.getElementById('lblUploadedFileName').innerText = "Belum ada file dipilih";
+      document.getElementById('inputLogoFileInput').value = '';
+      updateLogoPreviewVisual();
+      if (cgState.logoActive) {
+        syncCgKeFirebase();
+      }
+      showNotice("Logo Default", "Logo telah dikembalikan ke badge bawaan SKAWAN TV.", true);
+    }
+
+    function updateLogoPreviewVisual() {
+      const miniImg = document.getElementById('miniLogoPreviewImg');
+      const miniPlaceholder = document.getElementById('miniLogoPlaceholder');
+      const previewCustomImg = document.getElementById('previewLogoCustomImg');
+      const previewDefaultBadge = document.getElementById('previewLogoDefaultBadge');
+
+      if (cgState.logoUrl && cgState.logoUrl.trim().length > 0) {
+        // Tampilkan Custom Image / GIF
+        if (miniImg) {
+          miniImg.src = cgState.logoUrl;
+          miniImg.classList.remove('hidden');
+        }
+        if (miniPlaceholder) miniPlaceholder.classList.add('hidden');
+
+        if (previewCustomImg) {
+          previewCustomImg.src = cgState.logoUrl;
+          previewCustomImg.classList.remove('hidden');
+        }
+        if (previewDefaultBadge) previewDefaultBadge.classList.add('hidden');
+      } else {
+        // Tampilkan Badge Default SKAWAN TV
+        if (miniImg) {
+          miniImg.src = "";
+          miniImg.classList.add('hidden');
+        }
+        if (miniPlaceholder) miniPlaceholder.classList.remove('hidden');
+
+        if (previewCustomImg) {
+          previewCustomImg.src = "";
+          previewCustomImg.classList.add('hidden');
+        }
+        if (previewDefaultBadge) previewDefaultBadge.classList.remove('hidden');
+      }
+    }
+
+    // ==============================================
+    // PERBARUI ANTARMUKA (UI)
+    // ==============================================
     function updateCgUI() {
       // 1. Tampilan Lower Third
       const ltBox = document.getElementById('previewLowerThird');
@@ -1069,7 +1246,38 @@
         btnLogoOff.className = "deck-btn py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-500 font-semibold text-xs transition";
       }
 
-      // 3. Tampilan Running Text
+      // 3. Tampilan Lencana LIVE
+      const liveBadgeBox = document.getElementById('previewLiveBadge');
+      const liveBadgePill = document.getElementById('liveBadgePill');
+      const statLive = document.getElementById('statLiveBadge');
+      const statLiveText = document.getElementById('statLiveText');
+      const lblLiveStatusText = document.getElementById('lblLiveBadgeStatusText');
+      const btnLiveBadgeOn = document.getElementById('btnLiveBadgeOn');
+      const btnLiveBadgeOff = document.getElementById('btnLiveBadgeOff');
+
+      if (cgState.isLiveBadgeActive) {
+        liveBadgeBox.classList.remove('hidden');
+        liveBadgePill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-950 text-red-300 border border-red-700 font-bold animate-pulse";
+        liveBadgePill.innerText = "● LIVE (ON)";
+        statLive.className = "p-2 rounded-xl bg-red-950/60 border border-red-700 text-red-300 font-bold";
+        statLiveText.innerText = "ON-AIR";
+        lblLiveStatusText.innerText = "MENYALA DI LAYAR PGM";
+        lblLiveStatusText.className = "font-mono font-bold text-red-400 animate-pulse";
+        btnLiveBadgeOn.className = "deck-btn py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow-md shadow-red-600/30 ring-2 ring-red-400";
+        btnLiveBadgeOff.className = "deck-btn py-2.5 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition";
+      } else {
+        liveBadgeBox.classList.add('hidden');
+        liveBadgePill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700";
+        liveBadgePill.innerText = "OFF (DEFAULT)";
+        statLive.className = "p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400";
+        statLiveText.innerText = "OFF";
+        lblLiveStatusText.innerText = "TIDAK TAYANG (OFF)";
+        lblLiveStatusText.className = "font-mono font-bold text-slate-500";
+        btnLiveBadgeOn.className = "deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition border border-slate-700";
+        btnLiveBadgeOff.className = "deck-btn py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 font-semibold text-xs transition";
+      }
+
+      // 4. Tampilan Running Text
       const tickerBox = document.getElementById('previewTickerBar');
       const tickerPill = document.getElementById('tickerLivePill');
       const statTicker = document.getElementById('statTickerBadge');
@@ -1083,21 +1291,21 @@
         tickerPill.innerText = "ON-AIR";
         statTicker.className = "p-2 rounded-xl bg-amber-950/60 border border-amber-700 text-amber-300 font-bold";
         statTickerText.innerText = "ON-AIR";
-        btnTickerOn.className = "deck-btn py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs transition shadow-md shadow-amber-600/30";
-        btnTickerOff.className = "deck-btn py-2 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition";
+        btnTickerOn.className = "deck-btn px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs transition shadow-md shadow-amber-600/30";
+        btnTickerOff.className = "deck-btn px-3 py-1 rounded-lg bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition";
       } else {
         tickerBox.classList.add('hidden');
         tickerPill.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700";
         tickerPill.innerText = "OFF";
         statTicker.className = "p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400";
         statTickerText.innerText = "OFF";
-        btnTickerOn.className = "deck-btn py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700";
-        btnTickerOff.className = "deck-btn py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-500 font-semibold text-xs transition";
+        btnTickerOn.className = "deck-btn px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700";
+        btnTickerOff.className = "deck-btn px-3 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-500 font-semibold text-xs transition";
       }
 
-      // Badge umum On-Air CG
+      // 5. Badge umum On-Air CG
       const onAirBadge = document.getElementById('onAirCgBadge');
-      if (cgState.lowerThirdActive || cgState.logoActive || cgState.tickerActive) {
+      if (cgState.lowerThirdActive || cgState.logoActive || cgState.tickerActive || cgState.isLiveBadgeActive) {
         onAirBadge.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 uppercase animate-pulse border border-red-700";
         onAirBadge.innerText = "CG ON-AIR";
       } else {
@@ -1114,6 +1322,8 @@
         title: cgState.title,
         subtitle: cgState.subtitle,
         logoActive: cgState.logoActive,
+        logoUrl: cgState.logoUrl || "",
+        isLiveBadgeActive: Boolean(cgState.isLiveBadgeActive),
         tickerActive: cgState.tickerActive,
         tickerText: cgState.tickerText,
         updatedAt: Date.now()
