@@ -48,6 +48,12 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
+    /* Akselerasi Grafis Digital Halus Tanpa Garis */
+    video, iframe, #cgLiveVtYtWrap iframe {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
     @keyframes marquee {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
@@ -63,11 +69,6 @@
     }
     .deck-btn:active {
       transform: scale(0.97);
-    }
-    .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-      background-size: 100% 2px, 3px 100%;
-      pointer-events: none;
     }
   </style>
 </head>
@@ -171,12 +172,14 @@
 
           <!-- Layar Simulasi Program On-Air dengan Lapisan CG -->
           <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-slate-800 flex items-center justify-center shadow-inner">
+          <!-- Layar Simulasi Program On-Air dengan Lapisan CG (Clean Digital Broadcast) -->
+          <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-slate-800 flex items-center justify-center shadow-inner" id="cgPgmContainer">
             
             <!-- Video Kamera HP WebRTC Live Feed -->
-            <video id="cgLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
+            <video id="cgLiveCamVideo" class="hidden absolute inset-0 w-full h-full object-cover z-10" autoplay playsinline muted></video>
 
             <!-- Video VT Media Live Playback (YouTube, HTML5, Drive) -->
-            <div id="cgLiveVtWrapper" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center pointer-events-none">
+            <div id="cgLiveVtWrapper" class="hidden absolute inset-0 w-full h-full bg-black flex items-center justify-center pointer-events-none z-10">
               <video id="cgLiveVtHtml5" class="w-full h-full object-contain hidden" playsinline muted></video>
               <div id="cgLiveVtYtWrap" class="w-full h-full pointer-events-none hidden">
                 <div id="cgLiveVtYtEl" class="w-full h-full"></div>
@@ -185,12 +188,10 @@
             </div>
 
             <!-- Fallback Tampilan Default Jika Belum Ada Sinyal Video -->
-            <div id="cgFallbackScreen" class="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex flex-col items-center justify-center text-center p-4">
+            <div id="cgFallbackScreen" class="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex flex-col items-center justify-center text-center p-4 z-0">
               <span class="font-brand font-black text-2xl sm:text-3xl text-slate-600 tracking-wider">PGM LIVE FEED</span>
               <span class="text-xs text-slate-500 mt-1 font-mono uppercase" id="cgLiveSourceText">STANDBY / MENUNGGU FEED</span>
             </div>
-
-            <div class="scanline absolute inset-0 pointer-events-none"></div>
 
             <!-- LAPISAN 1: Bug Logo Transparan (Pojok Kanan Atas) -->
             <div id="previewBugLogo" class="hidden absolute top-3 right-3 z-30 flex items-center justify-center max-w-[130px] max-h-10 transition-all duration-200">
@@ -546,6 +547,7 @@
     let currentSiswaUser = '';
     let pendingExitType = 'ganti';
     let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let lastRenderedCgSource = null;
 
     // State Grafis CG Lengkap (Lencana LIVE default: false / OFF)
     let cgState = {
@@ -563,7 +565,7 @@
     let streamerInstance = null;
     const remoteCamStreams = new Map();
     let currentLiveState = { programSource: 'cam_1', previewSource: 'cam_2' };
-    let latestVtState = { status: 'stopped', currentTime: 0, youtubeId: '', url: '', sourceType: 'youtube' };
+    let latestVtState = { status: 'stopped', currentTime: 0, youtubeId: 'Jnp3esoHb9k', url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k', sourceType: 'youtube' };
     let cgYtPlayer = null;
     let isCgYtReady = false;
     let currentCgYtId = '';
@@ -606,31 +608,79 @@
       setInterval(updateClock, 1000);
     }
 
-    // Inisialisasi YouTube API untuk Layar CG
-    window.onYouTubeIframeAPIReady = function() {
-      isCgYtReady = true;
+    // Inisialisasi YouTube API Kuat dengan Polling Proteksi
+    function initCgYtPlayer() {
+      if (isCgYtReady && cgYtPlayer) return;
+      if (typeof YT === 'undefined' || !YT.Player) return;
+
+      const vidId = latestVtState.youtubeId || 'Jnp3esoHb9k';
+
       try {
         cgYtPlayer = new YT.Player('cgLiveVtYtEl', {
           height: '100%',
           width: '100%',
           host: 'https://www.youtube-nocookie.com',
-          videoId: 'Jnp3esoHb9k',
+          videoId: vidId,
           playerVars: {
             playsinline: 1,
             controls: 0,
             rel: 0,
+            autoplay: 1,
             mute: 1,
             modestbranding: 1,
             disablekb: 1,
             cc_load_policy: 0,
+            cc_lang_pref: 'none',
             iv_load_policy: 3,
             origin: window.location.origin || 'http://localhost'
+          },
+          events: {
+            onReady: () => {
+              isCgYtReady = true;
+              currentCgYtId = vidId;
+              try {
+                if (typeof cgYtPlayer.unloadModule === 'function') {
+                  cgYtPlayer.unloadModule('captions');
+                  cgYtPlayer.unloadModule('cc');
+                }
+              } catch (e) {}
+              renderCgLiveBackground();
+            },
+            onStateChange: (e) => {
+              if (e.data === YT.PlayerState.PLAYING) {
+                try {
+                  if (typeof cgYtPlayer.unloadModule === 'function') {
+                    cgYtPlayer.unloadModule('captions');
+                    cgYtPlayer.unloadModule('cc');
+                  }
+                } catch (e) {}
+              }
+              if (e.data === YT.PlayerState.ENDED) {
+                cgYtPlayer.seekTo(0, true);
+                cgYtPlayer.playVideo();
+              }
+            }
           }
         });
+        isCgYtReady = true;
       } catch (e) {
         console.warn("[CG] YouTube player init error:", e);
       }
-    };
+    }
+
+    if (window.YT && window.YT.Player) {
+      initCgYtPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = initCgYtPlayer;
+    }
+
+    const cgYtPoll = setInterval(() => {
+      if (isCgYtReady && cgYtPlayer) {
+        clearInterval(cgYtPoll);
+      } else if (window.YT && window.YT.Player) {
+        initCgYtPlayer();
+      }
+    }, 400);
 
     function showNotice(title, message, isSuccess = true) {
       document.getElementById('noticeTitle').innerText = title;
@@ -883,9 +933,12 @@
         activeDb.ref(`rooms/${token}/live_state`).on('value', snapshot => {
           if (!snapshot.exists()) return;
           const live = snapshot.val();
+          const prevSource = currentLiveState.programSource;
           currentLiveState.programSource = live.programSource || currentLiveState.programSource;
           currentLiveState.previewSource = live.previewSource || currentLiveState.previewSource;
-          renderCgLiveBackground();
+          if (prevSource !== currentLiveState.programSource) {
+            renderCgLiveBackground();
+          }
         });
 
         // 2. Pantau Playback VT
@@ -944,8 +997,12 @@
           roleKey: 'cg',
           onRemoteStream: (camKey, stream) => {
             console.log(`[CG Deck] Stream kamera diterima: ${camKey}`);
+            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+            remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
-            renderCgLiveBackground();
+            if (currentLiveState.programSource === normKey || currentLiveState.programSource === camKey) {
+              renderCgLiveBackground(true);
+            }
           },
           onStatusChange: (status, info) => {
             console.log(`[CG Deck] WebRTC status: ${status} - ${info}`);
@@ -954,8 +1011,14 @@
       }
     }
 
-    function renderCgLiveBackground() {
+    function renderCgLiveBackground(forceUpdate = false) {
       const activeSrc = currentLiveState.programSource || 'cam_1';
+
+      if (!forceUpdate && lastRenderedCgSource === activeSrc) {
+        return;
+      }
+      lastRenderedCgSource = activeSrc;
+
       const camVideo = document.getElementById('cgLiveCamVideo');
       const vtWrap = document.getElementById('cgLiveVtWrapper');
       const fallbackScreen = document.getElementById('cgFallbackScreen');
@@ -969,6 +1032,9 @@
         vtWrap.classList.remove('hidden');
         syncCgVtPlayback();
       } else {
+        if (isCgYtReady && cgYtPlayer && typeof cgYtPlayer.pauseVideo === 'function') {
+          cgYtPlayer.pauseVideo();
+        }
         vtWrap.classList.add('hidden');
         const stream = getCameraStream(activeSrc);
         if (stream) {
@@ -1013,9 +1079,12 @@
             else cgYtPlayer.cueVideoById(ytId, latestVtState.currentTime || 0);
           } else {
             if (isPlaying) {
-              cgYtPlayer.playVideo();
+              const state = typeof cgYtPlayer.getPlayerState === 'function' ? cgYtPlayer.getPlayerState() : -1;
+              if (state !== 1) { // 1 = PLAYING
+                cgYtPlayer.playVideo();
+              }
               const cur = cgYtPlayer.getCurrentTime() || 0;
-              if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
+              if (Math.abs(cur - (latestVtState.currentTime || 0)) > 3.5) {
                 cgYtPlayer.seekTo(latestVtState.currentTime, true);
               }
             } else {
