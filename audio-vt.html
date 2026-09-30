@@ -32,22 +32,24 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
-  <!-- Native WebRTC Streamer & YouTube API (No PeerJS Dependency) -->
+  <!-- Native WebRTC Streamer & YouTube API -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
+    /* Slider Fader Vertikal Meja Mixer */
     input[type=range].vertical-slider {
       writing-mode: bt-lr;
       -webkit-appearance: slider-vertical;
-      width: 24px;
-      height: 140px;
+      width: 26px;
+      height: 155px;
       padding: 0 4px;
       cursor: pointer;
     }
     .deck-btn {
       transition: all 0.12s ease;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     .deck-btn:active { transform: scale(0.96); }
     .scanline {
@@ -62,7 +64,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black pb-6">
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black pb-8">
 
   <!-- Top Navigation Bar -->
   <nav class="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-md">
@@ -96,11 +98,11 @@
           <span>👤</span>
           <span id="navUserName">Audio Operator</span>
         </div>
-        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
+        <button onclick="bukaModalKeluar('ganti')" class="deck-btn text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
           <span>🔄</span>
           <span class="hidden sm:inline">Ganti Peran</span>
         </button>
-        <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar Sesi">
+        <button onclick="bukaModalKeluar('keluar')" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar Sesi">
           <span>🚪</span>
           <span class="hidden sm:inline">Keluar</span>
         </button>
@@ -108,8 +110,8 @@
     </div>
   </nav>
 
-  <!-- Banner Instruksi PD -->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full space-y-2">
+  <!-- Banner Instruksi PD Intercom -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
     <div id="directorCueBanner" class="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition">
       <div class="flex items-center gap-2.5">
         <div class="p-1.5 rounded-xl bg-white/20 shrink-0">
@@ -125,12 +127,16 @@
   </div>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- ========================================================================= -->
+    <!-- BAGIAN ATAS: VIDEO VT & RETURN MONITOR (KIRI) vs PLAYLIST DECK (KANAN)    -->
+    <!-- ========================================================================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
       <!-- ============================================== -->
-      <!-- KOLOM KIRI: VT PLAYER & PLAYLIST DECK (7 Kolom) -->
+      <!-- KOLOM KIRI ATAS: VT PLAYER & PGM RETURN (6 Kol) -->
       <!-- ============================================== -->
-      <div class="lg:col-span-7 space-y-4">
+      <div class="lg:col-span-6 space-y-3">
 
         <!-- DECK PEMUTAR VT UTAMA -->
         <div class="bg-slate-950 border-2 border-amber-500/70 rounded-2xl p-3 shadow-xl space-y-2.5 relative overflow-hidden">
@@ -178,7 +184,7 @@
           <div class="space-y-1.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
             <div class="flex items-center justify-between font-mono text-[11px]">
               <span id="lblCurrentTime" class="font-bold text-amber-400">00:00</span>
-              <span id="lblClipTitlePlaying" class="text-xs text-slate-300 font-semibold truncate max-w-[220px] text-center">
+              <span id="lblClipTitlePlaying" class="text-xs text-slate-300 font-semibold truncate max-w-[200px] text-center">
                 SKAWAN TV Broadcast
               </span>
               <div class="flex items-center gap-1.5">
@@ -192,7 +198,7 @@
 
           <!-- Tombol Eksekusi Siaran VT -->
           <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
-            <button onclick="eksekusiCue()" id="btnCue" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-brand font-bold text-xs flex flex-col items-center justify-center">
+            <button onclick="eksekusiCue()" id="btnCue" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-brand font-bold text-xs flex flex-col items-center justify-center shadow">
               <span>⏮️ CUE</span>
               <span class="text-[8px] font-mono text-slate-400">[Detik 0]</span>
             </button>
@@ -202,358 +208,385 @@
               <span>ROLL VT!</span>
             </button>
 
-            <button onclick="eksekusiPause()" id="btnPause" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center">
+            <button onclick="eksekusiPause()" id="btnPause" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center shadow">
               ⏸️ PAUSE
             </button>
 
-            <button onclick="pindahKlip(-1)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center" title="Klip Sebelumnya">
+            <button onclick="pindahKlip(-1)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center shadow" title="Klip Sebelumnya">
               ⏮️ PREV
             </button>
 
-            <button onclick="pindahKlip(1)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center" title="Klip Berikutnya">
-              NEXT ⏭️
+            <button onclick="pindahKlip(1)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center shadow" title="Klip Berikutnya">
+              NEXT ⏭️️
             </button>
           </div>
         </div>
 
         <!-- LAYAR MONITOR INTIP PGM LIVE RETURN -->
-        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 shadow-xl space-y-2">
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-2.5 shadow-lg space-y-1.5">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-              <span class="font-brand font-bold text-xs uppercase tracking-wider text-slate-200">PGM Live Return Monitor (Studio Cam Feed)</span>
+              <span class="font-brand font-bold text-[11px] uppercase tracking-wider text-slate-200">PGM Live Return Monitor</span>
             </div>
             <span id="audioPgmReturnSource" class="font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 uppercase">
               CAM 1 ON-AIR
             </span>
           </div>
           
-          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 h-36 sm:h-44 mx-auto">
+          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 h-28 sm:h-32 mx-auto">
             <video id="audioReturnCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
             
             <div id="audioReturnFallback" class="text-center p-2 text-slate-500 font-mono text-xs">
-              <span class="block text-slate-400 font-bold mb-0.5">FEED STUDIO MENUNGGU</span>
-              <span class="text-[10px] text-slate-600">Feed kamera studio aktif akan tampil di sini</span>
+              <span class="block text-slate-400 font-bold mb-0.5 text-[11px]">FEED STUDIO MENUNGGU</span>
+              <span class="text-[9px] text-slate-600">Feed kamera studio aktif akan tampil di sini</span>
             </div>
             <div class="scanline absolute inset-0 pointer-events-none"></div>
-          </div>
-        </div>
-
-        <!-- DAFTAR ANTREAN PLAYLIST VT DENGAN IMPORT / EXPORT & INPUT CEPAT -->
-        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
-          
-          <!-- Baris Judul & Tombol Aksi Header Playlist -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 border-b border-slate-800 gap-2">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                <h3 class="font-brand font-black text-xs uppercase tracking-wider text-white">Antrean Daftar Putar (Playlist Playout)</h3>
-              </div>
-              <span class="text-[10px] text-slate-400 font-mono">Daftar tersimpan otomatis ke database & memori lokal</span>
-            </div>
-
-            <!-- Tombol Aksi: Import, Export, Tambah Manual, Reset -->
-            <div class="flex items-center flex-wrap gap-1.5 self-end sm:self-center">
-              <button onclick="bukaModalImport()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 hover:text-white font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Impor daftar putar dari berkas .json">
-                <span>📥</span>
-                <span>Import</span>
-              </button>
-
-              <button onclick="eksporPlaylistJson()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 hover:text-white font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Unduh seluruh playlist saat ini ke berkas .json">
-                <span>📤</span>
-                <span>Export</span>
-              </button>
-
-              <button onclick="bukaModalTambahVt()" class="deck-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Buka dialog formulir lengkap">
-                <span>+</span>
-                <span>Manual</span>
-              </button>
-
-              <button onclick="resetPlaylistDefault()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold px-2 py-1.5 rounded-lg text-xs" title="Reset ke 1 Video Default">
-                🔄
-              </button>
-            </div>
-          </div>
-
-          <!-- BARIS INPUT CEPAT OTOMATIS (INLINE QUICK-ADD BAR) -->
-          <div class="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl space-y-2">
-            <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
-              <span class="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                <span>⚡</span>
-                <span>Tambah Cepat (Smart Auto-Detect):</span>
-              </span>
-              <span id="quickAddPreviewLabel" class="text-slate-400 truncate max-w-xs text-[10px]">
-                Tempel link YouTube, Drive, atau MP4
-              </span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-              <!-- Kolom Link URL dengan auto-detect -->
-              <div class="sm:col-span-6 relative">
-                <input type="text" id="quickInputUrl" placeholder="Tempel tautan video di sini..." oninput="deteksiLinkOtomatis(this.value)" onkeydown="if(event.key==='Enter') eksekusiTambahCepat()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 font-mono outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
-                <span id="quickTypeIndicator" class="hidden absolute right-2.5 top-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">YT</span>
-              </div>
-
-              <!-- Kolom Judul (Opsional) -->
-              <div class="sm:col-span-3">
-                <input type="text" id="quickInputTitle" placeholder="Judul klip (opsional)" onkeydown="if(event.key==='Enter') eksekusiTambahCepat()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
-              </div>
-
-              <!-- Kolom Durasi (Detik) -->
-              <div class="sm:col-span-1">
-                <input type="number" id="quickInputDuration" value="120" min="5" max="3600" title="Estimasi Durasi (Detik)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-amber-300 font-mono text-center outline-none focus:border-amber-500">
-              </div>
-
-              <!-- Tombol Tambahkan -->
-              <div class="sm:col-span-2">
-                <button type="button" onclick="eksekusiTambahCepat()" class="deck-btn w-full h-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-1 shadow">
-                  <span>+ Tambah</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Opsi Pemutaran Lanjutan: Loop & Auto-Advance -->
-          <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2.5 text-xs">
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] font-mono uppercase text-slate-400 font-bold">Mode Putar:</span>
-              <select id="selectLoopMode" onchange="ubahLoopMode(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[11px] rounded-lg px-2.5 py-1 outline-none">
-                <option value="no_loop">No Loop (Stop di Akhir)</option>
-                <option value="loop_all" selected>Loop All (Ulang Playlist)</option>
-                <option value="loop_single">Loop Single (Ulang Klip Ini)</option>
-              </select>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] font-mono uppercase text-slate-400 font-bold">Aksi Akhir:</span>
-              <select id="selectEndAction" onchange="ubahEndAction(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[11px] rounded-lg px-2.5 py-1 outline-none">
-                <option value="auto_cue" selected>Auto-CUE Klip Berikutnya</option>
-                <option value="auto_roll">Auto-Roll (Lanjut Putar)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Tabel Baris Antrean Playlist -->
-          <div class="space-y-1.5 max-h-72 overflow-y-auto pr-1" id="playlistItemsContainer">
-            <!-- Render dinamis via JavaScript -->
           </div>
         </div>
 
       </div>
 
       <!-- ============================================== -->
-      <!-- KOLOM KANAN: VIRTUAL AUDIO MIXER 6-CH (5 Kolom) -->
+      <!-- KOLOM KANAN ATAS: PLAYLIST PLAYOUT DECK (6 Kol)-->
       <!-- ============================================== -->
-      <div class="lg:col-span-5 bg-slate-950 border-2 border-slate-800 rounded-2xl p-4 shadow-xl space-y-4 flex flex-col justify-between">
+      <div class="lg:col-span-6 bg-slate-950 border-2 border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xl space-y-3">
         
-        <div class="space-y-3">
-          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <!-- Baris Judul & Tombol Aksi Header Playlist -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 border-b border-slate-800 gap-2">
+          <div>
             <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-amber-500 shadow"></div>
-              <h2 class="font-brand font-black text-xs uppercase tracking-wider text-white">Broadcast Audio Mixer (6-Channel)</h2>
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              <h3 class="font-brand font-black text-xs uppercase tracking-wider text-white">Antrean Daftar Putar (Playlist Playout)</h3>
             </div>
-            <span class="font-mono text-[10px] text-slate-400">Master Level Out</span>
+            <span class="text-[10px] text-slate-400 font-mono">Daftar tersimpan otomatis ke database & memori lokal</span>
           </div>
 
-          <!-- Modul Hardware Mic Fisik (Web Audio API) -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span id="micHardwareDot" class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
-                <span class="font-brand font-bold text-xs text-white">Input Mic Fisik (Hardware)</span>
-              </div>
-              <span id="micHardwareStatus" class="font-mono text-[9px] text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+          <!-- Tombol Aksi: Import, Export, Tambah Manual, Reset -->
+          <div class="flex items-center flex-wrap gap-1.5 self-end sm:self-center">
+            <button onclick="bukaModalImport()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 hover:text-white font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Impor daftar putar dari berkas .json">
+              <span>📥</span>
+              <span>Import</span>
+            </button>
+
+            <button onclick="eksporPlaylistJson()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 hover:text-white font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Unduh seluruh playlist saat ini ke berkas .json">
+              <span>📤</span>
+              <span>Export</span>
+            </button>
+
+            <button onclick="bukaModalTambahVt()" class="deck-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Buka dialog formulir lengkap">
+              <span>+</span>
+              <span>Manual</span>
+            </button>
+
+            <button onclick="resetPlaylistDefault()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold px-2 py-1.5 rounded-lg text-xs" title="Reset ke 1 Video Default">
+              🔄
+            </button>
+          </div>
+        </div>
+
+        <!-- BARIS INPUT CEPAT OTOMATIS (INLINE QUICK-ADD BAR) -->
+        <div class="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl space-y-2">
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+            <span class="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+              <span>⚡</span>
+              <span>Tambah Cepat (Smart Auto-Detect):</span>
+            </span>
+            <span id="quickAddPreviewLabel" class="text-slate-400 truncate max-w-xs text-[10px]">
+              Tempel link YouTube, Drive, atau MP4
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <!-- Kolom Link URL dengan auto-detect -->
+            <div class="sm:col-span-6 relative">
+              <input type="text" id="quickInputUrl" placeholder="Tempel tautan video di sini..." oninput="deteksiLinkOtomatis(this.value)" onkeydown="if(event.key==='Enter') eksekusiTambahCepat()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 font-mono outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+              <span id="quickTypeIndicator" class="hidden absolute right-2.5 top-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">YT</span>
+            </div>
+
+            <!-- Kolom Judul (Opsional) -->
+            <div class="sm:col-span-3">
+              <input type="text" id="quickInputTitle" placeholder="Judul klip (opsional)" onkeydown="if(event.key==='Enter') eksekusiTambahCepat()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+            </div>
+
+            <!-- Kolom Durasi (Detik) -->
+            <div class="sm:col-span-1">
+              <input type="number" id="quickInputDuration" value="120" min="5" max="3600" title="Estimasi Durasi (Detik)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-amber-300 font-mono text-center outline-none focus:border-amber-500">
+            </div>
+
+            <!-- Tombol Tambahkan -->
+            <div class="sm:col-span-2">
+              <button type="button" onclick="eksekusiTambahCepat()" class="deck-btn w-full h-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-1 shadow">
+                <span>+ Tambah</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Opsi Pemutaran Lanjutan: Loop & Auto-Advance -->
+        <div class="bg-slate-900 border border-slate-800 p-2 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono uppercase text-slate-400 font-bold">Mode Putar:</span>
+            <select id="selectLoopMode" onchange="ubahLoopMode(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[11px] rounded-lg px-2 py-1 outline-none">
+              <option value="no_loop">No Loop (Stop di Akhir)</option>
+              <option value="loop_all" selected>Loop All (Ulang Playlist)</option>
+              <option value="loop_single">Loop Single (Ulang Klip Ini)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono uppercase text-slate-400 font-bold">Aksi Akhir:</span>
+            <select id="selectEndAction" onchange="ubahEndAction(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[11px] rounded-lg px-2 py-1 outline-none">
+              <option value="auto_cue" selected>Auto-CUE Klip Berikutnya</option>
+              <option value="auto_roll">Auto-Roll (Lanjut Putar)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tabel Baris Antrean Playlist (Scrollable Vertikal) -->
+        <div class="space-y-1.5 max-h-[340px] sm:max-h-[380px] overflow-y-auto pr-1" id="playlistItemsContainer">
+          <!-- Render dinamis via JavaScript -->
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- BAGIAN BAWAH: BROADCAST AUDIO MIXER 6-CHANNEL MEMBENTANG PENUH (FULL WIDTH) -->
+    <!-- ========================================================================= -->
+    <div class="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+      
+      <!-- Baris Header Mixer & Modul Mic Fisik & Soundbite Cart -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+        
+        <!-- Judul Konsol Audio -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-md shadow-amber-500/30"></div>
+          <div>
+            <h2 class="font-brand font-black text-sm uppercase tracking-wider text-white">Broadcast Audio Mixer (6-Channel Console)</h2>
+            <span class="text-[10px] font-mono text-slate-400 block -mt-0.5">Meja fader audio terintegrasi siaran multi-kanal</span>
+          </div>
+        </div>
+
+        <!-- Modul Mic Fisik Hardware & Soundbite Bersebelahan di Header -->
+        <div class="flex flex-wrap items-center gap-3">
+          
+          <!-- Kotak Kontrol Mic Fisik (Web Audio API) -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2.5 text-xs">
+            <div class="flex items-center gap-1.5">
+              <span id="micHardwareDot" class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+              <span id="micHardwareStatus" class="font-mono text-[9px] text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
                 TERPUTUS
               </span>
             </div>
 
-            <div class="flex flex-col sm:flex-row items-center gap-2">
-              <button onclick="toggleMicrophoneHardware()" id="btnToggleMicHw" class="deck-btn w-full sm:w-auto flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow">
-                <span>🔌</span>
-                <span id="lblBtnMicHw">Sambungkan Mic Fisik</span>
-              </button>
+            <button onclick="toggleMicrophoneHardware()" id="btnToggleMicHw" class="deck-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 shadow">
+              <span>🔌</span>
+              <span id="lblBtnMicHw">Sambungkan Mic</span>
+            </button>
 
-              <div class="flex items-center gap-1.5 w-full sm:w-auto">
-                <span class="text-[10px] font-mono text-slate-400">Rute:</span>
-                <select id="selectMicTargetChannel" onchange="ubahTargetKanalMic(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[10px] rounded-lg px-2 py-1 outline-none">
-                  <option value="ch1">CH 1 (Mic Host)</option>
-                  <option value="ch2">CH 2 (Mic Guest)</option>
-                </select>
-              </div>
+            <div class="flex items-center gap-1">
+              <span class="text-[10px] font-mono text-slate-400">Rute:</span>
+              <select id="selectMicTargetChannel" onchange="ubahTargetKanalMic(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[10px] rounded-lg px-2 py-1 outline-none">
+                <option value="ch1">CH 1 (Host)</option>
+                <option value="ch2">CH 2 (Guest)</option>
+              </select>
             </div>
 
-            <div class="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-800">
-              <span>Anti-Feedback Monitor:</span>
-              <label class="flex items-center gap-1 cursor-pointer text-slate-400">
-                <input type="checkbox" id="chkMuteLocalFeedback" checked onchange="toggleLocalFeedback(this.checked)" class="rounded bg-slate-950 accent-amber-500">
-                <span>Mute Speaker Laptop</span>
-              </label>
+            <label class="hidden md:flex items-center gap-1 cursor-pointer text-[10px] font-mono text-slate-400 border-l border-slate-800 pl-2">
+              <input type="checkbox" id="chkMuteLocalFeedback" checked onchange="toggleLocalFeedback(this.checked)" class="rounded bg-slate-950 accent-amber-500">
+              <span>Anti-Feedback</span>
+            </label>
+          </div>
+
+          <!-- Quick Soundbite Cart (SFX) -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 text-xs font-bold">
+            <span class="text-[9px] font-mono text-slate-400 uppercase font-bold mr-1 hidden sm:inline">SFX:</span>
+            <button onclick="mainkanSfxBeep(600, 0.4)" class="deck-btn py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs" title="Mainkan Bunyi Clapper">
+              🔔 Clapper
+            </button>
+            <button onclick="mainkanSfxBeep(1000, 0.8)" class="deck-btn py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs" title="Mainkan 1K Tone Standar">
+              ⏱️ 1K Tone
+            </button>
+            <button onclick="mainkanSfxBeep(350, 0.5)" class="deck-btn py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-xs" title="Mainkan Bunyi Chime">
+              ✨ Chime
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 6-Kanal Fader Strip & LED VU Meter (Membentang Penuh Horizontal) -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-1 text-center" id="mixerChannelsStrip">
+        
+        <!-- CH 1: MIC HOST -->
+        <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow">
+          <div class="w-full border-b border-slate-800 pb-1">
+            <span class="text-[10px] font-mono font-bold text-slate-400 block">CH 1</span>
+            <span class="text-xs font-brand font-black text-amber-400 block truncate">MIC HOST</span>
+          </div>
+
+          <div class="flex items-center justify-center gap-2.5 my-1">
+            <input type="range" min="0" max="100" value="80" oninput="ubahVolumeKanal('ch1', this.value)" class="vertical-slider accent-amber-500">
+            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh1">
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
             </div>
           </div>
 
-          <!-- 6-Kanal Fader Strip & LED VU Meter -->
-          <div class="grid grid-cols-6 gap-2 pt-2 text-center" id="mixerChannelsStrip">
-            
-            <!-- CH 1: MIC HOST -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between space-y-2">
-              <span class="text-[9px] font-mono font-bold text-slate-400 truncate w-full">CH 1</span>
-              <span class="text-[10px] font-brand font-black text-amber-400 truncate w-full">HOST</span>
-
-              <div class="flex items-center gap-1.5 my-1">
-                <input type="range" min="0" max="100" value="80" oninput="ubahVolumeKanal('ch1', this.value)" class="vertical-slider accent-amber-500">
-                <div class="w-2.5 h-36 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden" id="vuMeterCh1">
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                </div>
-              </div>
-
-              <span id="lblGainCh1" class="font-mono text-[9px] text-slate-400">0 dB</span>
-              <button onclick="toggleMuteKanal('ch1')" id="btnMuteCh1" class="deck-btn w-full py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] font-bold border border-slate-700">MUTE</button>
-            </div>
-
-            <!-- CH 2: GUEST -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between space-y-2">
-              <span class="text-[9px] font-mono font-bold text-slate-400 truncate w-full">CH 2</span>
-              <span class="text-[10px] font-brand font-black text-slate-200 truncate w-full">GUEST</span>
-
-              <div class="flex items-center gap-1.5 my-1">
-                <input type="range" min="0" max="100" value="75" oninput="ubahVolumeKanal('ch2', this.value)" class="vertical-slider accent-amber-500">
-                <div class="w-2.5 h-36 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden" id="vuMeterCh2">
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                </div>
-              </div>
-
-              <span id="lblGainCh2" class="font-mono text-[9px] text-slate-400">-2 dB</span>
-              <button onclick="toggleMuteKanal('ch2')" id="btnMuteCh2" class="deck-btn w-full py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] font-bold border border-slate-700">MUTE</button>
-            </div>
-
-            <!-- CH 3: FLOOR / AMBIENCE -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between space-y-2">
-              <span class="text-[9px] font-mono font-bold text-slate-400 truncate w-full">CH 3</span>
-              <span class="text-[10px] font-brand font-black text-slate-200 truncate w-full">FLOOR</span>
-
-              <div class="flex items-center gap-1.5 my-1">
-                <input type="range" min="0" max="100" value="45" oninput="ubahVolumeKanal('ch3', this.value)" class="vertical-slider accent-amber-500">
-                <div class="w-2.5 h-36 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden" id="vuMeterCh3">
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                </div>
-              </div>
-
-              <span id="lblGainCh3" class="font-mono text-[9px] text-slate-400">-8 dB</span>
-              <button onclick="toggleMuteKanal('ch3')" id="btnMuteCh3" class="deck-btn w-full py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] font-bold border border-slate-700">MUTE</button>
-            </div>
-
-            <!-- CH 4: VT IN (PLAYLIST AUDIO) -->
-            <div class="bg-slate-900/80 border-2 border-amber-500/50 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between space-y-2">
-              <span class="text-[9px] font-mono font-bold text-amber-400 truncate w-full">CH 4</span>
-              <span class="text-[10px] font-brand font-black text-amber-400 truncate w-full">VT IN</span>
-
-              <div class="flex items-center gap-1.5 my-1">
-                <input type="range" min="0" max="100" value="85" oninput="ubahVolumeKanal('ch4', this.value)" class="vertical-slider accent-amber-500">
-                <div class="w-2.5 h-36 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden" id="vuMeterCh4">
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                </div>
-              </div>
-
-              <span id="lblGainCh4" class="font-mono text-[9px] text-amber-400">+1 dB</span>
-              <button onclick="toggleMuteKanal('ch4')" id="btnMuteCh4" class="deck-btn w-full py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] font-bold border border-slate-700">MUTE</button>
-            </div>
-
-            <!-- CH 5: MUSIC BED / SFX -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between space-y-2">
-              <span class="text-[9px] font-mono font-bold text-slate-400 truncate w-full">CH 5</span>
-              <span class="text-[10px] font-brand font-black text-slate-200 truncate w-full">MUSIC</span>
-
-              <div class="flex items-center gap-1.5 my-1">
-                <input type="range" min="0" max="100" value="60" oninput="ubahVolumeKanal('ch5', this.value)" class="vertical-slider accent-amber-500">
-                <div class="w-2.5 h-36 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden" id="vuMeterCh5">
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                </div>
-              </div>
-
-              <span id="lblGainCh5" class="font-mono text-[9px] text-slate-400">-5 dB</span>
-              <button onclick="toggleMuteKanal('ch5')" id="btnMuteCh5" class="deck-btn w-full py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] font-bold border border-slate-700">MUTE</button>
-            </div>
-
-            <!-- CH 6: MASTER PGM OUT -->
-            <div class="bg-gradient-to-b from-red-950/40 to-slate-900 border-2 border-red-500/60 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between space-y-2">
-              <span class="text-[9px] font-mono font-black text-red-400 truncate w-full">MAIN</span>
-              <span class="text-[10px] font-brand font-black text-red-500 truncate w-full">MASTER</span>
-
-              <div class="flex items-center gap-1.5 my-1">
-                <input type="range" min="0" max="100" value="90" oninput="ubahVolumeKanal('master', this.value)" class="vertical-slider accent-red-500">
-                <div class="w-2.5 h-36 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden" id="vuMeterMaster">
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                  <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-                </div>
-              </div>
-
-              <span id="lblGainMaster" class="font-mono text-[9px] font-bold text-red-400">+2 dB</span>
-              <button onclick="toggleMuteKanal('master')" id="btnMuteMaster" class="deck-btn w-full py-1 rounded bg-red-950/80 hover:bg-red-900 text-red-300 font-mono text-[9px] font-bold border border-red-800">MUTE</button>
-            </div>
-
+          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
+            <span id="lblGainCh1" class="font-mono text-[10px] font-bold text-slate-300 block">0 dB</span>
+            <button onclick="toggleMuteKanal('ch1')" id="btnMuteCh1" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
           </div>
         </div>
 
-        <!-- Tombol Aksi Tambahan: Soundbite SFX -->
-        <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-xl space-y-1.5">
-          <span class="text-[10px] font-mono text-slate-400 uppercase font-bold block">Quick Soundbite Cart (SFX):</span>
-          <div class="grid grid-cols-3 gap-1.5 text-xs font-bold">
-            <button onclick="mainkanSfxBeep(600, 0.4)" class="deck-btn py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200">
-              🔔 Clapper
-            </button>
-            <button onclick="mainkanSfxBeep(1000, 0.8)" class="deck-btn py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300">
-              ⏱️ 1K Tone
-            </button>
-            <button onclick="mainkanSfxBeep(350, 0.5)" class="deck-btn py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400">
-              ✨ Chime
-            </button>
+        <!-- CH 2: GUEST -->
+        <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow">
+          <div class="w-full border-b border-slate-800 pb-1">
+            <span class="text-[10px] font-mono font-bold text-slate-400 block">CH 2</span>
+            <span class="text-xs font-brand font-black text-slate-200 block truncate">MIC GUEST</span>
+          </div>
+
+          <div class="flex items-center justify-center gap-2.5 my-1">
+            <input type="range" min="0" max="100" value="75" oninput="ubahVolumeKanal('ch2', this.value)" class="vertical-slider accent-amber-500">
+            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh2">
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+            </div>
+          </div>
+
+          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
+            <span id="lblGainCh2" class="font-mono text-[10px] font-bold text-slate-300 block">-2 dB</span>
+            <button onclick="toggleMuteKanal('ch2')" id="btnMuteCh2" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
+          </div>
+        </div>
+
+        <!-- CH 3: FLOOR / AMBIENCE -->
+        <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow">
+          <div class="w-full border-b border-slate-800 pb-1">
+            <span class="text-[10px] font-mono font-bold text-slate-400 block">CH 3</span>
+            <span class="text-xs font-brand font-black text-slate-200 block truncate">FLOOR MIC</span>
+          </div>
+
+          <div class="flex items-center justify-center gap-2.5 my-1">
+            <input type="range" min="0" max="100" value="45" oninput="ubahVolumeKanal('ch3', this.value)" class="vertical-slider accent-amber-500">
+            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh3">
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+            </div>
+          </div>
+
+          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
+            <span id="lblGainCh3" class="font-mono text-[10px] font-bold text-slate-300 block">-8 dB</span>
+            <button onclick="toggleMuteKanal('ch3')" id="btnMuteCh3" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
+          </div>
+        </div>
+
+        <!-- CH 4: VT IN (PLAYLIST AUDIO) -->
+        <div class="bg-slate-900/90 border-2 border-amber-500/70 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow-lg shadow-amber-950/20">
+          <div class="w-full border-b border-amber-500/40 pb-1">
+            <span class="text-[10px] font-mono font-bold text-amber-400 block">CH 4</span>
+            <span class="text-xs font-brand font-black text-amber-300 block truncate">VT IN (MEDIA)</span>
+          </div>
+
+          <div class="flex items-center justify-center gap-2.5 my-1">
+            <input type="range" min="0" max="100" value="85" oninput="ubahVolumeKanal('ch4', this.value)" class="vertical-slider accent-amber-500">
+            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh4">
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+            </div>
+          </div>
+
+          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
+            <span id="lblGainCh4" class="font-mono text-[10px] font-bold text-amber-400 block">+1 dB</span>
+            <button onclick="toggleMuteKanal('ch4')" id="btnMuteCh4" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
+          </div>
+        </div>
+
+        <!-- CH 5: MUSIC BED / SFX -->
+        <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow">
+          <div class="w-full border-b border-slate-800 pb-1">
+            <span class="text-[10px] font-mono font-bold text-slate-400 block">CH 5</span>
+            <span class="text-xs font-brand font-black text-slate-200 block truncate">MUSIC BED</span>
+          </div>
+
+          <div class="flex items-center justify-center gap-2.5 my-1">
+            <input type="range" min="0" max="100" value="60" oninput="ubahVolumeKanal('ch5', this.value)" class="vertical-slider accent-amber-500">
+            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh5">
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+            </div>
+          </div>
+
+          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
+            <span id="lblGainCh5" class="font-mono text-[10px] font-bold text-slate-300 block">-5 dB</span>
+            <button onclick="toggleMuteKanal('ch5')" id="btnMuteCh5" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
+          </div>
+        </div>
+
+        <!-- CH 6: MASTER PGM OUT -->
+        <div class="bg-gradient-to-b from-red-950/50 to-slate-900 border-2 border-red-500/70 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow-xl shadow-red-950/30">
+          <div class="w-full border-b border-red-500/50 pb-1">
+            <span class="text-[10px] font-mono font-black text-red-400 block">MAIN BUS</span>
+            <span class="text-xs font-brand font-black text-red-500 block truncate">MASTER PGM</span>
+          </div>
+
+          <div class="flex items-center justify-center gap-2.5 my-1">
+            <input type="range" min="0" max="100" value="90" oninput="ubahVolumeKanal('master', this.value)" class="vertical-slider accent-red-500">
+            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterMaster">
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
+            </div>
+          </div>
+
+          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
+            <span id="lblGainMaster" class="font-mono text-[10px] font-bold text-red-400 block">+2 dB</span>
+            <button onclick="toggleMuteKanal('master')" id="btnMuteMaster" class="deck-btn w-full py-1.5 rounded-lg bg-red-950/90 hover:bg-red-900 text-red-200 font-mono text-[10px] font-bold border border-red-800 shadow-sm">MUTE</button>
           </div>
         </div>
 
       </div>
 
     </div>
+
   </main>
 
   <!-- ============================================== -->
@@ -743,7 +776,7 @@
     let loopMode = 'loop_all';
     let endAction = 'auto_cue';
 
-    // Objek sementara untuk penampung berkas Import JSON
+    // Objek sementara penampung berkas Import JSON
     let parsedImportPlaylist = null;
 
     // Status Playback VT yang Disiarkan
@@ -820,7 +853,7 @@
       } catch (e) {}
     }
 
-    // Inisialisasi YouTube API Resmi (Clean Feed tanpa CC via youtube-nocookie)
+    // Inisialisasi YouTube API Resmi
     window.onYouTubeIframeAPIReady = function() {
       isYtReady = true;
       try {
@@ -1008,8 +1041,8 @@
         video.classList.add('hidden');
         fallback.classList.remove('hidden');
         fallback.innerHTML = `
-          <span class="block text-amber-400 font-bold mb-0.5">VT LIVE TAYANG</span>
-          <span class="text-[10px] text-slate-400">${vtPlaybackState.title}</span>
+          <span class="block text-amber-400 font-bold mb-0.5 text-[11px]">VT LIVE TAYANG</span>
+          <span class="text-[9px] text-slate-400 line-clamp-1">${vtPlaybackState.title}</span>
         `;
       } else {
         const stream = getCameraStream(activeSrc);
@@ -1022,8 +1055,8 @@
           video.classList.add('hidden');
           fallback.classList.remove('hidden');
           fallback.innerHTML = `
-            <span class="block text-slate-400 font-bold mb-0.5">${activeSrc.toUpperCase().replace('_', ' ')} STANDBY</span>
-            <span class="text-[10px] text-slate-600">Menunggu sinyal kamera studio</span>
+            <span class="block text-slate-400 font-bold mb-0.5 text-[11px]">${activeSrc.toUpperCase().replace('_', ' ')} STANDBY</span>
+            <span class="text-[9px] text-slate-600">Menunggu sinyal kamera studio</span>
           `;
         }
       }
@@ -1046,9 +1079,6 @@
       }
     }
 
-    // ==============================================
-    // RENDER BARIS PLAYLIST DENGAN THUMBNAIL DINAMIS
-    // ==============================================
     function renderPlaylistUI() {
       const container = document.getElementById('playlistItemsContainer');
       container.innerHTML = '';
@@ -1082,7 +1112,6 @@
           ? `<span class="px-1.5 py-0.2 rounded bg-amber-900/60 border border-amber-600 text-amber-300 font-mono text-[8px] font-bold tracking-tight">⭐ STANDBY</span>`
           : '';
 
-        // Tampilan Thumbnail Mini Berdasarkan Sumber
         let thumbHtml = '';
         if (clip.sourceType === 'youtube' && clip.youtubeId) {
           thumbHtml = `
@@ -1155,9 +1184,6 @@
       });
     }
 
-    // ==============================================
-    // LOGIKA INPUT CEPAT & DETEKSI OTOMATIS (SMART AUTO-DETECT)
-    // ==============================================
     function deteksiLinkOtomatis(raw) {
       const val = (raw || '').trim();
       const indicator = document.getElementById('quickTypeIndicator');
@@ -1207,7 +1233,6 @@
       let parsedUrl = rawUrl;
       let durSec = parseInt(durInput.value) || 120;
 
-      // Smart Auto-Detect
       if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be') || /^[a-zA-Z0-9_-]{11}$/.test(rawUrl)) {
         parsedType = 'youtube';
         parsedYtId = ekstrakYouTubeId(rawUrl);
@@ -1243,16 +1268,12 @@
       vtPlaylist.push(newClip);
       simpanPlaylistKeStorage();
 
-      // Reset form input cepat
       urlInput.value = '';
       titleInput.value = '';
       deteksiLinkOtomatis('');
       showNotice("Klip Ditambahkan", `"${title}" berhasil dimasukkan ke urutan #${vtPlaylist.length}.`, true);
     }
 
-    // ==============================================
-    // LOGIKA EXPORT & IMPORT PLAYLIST (.JSON)
-    // ==============================================
     function eksporPlaylistJson() {
       if (!vtPlaylist || vtPlaylist.length === 0) {
         showNotice("Playlist Kosong", "Tidak ada klip video yang dapat diekspor.", false);
@@ -1353,7 +1374,6 @@
             return;
           }
 
-          // Validasi & Sanitasi Data Klip
           parsedImportPlaylist = clips.map((c, idx) => {
             const rawType = (c.sourceType || 'youtube').toLowerCase();
             const rawUrl = c.url || (c.youtubeId ? `https://www.youtube.com/watch?v=${c.youtubeId}` : '');
@@ -1371,7 +1391,6 @@
             };
           });
 
-          // Tampilkan Pratinjau
           document.getElementById('importFileName').innerText = file.name;
           document.getElementById('importClipCount').innerText = `${parsedImportPlaylist.length} Klip Ditemukan`;
           document.getElementById('importFilePreviewBox').classList.remove('hidden');
@@ -1412,9 +1431,6 @@
       showNotice("Import Berhasil", `${parsedImportPlaylist.length} klip telah berhasil dimuat ke antrean playlist.`, true);
     }
 
-    // ==============================================
-    // KENDALI PLAYLIST & SINKRONISASI PLAYBACK
-    // ==============================================
     function tetapkanSebagaiDefaultStandby(index) {
       const clip = vtPlaylist[index];
       if (!clip || !clip.youtubeId) return;
@@ -1737,9 +1753,6 @@
       activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set(vtPlaybackState);
     }
 
-    // ==============================================
-    // AUDIO MIXER & WEBAUDIO HARDWARE MIC
-    // ==============================================
     async function toggleMicrophoneHardware() {
       const dot = document.getElementById('micHardwareDot');
       const badge = document.getElementById('micHardwareStatus');
@@ -1752,9 +1765,9 @@
         }
         isMicHardwareActive = false;
         dot.className = "w-2.5 h-2.5 rounded-full bg-slate-600";
-        badge.className = "font-mono text-[9px] text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800";
+        badge.className = "font-mono text-[9px] text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800";
         badge.innerText = "TERPUTUS";
-        lbl.innerText = "Sambungkan Mic Fisik";
+        lbl.innerText = "Sambungkan Mic";
         return;
       }
 
@@ -1793,9 +1806,9 @@
 
         isMicHardwareActive = true;
         dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-        badge.className = "font-mono text-[9px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800";
+        badge.className = "font-mono text-[9px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800";
         badge.innerText = `AKTIF (${targetMicChannel.toUpperCase()})`;
-        lbl.innerText = "Putuskan Mic Fisik";
+        lbl.innerText = "Putuskan Mic";
 
       } catch (err) {
         console.warn("[Audio-VT] Gagal membuka mic fisik:", err);
@@ -1850,10 +1863,10 @@
       const btn = document.getElementById(`btnMute${capitalizeFirst(chKey)}`);
 
       if (mixerState[chKey].isMuted) {
-        btn.className = "deck-btn w-full py-1 rounded bg-red-600 text-white font-mono text-[9px] font-black border border-red-400 animate-pulse";
+        btn.className = "deck-btn w-full py-1.5 rounded-lg bg-red-600 text-white font-mono text-[10px] font-black border border-red-400 animate-pulse shadow-sm";
         btn.innerText = "MUTED";
       } else {
-        btn.className = "deck-btn w-full py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] font-bold border border-slate-700";
+        btn.className = "deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm";
         btn.innerText = "MUTE";
       }
 
