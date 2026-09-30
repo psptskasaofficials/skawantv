@@ -494,8 +494,8 @@
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const paramRole = urlParams.get('role');
-      const sessionRole = sessionStorage.getItem('skawan_role') || sessionStorage.getItem('skawan_user_level');
-      const isLogged = sessionStorage.getItem('skawan_admin_logged');
+      const sessionRole = sessionStorage.getItem('skawan_role') || localStorage.getItem('skawan_role') || sessionStorage.getItem('skawan_user_level') || localStorage.getItem('skawan_user_level');
+      const isLogged = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
 
       if (!isLogged && !paramRole) {
         window.location.href = "login.html";
@@ -503,6 +503,15 @@
       }
 
       userRole = (paramRole || sessionRole || 'guru').toLowerCase();
+
+      // Sinkronkan ke localStorage dan sessionStorage agar tab baru tetap terautentikasi
+      sessionStorage.setItem('skawan_admin_logged', 'true');
+      sessionStorage.setItem('skawan_role', userRole);
+      sessionStorage.setItem('skawan_user_level', userRole);
+      localStorage.setItem('skawan_admin_logged', 'true');
+      localStorage.setItem('skawan_role', userRole);
+      localStorage.setItem('skawan_user_level', userRole);
+
       applyRolePrivileges(userRole);
 
       generateRandomPin();
@@ -731,6 +740,10 @@
               <div class="pt-1 border-t border-slate-850 flex items-center justify-between text-xs">
                 <span class="text-[10px] font-mono text-slate-500">${userRole === 'admin' ? 'Aksi Admin:' : 'Kelola Sesi:'}</span>
                 <div class="flex items-center gap-2">
+                  <button onclick="bukaLobbyKruSebagaiAdmin('${token}')" class="text-[11px] font-mono font-bold text-sky-400 hover:text-sky-300 hover:underline flex items-center gap-1" title="Masuk ke Lobby Pemilihan Peran Kru Ruangan Ini">
+                    <span>🎬</span>
+                    <span>Lobby Kru</span>
+                  </button>
                   <button onclick="bukaModalAkhiriSesiInternal('${token}')" class="text-[11px] font-mono font-bold text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1" title="Akhiri sesi ruangan">
                     <span>🛑</span>
                     <span>Akhiri</span>
@@ -872,13 +885,40 @@
       ];
 
       roles.forEach(r => {
-        const link = document.createElement('a');
-        link.href = `${r.page}?room=${token}&role=${r.key}&supervisor=true`;
-        link.target = "_blank";
-        link.className = "p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-500 text-slate-200 hover:text-white transition flex items-center justify-center gap-1.5 shadow";
-        link.innerHTML = `<span>${r.icon}</span><span class="truncate">${r.name}</span>`;
-        grid.appendChild(link);
+        const btn = document.createElement('button');
+        btn.onclick = () => bukaWorkstationSupervisor(r.page, token, r.key, r.name);
+        btn.className = "deck-btn p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-500 text-slate-200 hover:text-white transition flex items-center justify-center gap-1.5 shadow text-xs font-brand font-bold";
+        btn.innerHTML = `<span>${r.icon}</span><span class="truncate">${r.name}</span>`;
+        grid.appendChild(btn);
       });
+    }
+
+    // Fungsi membuka Workstation Kru dengan kredensial Supervisor penuh
+    function bukaWorkstationSupervisor(page, token, roleKey, roleName) {
+      const supervisorName = userRole === 'admin' ? 'Super Admin' : 'Guru Supervisor';
+      localStorage.setItem('skawan_room', token);
+      sessionStorage.setItem('skawan_room', token);
+      localStorage.setItem('skawan_role', roleKey);
+      sessionStorage.setItem('skawan_role', roleKey);
+      localStorage.setItem('skawan_user', supervisorName);
+      sessionStorage.setItem('skawan_user', supervisorName);
+      localStorage.setItem('skawan_admin_logged', 'true');
+      sessionStorage.setItem('skawan_admin_logged', 'true');
+
+      window.open(`${page}?room=${token}&role=${roleKey}&supervisor=true`, '_blank');
+    }
+
+    // Fungsi membuka Lobby Pemilihan Peran Kru dengan Bypass Hak Akses Admin
+    function bukaLobbyKruSebagaiAdmin(token) {
+      const supervisorName = userRole === 'admin' ? 'Super Admin' : 'Guru Supervisor';
+      localStorage.setItem('skawan_room', token);
+      sessionStorage.setItem('skawan_room', token);
+      localStorage.setItem('skawan_user', supervisorName);
+      sessionStorage.setItem('skawan_user', supervisorName);
+      localStorage.setItem('skawan_admin_logged', 'true');
+      sessionStorage.setItem('skawan_admin_logged', 'true');
+
+      window.open(`login.html?room=${token}&admin=true&role=${userRole}`, '_blank');
     }
 
     function renderCrewOccupancy(roles, totalCams) {
@@ -1232,6 +1272,11 @@
       sessionStorage.removeItem('skawan_admin_logged');
       sessionStorage.removeItem('skawan_role');
       sessionStorage.removeItem('skawan_user_level');
+      sessionStorage.removeItem('skawan_user');
+      localStorage.removeItem('skawan_admin_logged');
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_user_level');
+      localStorage.removeItem('skawan_user');
       window.location.href = "login.html";
     }
   </script>
