@@ -363,6 +363,8 @@
     let currentRoomStatus = 'live';
     let streamerInstance = null;
     const remoteCamStreams = new Map();
+    let lastRenderedPgmSource = null;
+    let isCurrentlySyncingVt = false;
 
     // Cache state grafis CG terkini
     let currentCgState = {
@@ -381,6 +383,9 @@
       vtRef: null,
       cgRef: null
     };
+
+    // Listener ringkas khusus daftar ruangan (menghindari fetch seluruh isi node rooms)
+    let channelsListRef = null;
 
     // Default standby YT ID: Jnp3esoHb9k
     let dynamicStandbyYtId = 'Jnp3esoHb9k';
@@ -556,6 +561,14 @@
       ensureDefaultSkasaRoom();
       initChannelViewer(currentRoomToken);
       listenActiveChannels();
+
+      // Bersihkan koneksi WebRTC saat tab ditutup agar tidak meninggalkan zombie presence
+      window.addEventListener('beforeunload', () => {
+        if (streamerInstance) {
+          streamerInstance.destroy();
+          streamerInstance = null;
+        }
+      });
     });
 
     function updateNavAndStorage(token) {
@@ -598,6 +611,7 @@
         streamerInstance = null;
       }
       remoteCamStreams.clear();
+      lastRenderedPgmSource = null;
 
       liveState = { programSource: 'vt', previewSource: 'cam_1', tally: { cam_1: 'green' } };
       latestVtState = { 
@@ -611,7 +625,7 @@
       if (activeDb) {
         activeChannelListeners.token = token;
 
-        // 1. Pantau Status & Metadata Ruangan
+        // 1. Pantau Status & Metadata Ruangan (Hanya node meta)
         activeChannelListeners.metaRef = activeDb.ref(`rooms/${token}/meta`);
         activeChannelListeners.metaRef.on('value', snap => {
           if (!snap.exists()) {
@@ -639,9 +653,12 @@
         activeChannelListeners.liveRef.on('value', snap => {
           if (!snap.exists()) return;
           const remoteLive = snap.val();
+          const prevSource = liveState.programSource;
           liveState.programSource = remoteLive.programSource || liveState.programSource;
           liveState.previewSource = remoteLive.previewSource || liveState.previewSource;
-          renderPgmDisplay();
+          if (prevSource !== liveState.programSource) {
+            renderPgmDisplay();
+          }
         });
 
         // 3. Pantau Sinkronisasi Video VT dari Audio-VT
@@ -675,7 +692,10 @@
             const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
             remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
-            renderPgmDisplay();
+            // Render hanya jika kamera yang sedang On-Air di Switcher adalah kamera ini
+            if (liveState.programSource === normKey || liveState.programSource === camKey) {
+              renderPgmDisplay(true);
+            }
           },
           onStatusChange: (status, info) => {
             console.log(`[PGM Viewer - ${token}] WebRTC: ${status} - ${info}`);
@@ -709,21 +729,14 @@
             badgeLive.classList.add('hidden');
           }
         }
-
-        renderPgmDisplay();
-      } else {
-        standbyScreen.classList.remove('hidden');
-        if (badgeLive) badgeLive.classList.add('hidden');
-        badgeLiveNav.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-950/70 text-amber-400 border border-amber-800";
-        navLiveStatusText.innerText = `${currentRoomToken} STANDBY`;
-        lblStatus.innerText = "STANDBY (OFF-AIR)";
-        lblStatus.className = "text-amber-400 font-bold";
-        renderPgmDisplay();
-      }
-    }
-
-    function renderPgmDisplay() {
+    function renderPgmDisplay(forceUpdate = false) {
       const activeSrc = liveState.programSource || 'vt';
+
+      // Guard condition: cegah render DOM ulang jika sumber sama dan tidak dipaksa
+      if (!forceUpdate && lastRenderedPgmSource === activeSrc) {
+        return;
+      }
+      lastRenderedPgmSource = activeSrc;
 
       const labelPgm = document.getElementById('lblActivePgmSource');
       if (labelPgm) labelPgm.innerText = activeSrc.toUpperCase().replace('_', ' ');
@@ -747,7 +760,9 @@
         const stream = getCameraStream(activeSrc);
         if (stream) {
           camConnectingBox.classList.add('hidden');
-          if (camVideo.srcObject !== stream) camVideo.srcObject = stream;
+          if (camVideo.srcObject !== stream) {
+            camVideo.srcObject = stream;
+          }
           camVideo.classList.remove('hidden');
           camVideo.play().catch(() => {});
         } else {
@@ -801,9 +816,14 @@
             }
           } else {
             if (isPlaying) {
-              livePgmYt.playVideo();
+              // Jalankan playVideo hanya jika player dalam kondisi tidak berputar untuk menghindari stutter
+              const playerState = typeof livePgmYt.getPlayerState === 'function' ? livePgmYt.getPlayerState() : -1;
+              if (playerState !== 1) { // 1 = PLAYING
+                livePgmYt.playVideo();
+              }
               const cur = livePgmYt.getCurrentTime() || 0;
-              if (Math.abs(cur - (latestVtState.currentTime || 0)) > 2) {
+              // Toleransi selisih waktu dinaikkan ke 3.5 detik untuk menghindari loop seek konstan
+              if (Math.abs(cur - (latestVtState.currentTime || 0)) > 3.5) {
                 livePgmYt.seekTo(latestVtState.currentTime, true);
               }
             } else {
@@ -938,8 +958,17 @@
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      activeDb.ref('rooms').on('value', snap => {
+      // Lepaskan listener lama jika ada
+      if (channelsListRef) {
+        channelsListRef.off();
+        channelsListRef = null;
+      }
+
+      // Dengarkan daftar token ruangan yang ada secara efisien
+      channelsListRef = activeDb.ref('rooms');
+      channelsListRef.on('value', snap => {
         const grid = document.getElementById('channelRoomsGrid');
+        if (!grid) return;
         grid.innerHTML = '';
 
         const roomsData = snap.val() || {};
@@ -955,7 +984,8 @@
           }
         }
 
-        document.getElementById('lblChannelCount').innerText = `${roomKeys.length} Saluran Ditemukan`;
+        const countEl = document.getElementById('lblChannelCount');
+        if (countEl) countEl.innerText = `${roomKeys.length} Saluran Ditemukan`;
 
         roomKeys.forEach(token => {
           const room = roomsData[token] || {};
