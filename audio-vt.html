@@ -52,11 +52,6 @@
       user-select: none;
     }
     .deck-btn:active { transform: scale(0.96); }
-    .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-      background-size: 100% 2px, 3px 100%;
-      pointer-events: none;
-    }
     .vu-bar-active { box-shadow: 0 0 6px currentColor; }
     .dropzone-hover {
       border-color: #f59e0b !important;
@@ -158,8 +153,10 @@
 
           <!-- Video Viewport 16:9 Multi-Format Player -->
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="vtPlayerContainer">
+          <!-- Video Viewport 16:9 Multi-Format Player (Clean Digital - Tanpa Garis) -->
+          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="vtPlayerContainer">
             <video id="audioVtHtml5" class="absolute inset-0 w-full h-full object-contain hidden" playsinline></video>
-            <div id="audioVtYtWrap" class="absolute inset-0 w-full h-full hidden">
+            <div id="audioVtYtWrap" class="absolute inset-0 w-full h-full hidden pointer-events-none">
               <div id="audioVtYtEl" class="w-full h-full"></div>
             </div>
             <iframe id="audioVtGdrive" class="absolute inset-0 w-full h-full border-0 hidden" allow="autoplay"></iframe>
@@ -176,8 +173,6 @@
                 STANDBY / CUE AT 00:00
               </span>
             </div>
-
-            <div class="scanline absolute inset-0 pointer-events-none"></div>
           </div>
 
           <!-- Timecode & Timeline Slider -->
@@ -223,10 +218,11 @@
         </div>
 
         <!-- LAYAR MONITOR INTIP PGM LIVE RETURN -->
+        <!-- LAYAR MONITOR INTIP PGM LIVE RETURN (Clean Digital - Tanpa Garis) -->
         <div class="bg-slate-950 border border-slate-800 rounded-2xl p-2.5 shadow-lg space-y-1.5">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
             <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
               <span class="font-brand font-bold text-[11px] uppercase tracking-wider text-slate-200">PGM Live Return Monitor</span>
             </div>
             <span id="audioPgmReturnSource" class="font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 uppercase">
@@ -241,7 +237,6 @@
               <span class="block text-slate-400 font-bold mb-0.5 text-[11px]">FEED STUDIO MENUNGGU</span>
               <span class="text-[9px] text-slate-600">Feed kamera studio aktif akan tampil di sini</span>
             </div>
-            <div class="scanline absolute inset-0 pointer-events-none"></div>
           </div>
         </div>
 
@@ -853,15 +848,20 @@
       } catch (e) {}
     }
 
-    // Inisialisasi YouTube API Resmi
-    window.onYouTubeIframeAPIReady = function() {
-      isYtReady = true;
+    // Inisialisasi YouTube API Kuat & Terproteksi Polling
+    function initAudioYtPlayer() {
+      if (isYtReady && audioYtPlayer) return;
+      if (typeof YT === 'undefined' || !YT.Player) return;
+
+      const clip = vtPlaylist[activePlaylistIndex] || DEFAULT_SKASA_CLIP;
+      const vidId = clip.youtubeId || DEFAULT_SKASA_CLIP.youtubeId;
+
       try {
         audioYtPlayer = new YT.Player('audioVtYtEl', {
           height: '100%',
           width: '100%',
           host: 'https://www.youtube-nocookie.com',
-          videoId: DEFAULT_SKASA_CLIP.youtubeId,
+          videoId: vidId,
           playerVars: {
             playsinline: 1,
             controls: 0,
@@ -877,7 +877,11 @@
           },
           events: {
             onReady: () => {
+              isYtReady = true;
               matikanSubtitleYouTube(audioYtPlayer);
+              if (typeof audioYtPlayer.setVolume === 'function') {
+                audioYtPlayer.setVolume(mixerState.ch4.isMuted ? 0 : mixerState.ch4.gain);
+              }
               muatKlipKePlayer(activePlaylistIndex, false);
             },
             onStateChange: (e) => {
@@ -890,10 +894,25 @@
             }
           }
         });
+        isYtReady = true;
       } catch (err) {
         console.warn("[Audio-VT] Galat inisialisasi YouTube API:", err);
       }
-    };
+    }
+
+    if (window.YT && window.YT.Player) {
+      initAudioYtPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = initAudioYtPlayer;
+    }
+
+    const ytInitPoll = setInterval(() => {
+      if (isYtReady && audioYtPlayer) {
+        clearInterval(ytInitPoll);
+      } else if (window.YT && window.YT.Player) {
+        initAudioYtPlayer();
+      }
+    }, 350);
 
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -1557,6 +1576,8 @@
           } else {
             audioYtPlayer.cueVideoById({ videoId: clip.youtubeId, startSeconds: 0 });
           }
+        } else if (!audioYtPlayer && window.YT && window.YT.Player) {
+          initAudioYtPlayer();
         }
       } else if (clip.sourceType === 'gdrive') {
         html5El.classList.add('hidden');
@@ -1602,16 +1623,41 @@
 
     function eksekusiRollVt() {
       const clip = vtPlaylist[activePlaylistIndex];
+      if (!clip) return;
       vtPlaybackState.status = 'playing';
 
       document.getElementById('vtStandbyOverlay').classList.add('hidden');
 
       const html5El = document.getElementById('audioVtHtml5');
-      if (clip.sourceType === 'youtube' && isYtReady && audioYtPlayer && typeof audioYtPlayer.playVideo === 'function') {
-        matikanSubtitleYouTube(audioYtPlayer);
-        audioYtPlayer.playVideo();
+      const ytWrap = document.getElementById('audioVtYtWrap');
+      const gdriveEl = document.getElementById('audioVtGdrive');
+
+      if (clip.sourceType === 'youtube') {
+        html5El.classList.add('hidden');
+        gdriveEl.classList.add('hidden');
+        ytWrap.classList.remove('hidden');
+
+        if (isYtReady && audioYtPlayer && typeof audioYtPlayer.playVideo === 'function') {
+          matikanSubtitleYouTube(audioYtPlayer);
+          const curVidData = typeof audioYtPlayer.getVideoData === 'function' ? audioYtPlayer.getVideoData() : null;
+          if (curVidData && curVidData.video_id !== clip.youtubeId) {
+            audioYtPlayer.loadVideoById({ videoId: clip.youtubeId, startSeconds: vtPlaybackState.currentTime || 0 });
+          } else {
+            audioYtPlayer.playVideo();
+          }
+        } else if (!audioYtPlayer && window.YT && window.YT.Player) {
+          initAudioYtPlayer();
+        }
       } else if (clip.sourceType === 'html5') {
+        ytWrap.classList.add('hidden');
+        gdriveEl.classList.add('hidden');
+        html5El.classList.remove('hidden');
         html5El.play().catch(()=>{});
+      } else if (clip.sourceType === 'gdrive') {
+        html5El.classList.add('hidden');
+        ytWrap.classList.add('hidden');
+        gdriveEl.classList.remove('hidden');
+        if (clip.url && gdriveEl.src !== clip.url) gdriveEl.src = clip.url;
       }
 
       updatePlayerStatusVisuals();
