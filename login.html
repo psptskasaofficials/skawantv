@@ -157,9 +157,14 @@
           <span class="text-[11px] text-purple-700 block">Anda dapat masuk ke lobby & memilih posisi kru ruangan mana saja tanpa PIN siswa.</span>
         </div>
       </div>
-      <a href="admin.html?role=admin" class="deck-btn px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-[11px] shrink-0 shadow">
-        Ke MCR →
-      </a>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <a href="admin.html?role=admin" class="deck-btn px-2.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-[11px] shadow">
+          Ke MCR →
+        </a>
+        <button onclick="keluarSesiAdminDariLogin()" class="deck-btn px-2 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-xl font-bold text-[11px] border border-rose-300" title="Keluar dari sesi Admin sepenuhnya agar bisa login sebagai siswa biasa">
+          🚪 Logout Admin
+        </button>
+      </div>
     </div>
 
     <!-- Tab Navigasi Peran Masuk (3 Tab) -->
@@ -181,18 +186,24 @@
     <section id="formSectionSiswa" class="space-y-4">
       <div>
         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-          Nama / Token Ruangan Siaran:
+          Pilih Ruangan Siaran Aktif:
         </label>
+        <!-- Dropdown Pilihan Ruangan Otomatis Mencegah Typo Siswa -->
         <div class="relative">
-          <input
-            type="text"
-            id="inputSiswaRoom"
-            placeholder="Contoh: SKASA, STUDIO-1"
-            value="SKASA"
-            class="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold uppercase tracking-wider text-slate-900 outline-none transition"
+          <select
+            id="selectSiswaRoom"
+            onchange="sinkronPilihanRuanganSiswa(this.value)"
+            class="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold uppercase tracking-wider text-slate-900 outline-none transition appearance-none cursor-pointer"
           >
-          <span class="absolute right-3.5 top-3.5 text-xs font-mono font-bold text-orange-600">ROOM</span>
+            <option value="SKASA">SKASA (Saluran Utama Studio)</option>
+          </select>
+          <div class="absolute right-3 top-3.5 pointer-events-none flex items-center gap-1 text-xs font-mono font-bold text-orange-600">
+            <span>▼</span>
+            <span>ROOM</span>
+          </div>
         </div>
+        <!-- Input Tersembunyi Penyimpan Token Ruangan Aktif -->
+        <input type="hidden" id="inputSiswaRoom" value="SKASA">
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -247,15 +258,22 @@
 
       <div>
         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-          Nama / Token Ruangan yang Dikelola:
+          Pilih Ruangan Siaran yang Dikelola:
         </label>
-        <input
-          type="text"
-          id="inputGuruRoom"
-          placeholder="Contoh: STUDIO-1 atau SKASA"
-          value="SKASA"
-          class="w-full bg-slate-50 border border-slate-300 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold uppercase tracking-wider text-slate-900 outline-none transition"
-        >
+        <div class="relative">
+          <select
+            id="selectGuruRoom"
+            onchange="sinkronPilihanRuanganGuru(this.value)"
+            class="w-full bg-slate-50 border border-slate-300 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold uppercase tracking-wider text-slate-900 outline-none transition appearance-none cursor-pointer"
+          >
+            <option value="SKASA">SKASA (Saluran Utama Studio)</option>
+          </select>
+          <div class="absolute right-3 top-3.5 pointer-events-none flex items-center gap-1 text-xs font-mono font-bold text-blue-600">
+            <span>▼</span>
+            <span>ROOM</span>
+          </div>
+        </div>
+        <input type="hidden" id="inputGuruRoom" value="SKASA">
       </div>
 
       <div>
@@ -385,6 +403,7 @@
     let activeLoginTab = 'siswa';
     let cachedRoomRoles = {};
     let activeRolesListener = null;
+    let daftarRuanganAktif = ['SKASA'];
 
     // Daftar 9 Peran Standar Penyiaran SKAWAN TV
     const CREW_ROLES_CATALOG = [
@@ -451,6 +470,7 @@
 
       pantauStatusKoneksiFirebase();
       pastikanRuanganSkasaAda();
+      muatDaftarRuanganAktif(targetRoom);
 
       // Jika datang dari tautan admin.html dengan admin=true, buka langsung modal pemilihan peran ruangan tersebut
       if (isAdminParam || (isLoggedAdmin && urlParams.has('room'))) {
@@ -459,6 +479,98 @@
         }, 350);
       }
     });
+
+    // Fungsi pemutus sesi Admin secara total dari halaman login
+    function keluarSesiAdminDariLogin() {
+      sessionStorage.removeItem('skawan_admin_logged');
+      sessionStorage.removeItem('skawan_role');
+      sessionStorage.removeItem('skawan_user_level');
+      sessionStorage.removeItem('skawan_user');
+      localStorage.removeItem('skawan_admin_logged');
+      localStorage.removeItem('skawan_role');
+      localStorage.removeItem('skawan_user_level');
+      localStorage.removeItem('skawan_user');
+
+      const banner = document.getElementById('adminActiveSessionBanner');
+      if (banner) banner.classList.add('hidden');
+
+      const nameInput = document.getElementById('inputSiswaName');
+      if (nameInput) nameInput.value = '';
+
+      // Bersihkan URL parameter admin
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+
+      showNotice("Sesi Admin Direset", "Anda kini berada dalam mode Siswa biasa. Silakan pilih ruangan dan masukkan PIN siswa.", true);
+    }
+
+    // Mengambil daftar ruangan aktif dari Firebase agar Siswa tidak salah ketik nama ruangan
+    function muatDaftarRuanganAktif(targetRoom) {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref('rooms').on('value', snap => {
+        const roomsData = snap.val() || {};
+        let roomKeys = Object.keys(roomsData);
+
+        if (!roomKeys.includes('SKASA')) {
+          roomKeys.unshift('SKASA');
+        } else {
+          roomKeys = roomKeys.filter(r => r !== 'SKASA');
+          roomKeys.unshift('SKASA');
+        }
+
+        daftarRuanganAktif = roomKeys;
+        renderDropdownRuangan(roomKeys, targetRoom, roomsData);
+      });
+    }
+
+    function renderDropdownRuangan(roomKeys, targetRoom, roomsData) {
+      const selectSiswa = document.getElementById('selectSiswaRoom');
+      const selectGuru = document.getElementById('selectGuruRoom');
+
+      [selectSiswa, selectGuru].forEach(selectEl => {
+        if (!selectEl) return;
+        const currentVal = selectEl.value;
+        selectEl.innerHTML = '';
+
+        roomKeys.forEach(token => {
+          const roomMeta = (roomsData && roomsData[token] && roomsData[token].meta) ? roomsData[token].meta : {};
+          const progName = roomMeta.programName || (token === 'SKASA' ? 'Saluran Utama Studio' : 'Ruangan Kelas');
+          const isLive = token === 'SKASA' || roomMeta.status === 'live';
+
+          const opt = document.createElement('option');
+          opt.value = token;
+          opt.innerText = `${token} — ${progName} [${isLive ? 'LIVE' : 'STANDBY'}]`;
+          selectEl.appendChild(opt);
+        });
+
+        // Pertahankan opsi ruangan yang dipilih sebelumnya
+        if (targetRoom && roomKeys.includes(targetRoom)) {
+          selectEl.value = targetRoom;
+        } else if (currentVal && roomKeys.includes(currentVal)) {
+          selectEl.value = currentVal;
+        } else {
+          selectEl.value = 'SKASA';
+        }
+      });
+
+      const selectedToken = selectSiswa ? selectSiswa.value : 'SKASA';
+      document.getElementById('inputSiswaRoom').value = selectedToken;
+      document.getElementById('inputGuruRoom').value = selectedToken;
+    }
+
+    function sinkronPilihanRuanganSiswa(token) {
+      document.getElementById('inputSiswaRoom').value = token;
+      localStorage.setItem('skawan_room', token);
+      sessionStorage.setItem('skawan_room', token);
+    }
+
+    function sinkronPilihanRuanganGuru(token) {
+      document.getElementById('inputGuruRoom').value = token;
+      localStorage.setItem('skawan_room', token);
+      sessionStorage.setItem('skawan_room', token);
+    }
 
     function tampilkanBannerAdminAktif(adminRole, targetRoom) {
       const banner = document.getElementById('adminActiveSessionBanner');
