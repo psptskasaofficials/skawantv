@@ -307,6 +307,12 @@
 
       <!-- 5. KONTROL OVERLAY (UNMUTE & FULLSCREEN) -->
       <div class="absolute bottom-8 right-4 z-40 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
+        <!-- Tombol Refresh PGM (In-App Soft Reset Tanpa Reload Halaman) -->
+        <button id="btnRefreshPgm" onclick="refreshPgmFeed()" class="bg-black/70 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition flex items-center gap-1.5 shadow-lg active:scale-95" title="Segarkan Feed Siaran PGM Langsung">
+          <span id="iconRefreshPgm">🔄</span>
+          <span id="lblRefreshPgm" class="hidden sm:inline text-[11px]">Refresh</span>
+        </button>
+
         <!-- Tombol Unmute Audio VT -->
         <button id="btnToggleAudio" onclick="toggleAudioPlayback()" class="bg-black/70 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition flex items-center gap-1.5 shadow-lg">
           <span id="iconAudioMute">🔇</span>
@@ -954,6 +960,84 @@
       }
     }
 
+    // Fungsi Segarkan / Reset PGM Cepat (Tanpa Reload Halaman Browser)
+    function refreshPgmFeed() {
+      const btn = document.getElementById('btnRefreshPgm');
+      const icon = document.getElementById('iconRefreshPgm');
+      const lbl = document.getElementById('lblRefreshPgm');
+
+      if (icon) icon.classList.add('animate-spin');
+      if (lbl) lbl.innerText = 'Menyegarkan...';
+      if (btn) btn.classList.add('opacity-75');
+
+      console.log(`[Index PGM] Melakukan soft-refresh siaran PGM untuk ruangan: ${currentRoomToken}`);
+
+      // 1. Reset elemen video kamera lokal
+      const camVideo = document.getElementById('pgmCamVideo');
+      if (camVideo) {
+        camVideo.pause();
+        camVideo.srcObject = null;
+      }
+
+      // 2. Kosongkan penanda state terakhir agar renderPgmDisplay mengeksekusi pemasangan ulang stream
+      lastRenderedPgmSource = null;
+
+      // 3. Putuskan dan hubungkan ulang WebRTC Streamer khusus viewer ini
+      if (typeof SkawanStreamer !== 'undefined') {
+        if (streamerInstance) {
+          streamerInstance.destroy();
+          streamerInstance = null;
+        }
+        remoteCamStreams.clear();
+
+        const viewerRoleUnique = `viewer_${Math.random().toString(36).substring(2, 7)}`;
+        streamerInstance = new SkawanStreamer({
+          roomToken: currentRoomToken,
+          roleKey: viewerRoleUnique,
+          onRemoteStream: (camKey, stream) => {
+            console.log(`[PGM Viewer - ${currentRoomToken}] Feed kamera disegarkan: ${camKey}`);
+            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+            remoteCamStreams.set(normKey, stream);
+            remoteCamStreams.set(camKey, stream);
+            if (liveState.programSource === normKey || liveState.programSource === camKey) {
+              renderPgmDisplay(true);
+            }
+          },
+          onStatusChange: (status, info) => {
+            console.log(`[PGM Viewer - ${currentRoomToken}] WebRTC Status: ${status} - ${info}`);
+          }
+        });
+      }
+
+      // 4. Sinkronkan ulang tampilan PGM
+      renderPgmDisplay(true);
+
+      // 5. Jika sumber siaran sedang VT (YouTube), sinkronkan kembali waktu dan status putar
+      if (liveState.programSource === 'vt') {
+        syncVtPlayback();
+        if (isYtReady && livePgmYt && typeof livePgmYt.seekTo === 'function') {
+          try {
+            if (latestVtState.status === 'playing') {
+              livePgmYt.seekTo(latestVtState.currentTime || 0, true);
+              livePgmYt.playVideo();
+            } else {
+              livePgmYt.pauseVideo();
+            }
+          } catch (e) {}
+        }
+      }
+
+      setTimeout(() => {
+        if (icon) icon.classList.remove('animate-spin');
+        if (lbl) lbl.innerText = 'Refresh';
+        if (btn) btn.classList.remove('opacity-75');
+      }, 700);
+    }
+
+    // Manajemen Pemantauan Saluran Ringan (Hanya memantau metadata, membebaskan browser dari unduhan sinyal WebRTC)
+    const channelMetaRefs = new Map();
+    const cachedChannelsData = new Map();
+
     function listenActiveChannels() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -963,71 +1047,110 @@
         channelsListRef.off();
         channelsListRef = null;
       }
+      channelMetaRefs.forEach((ref, token) => {
+        try { ref.off(); } catch (e) {}
+      });
+      channelMetaRefs.clear();
+      cachedChannelsData.clear();
 
-      // Dengarkan daftar token ruangan yang ada secara efisien
+      // Gunakan listener child_added dan child_removed agar tidak mengunduh seluruh subnode WebRTC
       channelsListRef = activeDb.ref('rooms');
-      channelsListRef.on('value', snap => {
-        const grid = document.getElementById('channelRoomsGrid');
-        if (!grid) return;
-        grid.innerHTML = '';
 
-        const roomsData = snap.val() || {};
-        const roomKeys = Object.keys(roomsData);
+      const attachRoomMetaListener = (token) => {
+        if (channelMetaRefs.has(token)) return;
 
-        if (!roomKeys.includes('SKASA')) {
-          roomKeys.unshift('SKASA');
-        } else {
-          const idx = roomKeys.indexOf('SKASA');
-          if (idx > 0) {
-            roomKeys.splice(idx, 1);
-            roomKeys.unshift('SKASA');
+        const metaRef = activeDb.ref(`rooms/${token}/meta`);
+        channelMetaRefs.set(token, metaRef);
+
+        metaRef.on('value', snap => {
+          const meta = snap.val() || {};
+          cachedChannelsData.set(token, meta);
+          renderChannelsGrid();
+        });
+      };
+
+      channelsListRef.on('child_added', snap => {
+        const token = snap.key;
+        if (token) {
+          attachRoomMetaListener(token);
+        }
+      });
+
+      channelsListRef.on('child_removed', snap => {
+        const token = snap.key;
+        if (token) {
+          if (channelMetaRefs.has(token)) {
+            channelMetaRefs.get(token).off();
+            channelMetaRefs.delete(token);
           }
+          cachedChannelsData.delete(token);
+          renderChannelsGrid();
+        }
+      });
+
+      // Pastikan saluran default SKASA selalu terpantau
+      attachRoomMetaListener('SKASA');
+    }
+
+    function renderChannelsGrid() {
+      const grid = document.getElementById('channelRoomsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      let roomKeys = Array.from(cachedChannelsData.keys());
+
+      if (!roomKeys.includes('SKASA')) {
+        roomKeys.unshift('SKASA');
+      } else {
+        const idx = roomKeys.indexOf('SKASA');
+        if (idx > 0) {
+          roomKeys.splice(idx, 1);
+          roomKeys.unshift('SKASA');
+        }
+      }
+
+      const countEl = document.getElementById('lblChannelCount');
+      if (countEl) countEl.innerText = `${roomKeys.length} Saluran Ditemukan`;
+
+      roomKeys.forEach(token => {
+        const meta = cachedChannelsData.get(token) || {};
+        const isSkasa = token === 'SKASA';
+        const isLive = isSkasa || meta.status === 'live';
+        const isCurrentSelected = token === currentRoomToken;
+
+        const card = document.createElement('div');
+        card.onclick = () => gantiSaluranSiaran(token);
+
+        let cardStyle = "p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between ";
+        if (isCurrentSelected) {
+          cardStyle += "bg-orange-950/60 border-orange-500 shadow-lg shadow-orange-950/50 ring-1 ring-orange-500";
+        } else {
+          cardStyle += "bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900";
         }
 
-        const countEl = document.getElementById('lblChannelCount');
-        if (countEl) countEl.innerText = `${roomKeys.length} Saluran Ditemukan`;
-
-        roomKeys.forEach(token => {
-          const room = roomsData[token] || {};
-          const meta = room.meta || {};
-          const isSkasa = token === 'SKASA';
-          const isLive = isSkasa || meta.status === 'live';
-          const isCurrentSelected = token === currentRoomToken;
-
-          const card = document.createElement('div');
-          card.onclick = () => gantiSaluranSiaran(token);
-          
-          let cardStyle = "p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between ";
-          if (isCurrentSelected) {
-            cardStyle += "bg-orange-950/60 border-orange-500 shadow-lg shadow-orange-950/50 ring-1 ring-orange-500";
-          } else {
-            cardStyle += "bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900";
-          }
-
-          card.className = cardStyle;
-          card.innerHTML = `
-            <div class="flex items-center gap-2.5 overflow-hidden">
-              <div class="w-8 h-8 rounded-lg ${isLive ? 'bg-orange-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'} flex items-center justify-center font-brand font-black text-xs shrink-0">
-                ${isLive ? 'LIVE' : 'CH'}
-              </div>
-              <div class="truncate">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-mono font-bold text-xs text-white">${token}</span>
-                  ${isSkasa ? '<span class="text-[9px] font-mono bg-orange-900/60 text-orange-300 px-1.5 py-0.2 rounded">UTAMA</span>' : ''}
-                </div>
-                <span class="text-[11px] text-slate-400 truncate block">${meta.programName || "SKASA TV Broadcast"}</span>
-              </div>
+        card.className = cardStyle;
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg ${isLive ? 'bg-orange-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'} flex items-center justify-center font-brand font-black text-xs shrink-0">
+              ${isLive ? 'LIVE' : 'CH'}
             </div>
-
-            <div class="text-right shrink-0">
-              <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded ${isLive ? 'bg-orange-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">
-                ${isLive ? '● ON-AIR' : 'STANDBY'}
-              </span>
+            <div class="truncate">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono font-bold text-xs text-white">${token}</span>
+                ${isSkasa ? '<span class="text-[9px] font-mono bg-orange-900/60 text-orange-300 px-1.5 py-0.2 rounded">UTAMA</span>' : ''}
+              </div>
+              <span class="text-[11px] text-slate-400 truncate block">${meta.programName || "SKASA TV Broadcast"}</span>
             </div>
-          `;
+          </div>
 
-          grid.appendChild(card);
-        });
+          <div class="text-right shrink-0">
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded ${isLive ? 'bg-orange-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">
+              ${isLive ? '● ON-AIR' : 'STANDBY'}
+            </span>
+          </div>
+        `;
+
+        grid.appendChild(card);
       });
     }
 
