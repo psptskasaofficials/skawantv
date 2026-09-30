@@ -231,35 +231,62 @@
             </div>
           </div>
 
-          <!-- Tombol Kontrol Siaran VT (Roll, Pause, Prev, Next) -->
-          <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 pt-1 border-t border-slate-800">
-            <!-- Tombol CUE (Reset ke Detik 0) -->
-            <button onclick="eksekusiCueVt()" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Kembalikan ke Detik Awal">
-              <span>⏮️</span>
-              <span>CUE</span>
-            </button>
+          <!-- Tombol Kontrol Siaran VT & Pilihan Looping -->
+          <div class="space-y-2 pt-1 border-t border-slate-800">
+            <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+              <!-- Tombol CUE (Reset ke Detik 0) -->
+              <button onclick="eksekusiCueVt()" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Kembalikan ke Detik Awal">
+                <span>⏮️️</span>
+                <span>CUE</span>
+              </button>
 
-            <!-- Tombol ROLL VT (Tombol Utama Siaran) -->
-            <button onclick="eksekusiRollVt()" id="btnRollVt" class="col-span-4 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30">
-              <span>▶️</span>
-              <span>ROLL VT!</span>
-            </button>
+              <!-- Tombol ROLL VT (Tombol Utama Siaran) -->
+              <button onclick="eksekusiRollVt()" id="btnRollVt" class="col-span-4 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30">
+                <span>▶️</span>
+                <span>ROLL VT!</span>
+              </button>
 
-            <!-- Tombol PAUSE -->
-            <button onclick="eksekusiPauseVt()" id="btnPauseVt" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700">
-              <span>⏸️</span>
-              <span>PAUSE</span>
-            </button>
+              <!-- Tombol PAUSE -->
+              <button onclick="eksekusiPauseVt()" id="btnPauseVt" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700">
+                <span>⏸️</span>
+                <span>PAUSE</span>
+              </button>
 
-            <!-- Tombol Klip Sebelumnya -->
-            <button onclick="pindahKlip(-1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Sebelumnya">
-              ◀
-            </button>
+              <!-- Tombol Klip Sebelumnya -->
+              <button onclick="pindahKlip(-1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Sebelumnya">
+                ◀
+              </button>
 
-            <!-- Tombol Klip Selanjutnya -->
-            <button onclick="pindahKlip(1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Selanjutnya">
-              ▶
-            </button>
+              <!-- Tombol Klip Selanjutnya -->
+              <button onclick="pindahKlip(1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Selanjutnya">
+                ▶
+              </button>
+
+              <!-- Tombol Cepat Siklus Mode Looping (OFF -> SINGLE -> PLAYLIST) -->
+              <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition" title="Ganti Mode Looping Siaran">
+                <span id="iconLoopMode">🔁</span>
+                <span id="lblLoopMode">PLAYLIST</span>
+              </button>
+            </div>
+
+            <!-- Opsi Pilihan Cepat Mode Looping -->
+            <div class="flex flex-wrap items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[11px] font-mono gap-1">
+              <span class="text-slate-400 flex items-center gap-1">
+                <span>🔁</span>
+                <span class="font-bold text-[10px] sm:text-[11px]">Mode Looping:</span>
+              </span>
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="setLoopMode('off')" id="optLoopOff" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white" title="Tanpa Looping: Pause saat klip berakhir">
+                  OFF
+                </button>
+                <button type="button" onclick="setLoopMode('single')" id="optLoopSingle" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white" title="Looping 1 Klip: Ulangi klip ini terus-menerus">
+                  🔂 Single Clip
+                </button>
+                <button type="button" onclick="setLoopMode('playlist')" id="optLoopPlaylist" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-amber-500 text-black shadow" title="Looping Playlist: Lanjut otomatis ke klip berikutnya dan berulang">
+                  🔁 Playlist (All)
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -652,6 +679,9 @@
     let activePlayingIndex = 0;
     let activeCueIndex = -1; // -1 = Tidak ada klip manual di-cue
 
+    // Mode Looping: 'playlist' | 'single' | 'off'
+    let loopMode = localStorage.getItem('skawan_vt_loop_mode') || 'playlist';
+
     // State Playback VT
     let vtPlaybackState = {
       status: 'playing',
@@ -810,14 +840,7 @@
                 updatePlaybackBadges();
                 broadcastVtPlaybackState();
               } else if (e.data === YT.PlayerState.ENDED) {
-                // Auto Advance ke klip berikutnya jika ada lebih dari 1 klip
-                if (vtPlaylist.length > 1) {
-                  pindahKlip(1);
-                  eksekusiRollVt();
-                } else {
-                  audioYtPlayer.seekTo(0, true);
-                  audioYtPlayer.playVideo();
-                }
+                tanganiKlipSelesai();
               }
             }
           }
@@ -861,6 +884,7 @@
       initAudioMixerUi();
       startStudioTimecodeTicker();
       startVuMeterSimulator();
+      updateLoopModeUI();
       initAudioVtSystem(currentRoomToken);
     });
 
@@ -1058,6 +1082,7 @@
         if (gdriveIframe) gdriveIframe.classList.add('hidden');
         if (html5Vid) {
           html5Vid.classList.remove('hidden');
+          html5Vid.onended = tanganiKlipSelesai;
           if (vtPlaybackState.url && html5Vid.src !== vtPlaybackState.url) {
             html5Vid.src = vtPlaybackState.url;
           }
@@ -1186,6 +1211,100 @@
         activeCueIndex = -1;
         vtPlaybackState.currentTime = 0;
         muatKlipKePlayer(target, true);
+      }
+    }
+
+    // ==============================================
+    // MANAJEMEN MODE LOOPING (SINGLE & PLAYLIST)
+    // ==============================================
+    function setLoopMode(mode) {
+      loopMode = mode;
+      localStorage.setItem('skawan_vt_loop_mode', mode);
+      updateLoopModeUI();
+    }
+
+    function cycleLoopMode() {
+      if (loopMode === 'off') setLoopMode('single');
+      else if (loopMode === 'single') setLoopMode('playlist');
+      else setLoopMode('off');
+    }
+
+    function updateLoopModeUI() {
+      const btn = document.getElementById('btnLoopMode');
+      const icon = document.getElementById('iconLoopMode');
+      const lbl = document.getElementById('lblLoopMode');
+
+      const optOff = document.getElementById('optLoopOff');
+      const optSingle = document.getElementById('optLoopSingle');
+      const optPlaylist = document.getElementById('optLoopPlaylist');
+
+      const inactiveClass = "px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white";
+      if (optOff) optOff.className = inactiveClass;
+      if (optSingle) optSingle.className = inactiveClass;
+      if (optPlaylist) optPlaylist.className = inactiveClass;
+
+      if (loopMode === 'single') {
+        if (icon) icon.innerText = '🔂';
+        if (lbl) lbl.innerText = 'SINGLE';
+        if (btn) btn.className = "col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-purple-950 border border-purple-500 text-purple-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-purple-900/30";
+        if (optSingle) optSingle.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-purple-600 text-white shadow";
+      } else if (loopMode === 'playlist') {
+        if (icon) icon.innerText = '🔁';
+        if (lbl) lbl.innerText = 'PLAYLIST';
+        if (btn) btn.className = "col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-amber-900/30";
+        if (optPlaylist) optPlaylist.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-amber-500 text-black shadow";
+      } else {
+        if (icon) icon.innerText = '⏸️';
+        if (lbl) lbl.innerText = 'OFF';
+        if (btn) btn.className = "col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700";
+        if (optOff) optOff.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-700 text-white";
+      }
+    }
+
+    function tanganiKlipSelesai() {
+      console.log(`[Audio-VT] Klip selesai. Eksekusi mode looping: ${loopMode}`);
+
+      if (loopMode === 'single') {
+        // 1. LOOP SINGLE CLIP: Ulangi klip yang sama dari detik 0 secara kontinu
+        vtPlaybackState.currentTime = 0;
+        if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+          audioYtPlayer.seekTo(0, true);
+          audioYtPlayer.playVideo();
+        } else if (vtPlaybackState.sourceType === 'mp4') {
+          const vid = document.getElementById('audioVtHtml5Video');
+          if (vid) {
+            vid.currentTime = 0;
+            vid.play().catch(() => {});
+          }
+        }
+        vtPlaybackState.status = 'playing';
+        broadcastVtPlaybackState();
+      } else if (loopMode === 'playlist') {
+        // 2. LOOP PLAYLIST: Maju otomatis ke klip berikutnya, berulang dari awal ke akhir
+        let nextIdx = activePlayingIndex + 1;
+        if (nextIdx >= vtPlaylist.length) {
+          nextIdx = 0;
+        }
+        activeCueIndex = -1;
+        vtPlaybackState.currentTime = 0;
+        muatKlipKePlayer(nextIdx, true);
+        eksekusiRollVt();
+      } else {
+        // 3. LOOP OFF: Klip selesai dan berhenti di detik 0 standby
+        vtPlaybackState.status = 'paused';
+        vtPlaybackState.currentTime = 0;
+        if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+          audioYtPlayer.seekTo(0, true);
+          audioYtPlayer.pauseVideo();
+        } else if (vtPlaybackState.sourceType === 'mp4') {
+          const vid = document.getElementById('audioVtHtml5Video');
+          if (vid) {
+            vid.currentTime = 0;
+            vid.pause();
+          }
+        }
+        updatePlaybackBadges();
+        broadcastVtPlaybackState();
       }
     }
 
