@@ -46,10 +46,13 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-      background-size: 100% 2px, 3px 100%;
-      pointer-events: none;
+    /* Optimalisasi Ketajaman Gambar Resolusi Tinggi (Ultra Clean Broadcast) */
+    video, iframe, #pgmVtYtWrap iframe {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-font-smoothing: antialiased;
     }
     @keyframes ticker-anim {
       0% { transform: translateX(100%); }
@@ -202,8 +205,7 @@
         <span>LIVE</span>
       </div>
 
-      <!-- Scanline Visual Overlay Khas Tabung TV -->
-      <div class="scanline absolute inset-0 pointer-events-none z-20"></div>
+      <!-- (Overlay scanline garis tabung TV telah dihilangkan agar gambar jernih & bersih) -->
 
       <!-- 5. KONTROL OVERLAY (UNMUTE & FULLSCREEN) -->
       <div class="absolute bottom-8 right-4 z-40 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
@@ -229,7 +231,7 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <span>Resolusi: <strong class="text-slate-200">16:9 HD Broadcast</strong></span>
+        <span>Resolusi: <strong class="text-slate-200">16:9 Full HD (Clean Digital)</strong></span>
         <span>&bull;</span>
         <span>Status: <strong id="lblBroadcastStatus" class="text-red-500 font-bold animate-pulse">ON-AIR (LIVE)</strong></span>
       </div>
@@ -396,12 +398,16 @@
             cc_load_policy: 0,
             cc_lang_pref: 'none',
             iv_load_policy: 3,
+            suggestedQuality: 'hd1080',
             origin: window.location.origin || 'http://localhost'
           },
           events: {
             onReady: () => {
               currentYtId = dynamicStandbyYtId;
               try {
+                if (typeof livePgmYt.setPlaybackQuality === 'function') {
+                  livePgmYt.setPlaybackQuality('hd1080');
+                }
                 if (typeof livePgmYt.unloadModule === 'function') {
                   livePgmYt.unloadModule('captions');
                   livePgmYt.unloadModule('cc');
@@ -421,6 +427,9 @@
             onStateChange: (e) => {
               if (e.data === YT.PlayerState.PLAYING) {
                 try {
+                  if (typeof livePgmYt.setPlaybackQuality === 'function') {
+                    livePgmYt.setPlaybackQuality('hd1080');
+                  }
                   if (typeof livePgmYt.unloadModule === 'function') {
                     livePgmYt.unloadModule('captions');
                     livePgmYt.unloadModule('cc');
@@ -603,11 +612,17 @@
           currentYtId = targetId;
           livePgmYt.loadVideoById({
             videoId: targetId,
-            startSeconds: 0
+            startSeconds: 0,
+            suggestedQuality: 'hd1080'
           });
         } else {
           livePgmYt.playVideo();
         }
+        try {
+          if (typeof livePgmYt.setPlaybackQuality === 'function') {
+            livePgmYt.setPlaybackQuality('hd1080');
+          }
+        } catch (e) {}
       }
     }
 
@@ -716,9 +731,17 @@
           if (currentYtId !== ytId) {
             currentYtId = ytId;
             if (isPlaying) {
-              livePgmYt.loadVideoById(ytId, latestVtState.currentTime || 0);
+              livePgmYt.loadVideoById({
+                videoId: ytId,
+                startSeconds: latestVtState.currentTime || 0,
+                suggestedQuality: 'hd1080'
+              });
             } else {
-              livePgmYt.cueVideoById(ytId, latestVtState.currentTime || 0);
+              livePgmYt.cueVideoById({
+                videoId: ytId,
+                startSeconds: latestVtState.currentTime || 0,
+                suggestedQuality: 'hd1080'
+              });
             }
           } else {
             if (isPlaying) {
@@ -731,6 +754,11 @@
               livePgmYt.pauseVideo();
             }
           }
+          try {
+            if (typeof livePgmYt.setPlaybackQuality === 'function') {
+              livePgmYt.setPlaybackQuality('hd1080');
+            }
+          } catch (e) {}
         }
       } else if (latestVtState.sourceType === 'gdrive') {
         html5El.classList.add('hidden');
