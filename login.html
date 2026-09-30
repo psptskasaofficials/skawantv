@@ -1,75 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portal Masuk | SKAWAN TV</title>
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Google Fonts: Montserrat & Plus Jakarta Sans -->
+<!-- ... existing code ... -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
+  <!-- Favicon Logo Baru SKAWAN TV -->
+  <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
+  <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
+
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            brand: ['Montserrat', 'sans-serif'],
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            skawan: {
-              red: '#E50914',
-              redHover: '#C70812',
-              lightBg: '#F1F5F9',
-              cardBg: '#FFFFFF',
-              borderLight: '#E2E8F0',
-              accentBlue: '#2563EB'
-            }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Firebase SDK (Compat Version) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="js/firebase-config.js"></script>
-
-  <script>
-    (function ensureFirebaseConnection() {
-      const config = {
-        apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
-        authDomain: "skawan-tv.firebaseapp.com",
-        databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "skawan-tv",
-        storageBucket: "skawan-tv.firebasestorage.app",
-        messagingSenderId: "501619282826",
-        appId: "1:501619282826:web:81e624ac35e9798062ae73"
-      };
-
-      if (typeof firebase !== 'undefined') {
-        if (!firebase.apps || !firebase.apps.length) {
-          try {
-            firebase.initializeApp(config);
-          } catch (e) {
-            console.warn("Init fallback:", e);
-          }
-        }
-        if (!window.db && firebase.database) {
-          window.db = firebase.database();
-        }
-      }
-    })();
-    var db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
-  </script>
-</head>
+<!-- ... existing code ... -->
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center p-4 selection:bg-red-600 selection:text-white">
 
   <header class="text-center mb-6">
@@ -86,607 +26,62 @@
       </div>
     </div>
     
-    <div class="flex items-center justify-center gap-3">
-      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-xl text-white shadow-md shadow-red-500/20">
-        SK
+    <!-- Area Logo Baru SKAWAN TV (Mendukung path assets/img/ atau root) -->
+    <div class="flex flex-col items-center justify-center">
+      <img 
+        id="loginBrandImg"
+        src="assets/img/logo-skawan-full.webp" 
+        alt="SKAWAN TV | SKASA WAHANA TV" 
+        class="h-14 sm:h-16 w-auto max-w-[280px] object-contain mx-auto drop-shadow-sm transition-transform duration-200 hover:scale-105"
+        onerror="handleLoginLogoFallback(this)"
+      >
+
+      <!-- Fallback Branding Elegan jika berkas WebP belum disalin ke folder -->
+      <div id="loginFallbackBrand" class="hidden items-center justify-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center font-brand font-black text-xl text-white shadow-md shadow-orange-500/20">
+          SK
+        </div>
+        <div class="text-left">
+          <h1 class="text-3xl sm:text-4xl font-brand font-black tracking-wider text-slate-900 leading-tight">
+            SKAWAN <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">TV</span>
+          </h1>
+          <p class="text-[10px] tracking-widest uppercase font-semibold text-slate-500">
+            SKASA WAHANA TELEVISI
+          </p>
+        </div>
       </div>
-      <h1 class="text-3xl sm:text-4xl font-brand font-black tracking-wider text-slate-900">
-        SKAWAN <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600">TV</span>
-      </h1>
     </div>
-    <!-- 1. Subjudul Header: SKASA WAHANA TELEVISI -->
-    <p class="text-xs sm:text-sm tracking-widest uppercase font-semibold text-slate-500 mt-1">
-      SKASA WAHANA TELEVISI
-    </p>
   </header>
 
   <main class="w-full max-w-xl bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 relative overflow-hidden space-y-5">
-    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-rose-500 to-blue-600"></div>
-
-    <!-- 4. Banner Penonton di Luar Kru Telah Dihapus dari Sini -->
-
-    <!-- Tab Navigasi (Siswa vs Guru vs Admin) -->
-    <div id="tabContainer" class="flex border-b border-slate-200 pt-1">
-      <button id="tabSiswaBtn" onclick="switchLoginTab('siswa')" class="flex-1 pb-3 text-xs sm:text-sm font-bold border-b-2 border-red-600 text-red-600 focus:outline-none transition">
-        Masuk Kru
-      </button>
-      <button id="tabGuruBtn" onclick="switchLoginTab('guru')" class="flex-1 pb-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition">
-        Guru
-      </button>
-      <button id="tabAdminBtn" onclick="switchLoginTab('admin')" class="flex-1 pb-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition">
-        Admin
-      </button>
-    </div>
-
-    <!-- VIEW 1: Form Siswa Masuk Sesi Kru (Memerlukan Nama Room, PIN Sesi, dan Nama Siswa) -->
-    <section id="viewSiswa" class="space-y-4">
-      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-        <strong>Akses Siswa:</strong> Masukkan Token Ruangan dan <strong>PIN Sesi</strong> yang dibagikan oleh Guru untuk membuka daftar peran.
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Nama Ruangan / Sesi</label>
-        <input type="text" id="siswaRoomToken" placeholder="Contoh: SKASA atau STUDIO-1" value="SKASA" class="w-full uppercase bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-mono font-bold text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-100 focus:bg-white outline-none transition placeholder-slate-400">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">PIN Sesi Ruangan</label>
-        <input type="password" id="siswaRoomPin" placeholder="Masukkan 6-digit PIN dari Guru" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-mono tracking-widest text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-100 focus:bg-white outline-none transition placeholder-slate-400">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Nama Lengkap Siswa</label>
-        <input type="text" id="siswaName" placeholder="Masukkan nama Anda" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:border-red-600 focus:ring-2 focus:ring-red-100 focus:bg-white outline-none transition placeholder-slate-400">
-      </div>
-      <!-- 5. Tombol: Akses Lobby Studio -->
-      <button onclick="masukLobbySiswa()" class="w-full mt-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-red-600/25 active:scale-[0.99]">
-        Akses Lobby Studio
-      </button>
-    </section>
-
-    <!-- VIEW 2: Login Guru (Password: PESPETETV) -->
-    <section id="viewGuru" class="hidden space-y-4">
-      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-xs text-blue-800 leading-relaxed">
-        <span class="font-bold">Akses Guru:</span> Khusus untuk Guru Pengampu / Pembina Studio dalam membuat sesi ruangan, melihat daftar room aktif, mengontrol status Standby & ON-AIR, serta menyuntikkan krisis.
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Kata Sandi Guru</label>
-        <input type="password" id="guruPassword" placeholder="Masukkan kata sandi guru" onkeydown="if(event.key==='Enter') loginGuru()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:bg-white outline-none transition placeholder-slate-400">
-      </div>
-      <button onclick="loginGuru()" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-blue-600/25 active:scale-[0.99]">
-        Masuk Sebagai Guru
-      </button>
-    </section>
-
-    <!-- VIEW 3: Login Admin (Password: SKASAONETV*) -->
-    <section id="viewAdmin" class="hidden space-y-4">
-      <div class="bg-purple-50 border border-purple-200 rounded-xl p-3.5 text-xs text-purple-800 leading-relaxed">
-        <span class="font-bold">Akses Super Admin:</span> Hak penuh pengelola sistem studio untuk memantau semua ruangan aktif dan menghapus/mengakhiri sesi ruangan secara langsung tanpa perlu memasukkan PIN.
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Kata Sandi Super Admin</label>
-        <input type="password" id="adminPassword" placeholder="Masukkan kata sandi admin" onkeydown="if(event.key==='Enter') loginAdmin()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:border-purple-600 focus:ring-2 focus:ring-purple-100 focus:bg-white outline-none transition placeholder-slate-400">
-      </div>
-      <button onclick="loginAdmin()" class="w-full mt-2 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-purple-700/25 active:scale-[0.99]">
-        Masuk Sebagai Super Admin
-      </button>
-    </section>
-
-    <!-- VIEW 4: Pemilihan Posisi Kru (Real-time Slot Locking) -->
-    <section id="viewRoleSelector" class="hidden space-y-4">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
-        <div>
-          <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Ruangan:</span>
-          <span id="displayRoomToken" class="font-mono font-bold text-red-600 ml-1"></span>
-        </div>
-        <div>
-          <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Kru:</span>
-          <span id="displaySiswaName" class="font-bold text-slate-800 ml-1"></span>
-        </div>
-      </div>
-
-      <p class="text-xs text-slate-600">Pilih salah satu peran kru di bawah. Posisi yang sudah diambil siswa lain akan otomatis terkunci:</p>
-
-      <div id="roleGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
-        <!-- Render otomatis via JavaScript -->
-      </div>
-    </section>
-
-    <!-- VIEW 5: Ruang Tunggu (Waiting Room Kru) -->
-    <section id="viewWaitingRoom" class="hidden text-center py-6 space-y-4">
-      <div class="w-14 h-14 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-      <h3 class="text-lg font-bold text-slate-900">Posisi Terdaftar:</h3>
-      <div id="badgeRoleSelected" class="inline-block bg-red-50 border border-red-200 text-red-700 text-sm font-mono px-4 py-1.5 rounded-full font-bold shadow-sm"></div>
-      <p class="text-sm text-slate-600 max-w-sm mx-auto leading-relaxed">
-        Standby di posisi Anda. Menunggu Guru membuka workstation atau menekan tombol <span class="text-red-600 font-bold">"Mulai Siaran"</span>. Layar Anda akan berpindah otomatis ke workstation peran Anda.
-      </p>
-
-      <div class="pt-3 border-t border-slate-100 flex items-center justify-center gap-2">
-        <button onclick="batalPilihPeran()" class="text-xs text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 px-3 py-1.5 rounded-lg transition">
-          Ganti Peran / Keluar Sesi
-        </button>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Notification Dialog Modal -->
-  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
-      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold">!</div>
-      <h4 id="noticeTitle" class="text-base font-bold text-slate-900 mb-1">Pemberitahuan</h4>
-      <p id="noticeMessage" class="text-sm text-slate-600 mb-5 leading-relaxed"></p>
-      <button onclick="closeNotice()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition">
-        Tutup
-      </button>
-    </div>
-  </div>
-
-  <footer class="mt-6 text-center text-xs text-slate-500 font-medium">
-    SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026
-  </footer>
-
-  <script>
-    let currentRoomToken = '';
-    let currentSiswaName = '';
-    let selectedRoleKey = '';
-    let selectedRoleTitle = '';
-    let isFirebaseReady = false;
-
-    // Kata sandi resmi sesuai spesifikasi
-    const GURU_PASSWORD = "PESPETETV";
-    const ADMIN_PASSWORD = "SKASAONETV*";
-
-    function getDatabase() {
-      if (window.db) return window.db;
-      if (typeof firebase !== 'undefined' && firebase.database) {
-        window.db = firebase.database();
-        return window.db;
-      }
-      return null;
-    }
-
-    function checkFirebaseReady() {
-      const activeDb = getDatabase();
-      return Boolean(typeof firebase !== 'undefined' && activeDb && firebase.apps && firebase.apps.length > 0);
-    }
-
-    // Memastikan ruangan "SKASA" selalu aktif di Firebase saat portal dibuka
-    function ensureDefaultSkasaRoom() {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-      activeDb.ref('rooms/SKASA/meta').once('value', snap => {
-        if (!snap.exists()) {
-          activeDb.ref('rooms/SKASA').set({
-            meta: {
-              programName: "SKASA TV Live Broadcast",
-              episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
-              totalCameras: 3,
-              status: "live",
-              pin: "123456",
-              creatorRole: "guru",
-              createdAt: Date.now()
-            },
-            roles: {
-              creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "",
-              cam_1: "", cam_2: "", cam_3: ""
-            },
-            live_state: { programSource: "vt", previewSource: "cam_1" },
-            vt_state: { status: "playing", currentTime: 0, youtubeId: "XhwSTlXTJRc", sourceType: "youtube" }
-          });
-        } else {
-          // Pulihkan status SKASA selalu ke 'live' jika sempat tertinggal di status lain
-          const val = snap.val();
-          if (val && val.status !== 'live') {
-            activeDb.ref('rooms/SKASA/meta/status').set('live');
+<!-- ... existing code ... -->
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || !firebase.apps.length) {
+          try {
+            firebase.initializeApp(config);
+          } catch (e) {
+            console.warn("Init fallback:", e);
           }
         }
-      });
-    }
-
-    function setupConnectionMonitor() {
-      const badge = document.getElementById('connStatusBadge');
-      const dot = document.getElementById('connStatusDot');
-      const activeDb = getDatabase();
-
-      if (!activeDb) {
-        isFirebaseReady = false;
-        badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 border border-slate-300 shadow-sm transition-all duration-300 cursor-help";
-        badge.title = "Mode Demo / Offline";
-        if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-slate-400";
-        return;
-      }
-
-      isFirebaseReady = true;
-
-      activeDb.ref('.info/connected').on('value', snap => {
-        if (snap.val() === true) {
-          badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 border border-emerald-300 shadow-sm transition-all duration-300 cursor-help";
-          badge.title = "Firebase Terhubung (Online)";
-          if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-        } else {
-          badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 border border-amber-300 shadow-sm transition-all duration-300 cursor-help";
-          badge.title = "Menghubungkan Server...";
-          if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping";
+        if (!window.db && firebase.database) {
+          window.db = firebase.database();
         }
-      });
-    }
+      }
+    })();
+    var db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
 
-    function showNotice(title, message, isSuccess = false) {
-      document.getElementById('noticeTitle').innerText = title;
-      document.getElementById('noticeMessage').innerText = message;
-      const icon = document.getElementById('noticeIcon');
-      if (isSuccess) {
-        icon.className = "w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
-        icon.innerText = "✓";
+    // Penangan Fallback Logo jika belum ditaruh di assets/img/
+    function handleLoginLogoFallback(imgEl) {
+      if (imgEl.src.indexOf('assets/img/') !== -1) {
+        // Coba cari langsung di root direktori proyek
+        imgEl.src = 'logo-skawan-full.webp';
       } else {
-        icon.className = "w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 text-xl font-bold";
-        icon.innerText = "!";
-      }
-      document.getElementById('noticeModal').classList.remove('hidden');
-    }
-
-    function closeNotice() {
-      document.getElementById('noticeModal').classList.add('hidden');
-    }
-
-    function switchLoginTab(tab) {
-      document.getElementById('viewSiswa').classList.toggle('hidden', tab !== 'siswa');
-      document.getElementById('viewGuru').classList.toggle('hidden', tab !== 'guru');
-      document.getElementById('viewAdmin').classList.toggle('hidden', tab !== 'admin');
-      
-      document.getElementById('tabSiswaBtn').className = tab === 'siswa'
-        ? "flex-1 pb-3 text-xs sm:text-sm font-bold border-b-2 border-red-600 text-red-600 focus:outline-none transition"
-        : "flex-1 pb-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition";
-
-      document.getElementById('tabGuruBtn').className = tab === 'guru'
-        ? "flex-1 pb-3 text-xs sm:text-sm font-bold border-b-2 border-blue-600 text-blue-600 focus:outline-none transition"
-        : "flex-1 pb-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition";
-
-      document.getElementById('tabAdminBtn').className = tab === 'admin'
-        ? "flex-1 pb-3 text-xs sm:text-sm font-bold border-b-2 border-purple-600 text-purple-600 focus:outline-none transition"
-        : "flex-1 pb-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 focus:outline-none transition";
-    }
-
-    // Login Guru (Password: PESPETETV)
-    function loginGuru() {
-      const pass = document.getElementById('guruPassword').value;
-
-      if (!pass) {
-        showNotice("Peringatan", "Harap masukkan kata sandi Guru!");
-        return;
-      }
-
-      if (pass === GURU_PASSWORD) {
-        sessionStorage.setItem('skawan_role', 'guru');
-        sessionStorage.setItem('skawan_admin_logged', 'true');
-        sessionStorage.setItem('skawan_user_level', 'guru');
-        showNotice("Akses Diterima", "Berhasil login sebagai Guru! Mengalihkan ke Master Control...", true);
-        
-        setTimeout(() => {
-          window.location.href = "admin.html?role=guru";
-        }, 800);
-      } else {
-        showNotice("Akses Ditolak", "Kata sandi Guru salah! Pastikan memasukkan sandi yang tepat.");
+        // Tampilkan fallback teks/CSS yang rapi
+        imgEl.style.display = 'none';
+        const fallback = document.getElementById('loginFallbackBrand');
+        if (fallback) fallback.classList.remove('hidden');
       }
     }
-
-    // Login Admin (Password: SKASAONETV*)
-    function loginAdmin() {
-      const pass = document.getElementById('adminPassword').value;
-
-      if (!pass) {
-        showNotice("Peringatan", "Harap masukkan kata sandi Super Admin!");
-        return;
-      }
-
-      if (pass === ADMIN_PASSWORD) {
-        sessionStorage.setItem('skawan_role', 'admin');
-        sessionStorage.setItem('skawan_admin_logged', 'true');
-        sessionStorage.setItem('skawan_user_level', 'admin');
-        showNotice("Akses Diterima", "Berhasil login sebagai Super Admin! Mengalihkan ke Master Control...", true);
-        
-        setTimeout(() => {
-          window.location.href = "admin.html?role=admin";
-        }, 800);
-      } else {
-        showNotice("Akses Ditolak", "Kata sandi Super Admin salah!");
-      }
-    }
-
-    // Siswa Masuk Sesi Kru dengan Nama Ruangan, PIN, dan Nama
-    function masukLobbySiswa() {
-      const token = document.getElementById('siswaRoomToken').value.trim().toUpperCase();
-      const pin = document.getElementById('siswaRoomPin').value.trim();
-      const name = document.getElementById('siswaName').value.trim();
-
-      if (!token || !pin || !name) {
-        showNotice("Peringatan", "Harap lengkapi Token Ruangan, PIN Sesi, dan Nama Anda!");
-        return;
-      }
-
-      const activeDb = getDatabase();
-
-      if (activeDb) {
-        activeDb.ref(`rooms/${token}`).once('value', snapshot => {
-          if (!snapshot.exists()) {
-            showNotice("Token Tidak Ditemukan", `Ruangan "${token}" tidak ditemukan! Pastikan Guru sudah membuat sesi ruangan.`);
-            return;
-          }
-
-          const roomData = snapshot.val();
-          const expectedPin = String(roomData.meta?.pin || '').trim();
-
-          // Validasi PIN Sesi
-          if (expectedPin && expectedPin !== pin) {
-            showNotice("PIN Sesi Salah", `PIN yang Anda masukkan salah untuk ruangan "${token}". Silakan tanyakan PIN sesi kepada Guru!`);
-            return;
-          }
-
-          currentRoomToken = token;
-          currentSiswaName = name;
-
-          localStorage.setItem('skawan_room', token);
-          localStorage.setItem('skawan_user', name);
-
-          bukaTampilanPeran(token, name);
-          listenRoles(token);
-        }).catch(err => {
-          console.error(err);
-          showNotice("Koneksi Bermasalah", "Gagal menghubungi database Firebase: " + err.message);
-        });
-      } else {
-        // Mode Demo Offline
-        currentRoomToken = token;
-        currentSiswaName = name;
-        bukaTampilanPeran(token, name);
-        renderRoleButtons(mockRoles);
-      }
-    }
-
-    let mockRoles = {
-      creative: "",
-      pd: "",
-      switcher: "",
-      audio_vt: "",
-      cg: "",
-      fd: "",
-      cam_1: "",
-      cam_2: "",
-      cam_3: ""
-    };
-
-    function bukaTampilanPeran(token, name) {
-      document.getElementById('tabContainer').classList.add('hidden');
-      document.getElementById('viewSiswa').classList.add('hidden');
-      document.getElementById('viewWaitingRoom').classList.add('hidden');
-      document.getElementById('viewRoleSelector').classList.remove('hidden');
-      document.getElementById('displayRoomToken').innerText = token;
-      document.getElementById('displaySiswaName').innerText = name;
-    }
-
-    const roleLabels = {
-      creative: "Tim Kreatif (Rundown & Script)",
-      pd: "Program Director (PD)",
-      switcher: "Video Switcher (ATEM Desk)",
-      audio_vt: "Audio & VT Operator (Drive)",
-      cg: "Graphic Operator (CG & Lower Third)",
-      fd: "Floor Director (FD / Studio Floor)"
-    };
-
-    function listenRoles(token) {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-      activeDb.ref(`rooms/${token}`).on('value', snapshot => {
-        if (!snapshot.exists()) return;
-        const roomData = snapshot.val();
-        let roles = roomData.roles || {};
-
-        if (Object.keys(roles).length === 0) {
-          const totalCams = roomData.meta?.totalCameras || 3;
-          roles = {
-            creative: "",
-            pd: "",
-            switcher: "",
-            audio_vt: "",
-            cg: "",
-            fd: ""
-          };
-          for (let i = 1; i <= totalCams; i++) roles[`cam_${i}`] = "";
-          activeDb.ref(`rooms/${token}/roles`).set(roles);
-        }
-
-        renderRoleButtons(roles);
-      });
-    }
-
-    function renderRoleButtons(roles) {
-      const grid = document.getElementById('roleGrid');
-      grid.innerHTML = '';
-
-      Object.keys(roles).forEach(roleKey => {
-        const occupant = roles[roleKey];
-        const isTaken = Boolean(occupant && typeof occupant === 'string' && occupant.trim().length > 0);
-        const isMine = isTaken && occupant === currentSiswaName;
-        
-        let title = roleLabels[roleKey];
-        if (!title && roleKey.startsWith('cam_')) {
-          const camNum = roleKey.replace('cam_', '');
-          title = `Kamerawan ${camNum} (HP Live)`;
-        }
-
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.disabled = isTaken && !isMine;
-        btn.onclick = () => ambilPeran(roleKey, title);
-
-        let cardClass = "flex flex-col text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-red-500 hover:bg-red-50/50 text-slate-800 shadow-sm transition active:scale-[0.98]";
-        let statusBadge = `<span class="text-xs mt-1.5 font-mono text-emerald-600 font-semibold">&bull; Posisi Kosong (Klik Ambil)</span>`;
-
-        if (isMine) {
-          cardClass = "flex flex-col text-left p-3.5 rounded-xl border-2 border-red-500 bg-red-50 text-red-900 shadow-sm";
-          statusBadge = `<span class="text-xs mt-1.5 font-mono text-red-600 font-bold">&bull; Posisi Pilihan Anda</span>`;
-        } else if (isTaken) {
-          cardClass = "flex flex-col text-left p-3.5 rounded-xl border border-slate-200 bg-slate-100 opacity-60 cursor-not-allowed text-slate-400";
-          statusBadge = `<span class="text-xs mt-1.5 font-mono text-amber-600 font-semibold">&bull; Terisi: ${occupant}</span>`;
-        }
-
-        btn.className = cardClass;
-        btn.innerHTML = `
-          <span class="text-sm font-bold tracking-wide ${isTaken && !isMine ? 'text-slate-400' : 'text-slate-900'}">${title}</span>
-          ${statusBadge}
-        `;
-
-        grid.appendChild(btn);
-      });
-    }
-
-    function ambilPeran(roleKey, roleTitle) {
-      const activeDb = getDatabase();
-      if (activeDb) {
-        const roleRef = activeDb.ref(`rooms/${currentRoomToken}/roles/${roleKey}`);
-
-        roleRef.transaction(currentValue => {
-          if (!currentValue || currentValue === "" || currentValue === currentSiswaName) {
-            return currentSiswaName;
-          } else {
-            return;
-          }
-        }, (error, committed) => {
-          if (error) {
-            showNotice("Kesalahan", "Gagal memilih peran: " + error.message);
-          } else if (!committed) {
-            showNotice("Slot Terisi", "Maaf, peran ini baru saja diambil oleh siswa lain! Silakan pilih posisi lain.");
-          } else {
-            prosesSuksesAmbilPeran(roleKey, roleTitle);
-            listenGameStart(currentRoomToken, roleKey);
-          }
-        });
-      } else {
-        mockRoles[roleKey] = currentSiswaName;
-        prosesSuksesAmbilPeran(roleKey, roleTitle);
-      }
-    }
-
-    function prosesSuksesAmbilPeran(roleKey, roleTitle) {
-      selectedRoleKey = roleKey;
-      selectedRoleTitle = roleTitle;
-
-      localStorage.setItem('skawan_room', currentRoomToken);
-      localStorage.setItem('skawan_role', roleKey);
-      localStorage.setItem('skawan_role_title', roleTitle);
-      localStorage.setItem('skawan_user', currentSiswaName);
-
-      sessionStorage.setItem('skawan_room', currentRoomToken);
-      sessionStorage.setItem('skawan_role', roleKey);
-      sessionStorage.setItem('skawan_user', currentSiswaName);
-
-      document.getElementById('viewRoleSelector').classList.add('hidden');
-      document.getElementById('viewWaitingRoom').classList.remove('hidden');
-      document.getElementById('badgeRoleSelected').innerText = `${roleTitle} &bull; ${currentSiswaName}`;
-    }
-
-    function batalPilihPeran() {
-      const activeDb = getDatabase();
-      if (selectedRoleKey && currentRoomToken && activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/roles/${selectedRoleKey}`).transaction(currentValue => {
-          if (currentValue === currentSiswaName) return "";
-          return currentValue;
-        });
-      }
-
-      localStorage.removeItem('skawan_role');
-      localStorage.removeItem('skawan_role_title');
-      sessionStorage.removeItem('skawan_role');
-      selectedRoleKey = '';
-
-      document.getElementById('viewWaitingRoom').classList.add('hidden');
-      document.getElementById('viewRoleSelector').classList.remove('hidden');
-    }
-
-    function listenGameStart(token, roleKey) {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-
-      // Ruangan SKASA terkunci ON-AIR permanen: langsung alihkan siswa tanpa menunggu
-      if (token === 'SKASA') {
-        alihkanKeWorkstation(token, roleKey);
-        return;
-      }
-
-      activeDb.ref(`rooms/${token}/meta/status`).on('value', snapshot => {
-        const status = snapshot.val();
-        if (status === 'standby' || status === 'live') {
-          alihkanKeWorkstation(token, roleKey);
-        }
-      });
-    }
-
-    function alihkanKeWorkstation(token, roleKey) {
-      const targetPages = {
-        creative: 'creative.html',
-        pd: 'pd.html',
-        switcher: 'switcher.html',
-        audio_vt: 'audio-vt.html',
-        cg: 'cg.html',
-        fd: 'fd.html'
-      };
-
-      const destination = targetPages[roleKey] || 'camera.html';
-      window.location.href = `${destination}?room=${token}&role=${roleKey}`;
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      setupConnectionMonitor();
-      ensureDefaultSkasaRoom();
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      const savedRoom = roomParam || localStorage.getItem('skawan_room') || sessionStorage.getItem('skawan_room');
-      const savedUser = localStorage.getItem('skawan_user') || sessionStorage.getItem('skawan_user');
-      const savedRole = localStorage.getItem('skawan_role') || sessionStorage.getItem('skawan_role');
-      const savedRoleTitle = localStorage.getItem('skawan_role_title') || savedRole;
-
-      if (savedRoom) {
-        document.getElementById('siswaRoomToken').value = savedRoom;
-      }
-      if (savedUser) {
-        document.getElementById('siswaName').value = savedUser;
-      }
-
-      if (savedRoom && savedUser && !savedRole) {
-        currentRoomToken = savedRoom;
-        currentSiswaName = savedUser;
-        bukaTampilanPeran(savedRoom, savedUser);
-        if (checkFirebaseReady()) {
-          listenRoles(savedRoom);
-        } else {
-          renderRoleButtons(mockRoles);
-        }
-        return;
-      }
-
-      if (savedRoom && savedUser && savedRole) {
-        currentRoomToken = savedRoom;
-        currentSiswaName = savedUser;
-        selectedRoleKey = savedRole;
-        selectedRoleTitle = savedRoleTitle;
-
-        document.getElementById('tabContainer').classList.add('hidden');
-        document.getElementById('viewSiswa').classList.add('hidden');
-        document.getElementById('viewRoleSelector').classList.add('hidden');
-        document.getElementById('viewWaitingRoom').classList.remove('hidden');
-        document.getElementById('badgeRoleSelected').innerText = `${savedRoleTitle} • ${savedUser}`;
-
-        if (checkFirebaseReady()) {
-          db.ref(`rooms/${savedRoom}/meta/status`).once('value', snapshot => {
-            const status = snapshot.val();
-            if (savedRoom === 'SKASA' || status === 'standby' || status === 'live') {
-              alihkanKeWorkstation(savedRoom, savedRole);
-            } else {
-              listenGameStart(savedRoom, savedRole);
-            }
-          });
-        }
-      }
-    });
   </script>
-</body>
-</html>
+</head>
+<!-- ... existing code ... -->
