@@ -76,11 +76,6 @@
     .deck-btn:active {
       transform: scale(0.97);
     }
-    .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
-      background-size: 100% 2px, 3px 100%;
-      pointer-events: none;
-    }
     @keyframes marquee {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
@@ -193,7 +188,7 @@
           <!-- Video Kamera HP jika PVW adalah Kamera -->
           <video id="pvwCamVideo" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-200 z-10 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
-          <!-- Layer VT di PVW (Layering Opacity & Z-Index Anti-Freeze) -->
+          <!-- Layer VT di PVW -->
           <div id="pvwVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center transition-opacity duration-200 z-10 opacity-0 pointer-events-none">
             <video id="pvwVtHtml5" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
             <div id="pvwVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none">
@@ -208,14 +203,13 @@
             <span class="text-[10px] font-mono text-emerald-400 block uppercase tracking-wider">STANDBY UNTUK TRANSISI</span>
           </div>
 
-          <div class="scanline absolute inset-0 pointer-events-none z-20"></div>
           <div class="absolute bottom-2 left-2 bg-emerald-600/90 text-white font-mono text-[9px] px-2 py-0.5 rounded font-bold z-20">
             PREVIEW BUS
           </div>
         </div>
       </div>
 
-      <!-- Monitor PROGRAM (PGM ON-AIR - MERAH) -->
+      <!-- Monitor PROGRAM (PGM ON-AIR - MERAH - CLEAN DIGITAL TANPA GARIS) -->
       <div class="bg-slate-950 border-2 border-red-600 rounded-2xl p-3 shadow-2xl space-y-2 relative overflow-hidden" id="pgmMainCard">
         <div class="flex items-center justify-between pb-1 border-b border-slate-800">
           <div class="flex items-center gap-2">
@@ -231,7 +225,7 @@
           <!-- Video Kamera HP jika PGM adalah Kamera -->
           <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-200 z-10 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
-          <!-- Layer VT di PGM (Layering Opacity & Z-Index Anti-Freeze) -->
+          <!-- Layer VT di PGM -->
           <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center transition-opacity duration-200 z-10 opacity-0 pointer-events-none">
             <video id="pgmVtHtml5" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
             <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none">
@@ -257,18 +251,16 @@
             </div>
           </div>
 
-          <!-- LAPISAN GRAFIS 2: Bug Logo SKAWAN TV Pojok Kanan Atas (Mendukung Gambar/GIF Transparan atau Badge Default) -->
+          <!-- LAPISAN GRAFIS 2: Bug Logo SKAWAN TV Pojok Kanan Atas -->
           <div id="pgmBugLogo" class="hidden absolute top-3 right-3 z-30 flex items-center justify-center max-w-[130px] max-h-10 transition-all duration-200">
-            <!-- Jika operator CG mengunggah gambar/GIF transparan kustom -->
             <img id="pgmBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-6 sm:h-7 w-auto max-w-[120px] object-contain drop-shadow-md">
-            <!-- Fallback Badge Standar jika belum unggah file logo -->
             <div id="pgmBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded border border-white/20">
               <div class="w-3.5 h-3.5 rounded bg-red-600 flex items-center justify-center text-[8px] font-black text-white">SK</div>
               <span class="text-[9px] font-brand font-black text-white uppercase tracking-widest">SKAWAN <span class="text-red-500">TV</span></span>
             </div>
           </div>
 
-          <!-- LAPISAN GRAFIS 3: Running Text / Ticker di Dasar Layar (Format: HH:mm WIB) -->
+          <!-- LAPISAN GRAFIS 3: Running Text / Ticker di Dasar Layar -->
           <div id="pgmTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-5 bg-red-700 text-white z-30 overflow-hidden flex items-center border-t border-red-500">
             <div id="pdTickerWibHeader" class="bg-slate-950 px-2 h-full flex items-center font-mono font-black text-[8px] text-amber-400 shrink-0">
               00:00 WIB
@@ -278,18 +270,16 @@
             </div>
           </div>
 
-          <!-- LAPISAN GRAFIS 4: Lencana LIVE On-Air Bug (Default: HIDDEN / MATI, Dikendalikan Operator CG) -->
+          <!-- LAPISAN GRAFIS 4: Lencana LIVE On-Air Bug -->
           <div id="badgeLiveOnAir" class="hidden absolute top-2 left-2 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded flex items-center gap-1 shadow z-30 animate-pulse">
             <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE
           </div>
-
-          <div class="scanline absolute inset-0 pointer-events-none z-20"></div>
         </div>
       </div>
 
     </div>
 
-    <!-- 2. MULTIVIEW FEEDS BARIS BAWAH (CAM 1, CAM 2, CAM 3, VT SIMULTAN LIVE) -->
+    <!-- 2. MULTIVIEW FEEDS BARIS BAWAH (Clean Feed Tanpa Garis) -->
     <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 shadow-md space-y-2">
       <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
         <div class="flex items-center gap-2">
@@ -310,7 +300,6 @@
           </div>
           <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_1">MENUNGGU FEED</div>
           <div class="text-[9px] text-slate-400 font-mono truncate relative z-10 drop-shadow">Kamera HP 1</div>
-          <div class="scanline absolute inset-0 pointer-events-none"></div>
         </div>
 
         <!-- CARD 2: CAM 2 -->
@@ -322,7 +311,6 @@
           </div>
           <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_2">MENUNGGU FEED</div>
           <div class="text-[9px] text-slate-400 font-mono truncate relative z-10 drop-shadow">Kamera HP 2</div>
-          <div class="scanline absolute inset-0 pointer-events-none"></div>
         </div>
 
         <!-- CARD 3: CAM 3 -->
@@ -334,12 +322,10 @@
           </div>
           <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_3">MENUNGGU FEED</div>
           <div class="text-[9px] text-slate-400 font-mono truncate relative z-10 drop-shadow">Kamera HP 3</div>
-          <div class="scanline absolute inset-0 pointer-events-none"></div>
         </div>
 
-        <!-- CARD 4: VT / MEDIA (Optimized Dynamic Live Poster Thumbnail) -->
+        <!-- CARD 4: VT / MEDIA -->
         <div id="mv-card-vt" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden transition shadow">
-          <!-- Dynamic High-Res YouTube Poster Background (Enteng & Anti-Freeze) -->
           <img id="mv-vt-poster" src="https://img.youtube.com/vi/Jnp3esoHb9k/hqdefault.jpg" class="absolute inset-0 w-full h-full object-cover opacity-85 transition-opacity" alt="VT Thumbnail">
           
           <div class="flex items-center justify-between relative z-10">
@@ -359,7 +345,6 @@
           </div>
 
           <div class="text-[9px] text-slate-200 font-mono truncate relative z-10 drop-shadow" id="mv-sub-vt">Profil SKAWAN TV</div>
-          <div class="scanline absolute inset-0 pointer-events-none"></div>
         </div>
 
       </div>
