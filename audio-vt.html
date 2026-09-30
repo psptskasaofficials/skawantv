@@ -39,7 +39,8 @@
   <style>
     /* Slider Fader Vertikal Meja Mixer */
     input[type=range].vertical-slider {
-      writing-mode: bt-lr;
+      writing-mode: vertical-lr;
+      direction: rtl;
       -webkit-appearance: slider-vertical;
       width: 26px;
       height: 155px;
@@ -56,6 +57,12 @@
     .dropzone-hover {
       border-color: #f59e0b !important;
       background-color: rgba(245, 158, 11, 0.08) !important;
+    }
+    /* Pastikan iframe YouTube mengisi kontainer 16:9 secara penuh */
+    #audioVtYtWrap iframe {
+      width: 100% !important;
+      height: 100% !important;
+      border: 0;
     }
   </style>
 </head>
@@ -151,8 +158,6 @@
             </div>
           </div>
 
-          <!-- Video Viewport 16:9 Multi-Format Player -->
-          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="vtPlayerContainer">
           <!-- Video Viewport 16:9 Multi-Format Player (Clean Digital - Tanpa Garis) -->
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="vtPlayerContainer">
             <video id="audioVtHtml5" class="absolute inset-0 w-full h-full object-contain hidden" playsinline></video>
@@ -207,17 +212,16 @@
               ⏸️ PAUSE
             </button>
 
-            <button onclick="pindahKlip(-1)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center shadow" title="Klip Sebelumnya">
+            <button onclick="pindahKlip(-1)" class="deck-btn col-span-2 sm:col-span-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center shadow" title="Klip Sebelumnya">
               ⏮️ PREV
             </button>
 
-            <button onclick="pindahKlip(1)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center shadow" title="Klip Berikutnya">
-              NEXT ⏭️️
+            <button onclick="pindahKlip(1)" class="deck-btn col-span-2 sm:col-span-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center shadow" title="Klip Berikutnya">
+              NEXT ⏭
             </button>
           </div>
         </div>
 
-        <!-- LAYAR MONITOR INTIP PGM LIVE RETURN -->
         <!-- LAYAR MONITOR INTIP PGM LIVE RETURN (Clean Digital - Tanpa Garis) -->
         <div class="bg-slate-950 border border-slate-800 rounded-2xl p-2.5 shadow-lg space-y-1.5">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -294,7 +298,7 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
             <!-- Kolom Link URL dengan auto-detect -->
-            <div class="sm:col-span-6 relative">
+            <div class="sm:col-span-5 relative">
               <input type="text" id="quickInputUrl" placeholder="Tempel tautan video di sini..." oninput="deteksiLinkOtomatis(this.value)" onkeydown="if(event.key==='Enter') eksekusiTambahCepat()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 font-mono outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
               <span id="quickTypeIndicator" class="hidden absolute right-2.5 top-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">YT</span>
             </div>
@@ -305,7 +309,7 @@
             </div>
 
             <!-- Kolom Durasi (Detik) -->
-            <div class="sm:col-span-1">
+            <div class="sm:col-span-2">
               <input type="number" id="quickInputDuration" value="120" min="5" max="3600" title="Estimasi Durasi (Detik)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-amber-300 font-mono text-center outline-none focus:border-amber-500">
             </div>
 
