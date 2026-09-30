@@ -151,10 +151,10 @@
         <span class="text-xl">🛡️</span>
         <div>
           <div class="flex items-center gap-1.5">
-            <span class="font-brand font-black text-purple-900" id="lblAdminBannerTitle">SUPER ADMIN AKTIF</span>
+            <span class="font-brand font-black text-purple-900" id="lblAdminBannerTitle">SESI SUPER ADMIN AKTIF</span>
             <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-200 text-purple-800 font-bold">AKSES BEBAS</span>
           </div>
-          <span class="text-[11px] text-purple-700 block">Admin SKAWAN TV.</span>
+          <span class="text-[11px] text-purple-700 block">Anda dapat masuk ke lobby & memilih posisi kru ruangan mana saja tanpa PIN siswa.</span>
         </div>
       </div>
       <a href="admin.html?role=admin" class="deck-btn px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-[11px] shrink-0 shadow">
@@ -646,6 +646,45 @@
       });
 
       document.getElementById('modalPilihPeran').classList.remove('hidden');
+    }
+
+    // Fungsi Pemantau Status Koneksi Firebase Real-Time ke .info/connected
+    function pantauStatusKoneksiFirebase() {
+      const activeDb = getDatabase();
+      const badge = document.getElementById('connStatusBadge');
+      const dot = document.getElementById('connStatusDot');
+
+      if (!activeDb) {
+        if (badge) {
+          badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 text-rose-700 border border-rose-300 shadow-sm cursor-help";
+          badge.title = "Database Terputus (Firebase belum siap)";
+        }
+        if (dot) {
+          dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+        }
+        return;
+      }
+
+      activeDb.ref('.info/connected').on('value', snap => {
+        const isConnected = Boolean(snap.val());
+        if (isConnected) {
+          if (badge) {
+            badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-sm transition-all duration-300 cursor-help";
+            badge.title = "Database Firebase Terhubung (Online)";
+          }
+          if (dot) {
+            dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+          }
+        } else {
+          if (badge) {
+            badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-700 border border-amber-300 shadow-sm transition-all duration-300 cursor-help";
+            badge.title = "Menghubungkan Database...";
+          }
+          if (dot) {
+            dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping";
+          }
+        }
+      });
     }
 
     function tutupModalPeran() {
