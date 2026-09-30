@@ -41,6 +41,34 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
+  <script>
+    // Inisialisasi Otomatis Firebase jika berkas js/firebase-config.js belum termuat
+    (function ensureFirebaseConnection() {
+      const config = {
+        apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
+        authDomain: "skawan-tv.firebaseapp.com",
+        databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "skawan-tv",
+        storageBucket: "skawan-tv.firebasestorage.app",
+        messagingSenderId: "501619282826",
+        appId: "1:501619282826:web:81e624ac35e9798062ae73"
+      };
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || !firebase.apps.length) {
+          try {
+            firebase.initializeApp(config);
+          } catch (e) {
+            console.warn("Init fallback Firebase error:", e);
+          }
+        }
+        if (!window.db && firebase.database) {
+          window.db = firebase.database();
+        }
+      }
+    })();
+    var db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
+  </script>
+
   <style>
     .deck-btn {
       transition: all 0.12s ease;
@@ -467,6 +495,19 @@
     function getDatabase() {
       if (window.db) return window.db;
       if (typeof firebase !== 'undefined' && firebase.database) {
+        if (!firebase.apps || !firebase.apps.length) {
+          try {
+            firebase.initializeApp({
+              apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
+              authDomain: "skawan-tv.firebaseapp.com",
+              databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
+              projectId: "skawan-tv",
+              storageBucket: "skawan-tv.firebasestorage.app",
+              messagingSenderId: "501619282826",
+              appId: "1:501619282826:web:81e624ac35e9798062ae73"
+            });
+          } catch (e) {}
+        }
         window.db = firebase.database();
         return window.db;
       }
@@ -516,8 +557,26 @@
 
       generateRandomPin();
       ensureDefaultSkasaRoom();
+      pantauStatusKoneksiAdmin();
       listenAllRooms();
     });
+
+    function pantauStatusKoneksiAdmin() {
+      const activeDb = getDatabase();
+      const statusBadge = document.querySelector('.bg-emerald-950\\/60');
+      if (!activeDb || !statusBadge) return;
+
+      activeDb.ref('.info/connected').on('value', snap => {
+        const isConnected = Boolean(snap.val());
+        if (isConnected) {
+          statusBadge.className = "text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1";
+          statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Database Terhubung';
+        } else {
+          statusBadge.className = "text-xs font-semibold text-amber-400 bg-amber-950/60 border border-amber-800 px-2 py-0.5 rounded-full flex items-center gap-1";
+          statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span> Menghubungkan...';
+        }
+      });
+    }
 
     function applyRolePrivileges(role) {
       const badgeRole = document.getElementById('badgeUserRole');
