@@ -735,6 +735,19 @@
             badgeLive.classList.add('hidden');
           }
         }
+      } else {
+        standbyScreen.classList.remove('hidden');
+        badgeLiveNav.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-950/70 text-amber-400 border border-amber-800";
+        navLiveStatusText.innerText = `${currentRoomToken} STANDBY`;
+        lblStatus.innerText = "STANDBY (GLADI)";
+        lblStatus.className = "text-amber-400 font-bold";
+
+        if (badgeLive) {
+          badgeLive.classList.add('hidden');
+        }
+      }
+    }
+
     function renderPgmDisplay(forceUpdate = false) {
       const activeSrc = liveState.programSource || 'vt';
 
@@ -1039,6 +1052,16 @@
     const cachedChannelsData = new Map();
 
     function listenActiveChannels() {
+      // Inisialisasi awal saluran SKASA agar grid tidak kosong
+      if (!cachedChannelsData.has('SKASA')) {
+        cachedChannelsData.set('SKASA', {
+          programName: "SKASA TV Live Broadcast",
+          episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
+          status: "live"
+        });
+      }
+      renderChannelsGrid();
+
       const activeDb = getDatabase();
       if (!activeDb) return;
 
@@ -1051,13 +1074,12 @@
         try { ref.off(); } catch (e) {}
       });
       channelMetaRefs.clear();
-      cachedChannelsData.clear();
 
-      // Gunakan listener child_added dan child_removed agar tidak mengunduh seluruh subnode WebRTC
+      // Gunakan listener child_added dan child_removed pada node rooms
       channelsListRef = activeDb.ref('rooms');
 
       const attachRoomMetaListener = (token) => {
-        if (channelMetaRefs.has(token)) return;
+        if (!token || channelMetaRefs.has(token)) return;
 
         const metaRef = activeDb.ref(`rooms/${token}/meta`);
         channelMetaRefs.set(token, metaRef);
@@ -1078,7 +1100,7 @@
 
       channelsListRef.on('child_removed', snap => {
         const token = snap.key;
-        if (token) {
+        if (token && token !== 'SKASA') {
           if (channelMetaRefs.has(token)) {
             channelMetaRefs.get(token).off();
             channelMetaRefs.delete(token);
