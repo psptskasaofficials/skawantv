@@ -145,6 +145,23 @@
   <!-- Kontainer Form Masuk Multi-Tab -->
   <main class="w-full max-w-xl bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 sm:p-8 relative overflow-hidden space-y-6">
 
+    <!-- BANNER KHUSUS SESI ADMIN / SUPERVISOR (JIKA TERDETEKSI SUDAH LOGIN ADMIN) -->
+    <div id="adminActiveSessionBanner" class="hidden p-3.5 bg-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2.5">
+        <span class="text-xl">🛡️</span>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-brand font-black text-purple-900" id="lblAdminBannerTitle">SUPER ADMIN AKTIF</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-200 text-purple-800 font-bold">AKSES BEBAS</span>
+          </div>
+          <span class="text-[11px] text-purple-700 block">Admin SKAWAN TV.</span>
+        </div>
+      </div>
+      <a href="admin.html?role=admin" class="deck-btn px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-[11px] shrink-0 shadow">
+        Ke MCR →
+      </a>
+    </div>
+
     <!-- Tab Navigasi Peran Masuk (3 Tab) -->
     <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-brand font-bold text-center">
       <button id="tabBtnSiswa" onclick="switchLoginTab('siswa')" class="py-2.5 px-2 rounded-xl transition bg-white text-orange-600 shadow-sm border border-slate-200/80">
@@ -413,51 +430,65 @@
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
+      const roleParam = urlParams.get('role');
+      const isAdminParam = urlParams.get('admin') === 'true' || roleParam === 'admin' || roleParam === 'guru';
+
       const savedRoom = localStorage.getItem('skawan_room') || sessionStorage.getItem('skawan_room');
       const savedUser = localStorage.getItem('skawan_user') || sessionStorage.getItem('skawan_user');
+      const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
+      const adminRole = roleParam || sessionStorage.getItem('skawan_role') || localStorage.getItem('skawan_role') || 'admin';
 
       const targetRoom = (roomParam || savedRoom || 'SKASA').toUpperCase();
       document.getElementById('inputSiswaRoom').value = targetRoom;
       document.getElementById('inputGuruRoom').value = targetRoom;
 
-      if (savedUser) {
+      // Jika ada sesi Admin aktif atau parameter admin=true
+      if (isAdminParam || isLoggedAdmin) {
+        tampilkanBannerAdminAktif(adminRole, targetRoom);
+      } else if (savedUser) {
         document.getElementById('inputSiswaName').value = savedUser;
       }
 
       pantauStatusKoneksiFirebase();
       pastikanRuanganSkasaAda();
+
+      // Jika datang dari tautan admin.html dengan admin=true, buka langsung modal pemilihan peran ruangan tersebut
+      if (isAdminParam || (isLoggedAdmin && urlParams.has('room'))) {
+        setTimeout(() => {
+          bukaLobbyKruBypassAdmin(targetRoom, adminRole);
+        }, 350);
+      }
     });
 
-    // Pantau Status Sambungan Firebase RTDB (.info/connected)
-    function pantauStatusKoneksiFirebase() {
-      const activeDb = getDatabase();
-      const badge = document.getElementById('connStatusBadge');
-      const dot = document.getElementById('connStatusDot');
-
-      if (!activeDb) {
-        if (badge) {
-          badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 text-rose-700 border border-rose-300 shadow-sm cursor-help";
-          badge.title = "Database Offline / Tidak Terhubung";
+    function tampilkanBannerAdminAktif(adminRole, targetRoom) {
+      const banner = document.getElementById('adminActiveSessionBanner');
+      const title = document.getElementById('lblAdminBannerTitle');
+      if (banner) {
+        banner.classList.remove('hidden');
+        if (title) {
+          title.innerText = adminRole === 'guru' ? 'SESI GURU SUPERVISOR AKTIF' : 'SESI SUPER ADMIN AKTIF';
         }
-        if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-        return;
       }
 
-      activeDb.ref('.info/connected').on('value', snap => {
-        const isOnline = Boolean(snap.val());
-        if (isOnline) {
-          if (badge) {
-            badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-sm cursor-help";
-            badge.title = "Database Firebase Terhubung (Online)";
-          }
-          if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
-        } else {
-          if (badge) {
-            badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-700 border border-amber-300 shadow-sm cursor-help";
-            badge.title = "Menghubungkan ke Database...";
-          }
-          if (dot) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping";
-        }
+      // Isi otomatis nama kru dengan peran supervisor
+      const nameInput = document.getElementById('inputSiswaName');
+      if (nameInput && (!nameInput.value || nameInput.value.trim().length === 0)) {
+        nameInput.value = adminRole === 'guru' ? 'Guru Supervisor' : 'Super Admin';
+      }
+    }
+
+    // Fungsi otomatis bagi Admin untuk membuka modal peran tanpa terhalang PIN siswa
+    function bukaLobbyKruBypassAdmin(token, adminRole) {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const supervisorName = adminRole === 'guru' ? 'Guru Supervisor' : 'Super Admin';
+      document.getElementById('inputSiswaRoom').value = token;
+      document.getElementById('inputSiswaName').value = supervisorName;
+
+      activeDb.ref(`rooms/${token}/meta`).once('value', snap => {
+        const meta = snap.val() || {};
+        bukaModalPeranKru(token, supervisorName, meta.totalCameras || 3);
       });
     }
 
@@ -539,15 +570,25 @@
 
       const token = roomInput.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
 
+      // Cek apakah pengguna memiliki sesi Admin/Guru aktif (Bypass PIN)
+      const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
+      const urlParams = new URLSearchParams(window.location.search);
+      const isAdminBypass = isLoggedAdmin || urlParams.get('admin') === 'true';
+
       if (!token) {
         showNotice("Token Ruangan Kosong", "Masukkan Nama / Token Ruangan siaran terlebih dahulu.", false);
         return;
       }
-      if (!pinInput) {
+
+      // Siswa biasa wajib mengisi PIN, sedangkan Admin/Supervisor dibebaskan
+      if (!isAdminBypass && !pinInput) {
         showNotice("PIN Sesi Kosong", "Masukkan 6-digit PIN sesi ruangan.", false);
         return;
       }
-      if (!nameInput) {
+
+      const activeUserName = nameInput || (isAdminBypass ? 'Super Admin' : '');
+
+      if (!activeUserName) {
         showNotice("Nama Kru Kosong", "Harap masukkan nama lengkap Anda agar dikenali oleh Sutradara dan Guru.", false);
         return;
       }
@@ -558,7 +599,7 @@
         return;
       }
 
-      // Verifikasi keberadaan ruangan dan kecocokan PIN
+      // Verifikasi keberadaan ruangan
       activeDb.ref(`rooms/${token}/meta`).once('value', snap => {
         if (!snap.exists()) {
           showNotice("Ruangan Tidak Ditemukan", `Ruangan "${token}" belum dibuat oleh Guru atau Admin di admin.html.`, false);
@@ -568,18 +609,19 @@
         const meta = snap.val() || {};
         const expectedPin = String(meta.pin || '123456');
 
-        if (pinInput !== expectedPin) {
+        // Jika bukan admin, periksa kecocokan PIN
+        if (!isAdminBypass && pinInput !== expectedPin) {
           showNotice("PIN Sesi Salah", `PIN sesi yang Anda masukkan tidak cocok untuk ruangan "${token}".`, false);
           return;
         }
 
         // Simpan preferensi pengguna
         localStorage.setItem('skawan_room', token);
-        localStorage.setItem('skawan_user', nameInput);
+        localStorage.setItem('skawan_user', activeUserName);
         sessionStorage.setItem('skawan_room', token);
-        sessionStorage.setItem('skawan_user', nameInput);
+        sessionStorage.setItem('skawan_user', activeUserName);
 
-        bukaModalPeranKru(token, nameInput, meta.totalCameras || 3);
+        bukaModalPeranKru(token, activeUserName, meta.totalCameras || 3);
       }).catch(err => {
         showNotice("Galat Database", err.message, false);
       });
@@ -641,7 +683,9 @@
 
         card.className = cardStyle;
         card.onclick = () => {
-          if (!isOccupied || isSelf) {
+          const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
+          // Jika slot kosong, atau milik sendiri, ATAU pengguna adalah Super Admin/Guru (akses supervisor)
+          if (!isOccupied || isSelf || isLoggedAdmin) {
             klaimPeranDanMasukStudio(token, role.key, role.label, role.page, studentName);
           } else {
             showNotice("Slot Terisi", `Posisi ${role.label} sedang diambil oleh "${occupant}". Harap pilih posisi yang masih kosong.`, false);
@@ -649,10 +693,16 @@
         };
 
         let badgeHtml = '';
+        const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
+
         if (isSelf) {
           badgeHtml = '<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-orange-600 text-white animate-pulse">POSISI ANDA</span>';
         } else if (isOccupied) {
-          badgeHtml = `<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800 truncate max-w-[100px]">${occupant}</span>`;
+          if (isLoggedAdmin) {
+            badgeHtml = `<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700 truncate max-w-[100px]">${occupant} (SUPERVISE)</span>`;
+          } else {
+            badgeHtml = `<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800 truncate max-w-[100px]">${occupant}</span>`;
+          }
         } else {
           badgeHtml = '<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">KOSONG</span>';
         }
@@ -677,7 +727,24 @@
       const activeDb = getDatabase();
       if (!activeDb) return;
 
+      const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
       const roleRef = activeDb.ref(`rooms/${token}/roles/${roleKey}`);
+
+      // Jika yang masuk adalah Super Admin atau Guru, berikan akses langsung tanpa menendang siswa asli
+      if (isLoggedAdmin) {
+        localStorage.setItem('skawan_room', token);
+        sessionStorage.setItem('skawan_room', token);
+        localStorage.setItem('skawan_role', roleKey);
+        sessionStorage.setItem('skawan_role', roleKey);
+        localStorage.setItem('skawan_role_title', roleTitle);
+        sessionStorage.setItem('skawan_role_title', roleTitle);
+        localStorage.setItem('skawan_user', studentName);
+        sessionStorage.setItem('skawan_user', studentName);
+
+        tutupModalPeran();
+        window.location.href = `${pageUrl}?room=${token}&role=${roleKey}&supervisor=true`;
+        return;
+      }
 
       roleRef.transaction(currentOccupant => {
         // Jika masih kosong atau sudah diisi oleh dirinya sendiri, izinkan klaim
@@ -730,7 +797,12 @@
         sessionStorage.setItem('skawan_admin_logged', 'true');
         sessionStorage.setItem('skawan_role', 'guru');
         sessionStorage.setItem('skawan_user_level', 'guru');
+        sessionStorage.setItem('skawan_user', 'Guru Pengampu');
         sessionStorage.setItem('skawan_room', token);
+        localStorage.setItem('skawan_admin_logged', 'true');
+        localStorage.setItem('skawan_role', 'guru');
+        localStorage.setItem('skawan_user_level', 'guru');
+        localStorage.setItem('skawan_user', 'Guru Pengampu');
         localStorage.setItem('skawan_room', token);
         window.location.href = `admin.html?role=guru&room=${token}`;
         return;
@@ -749,7 +821,12 @@
           sessionStorage.setItem('skawan_admin_logged', 'true');
           sessionStorage.setItem('skawan_role', 'guru');
           sessionStorage.setItem('skawan_user_level', 'guru');
+          sessionStorage.setItem('skawan_user', 'Guru Pengampu');
           sessionStorage.setItem('skawan_room', token);
+          localStorage.setItem('skawan_admin_logged', 'true');
+          localStorage.setItem('skawan_role', 'guru');
+          localStorage.setItem('skawan_user_level', 'guru');
+          localStorage.setItem('skawan_user', 'Guru Pengampu');
           localStorage.setItem('skawan_room', token);
           window.location.href = `admin.html?role=guru&room=${token}`;
         } else {
@@ -773,7 +850,12 @@
         sessionStorage.setItem('skawan_admin_logged', 'true');
         sessionStorage.setItem('skawan_role', 'admin');
         sessionStorage.setItem('skawan_user_level', 'admin');
+        sessionStorage.setItem('skawan_user', 'Super Admin');
         sessionStorage.setItem('skawan_room', 'SKASA');
+        localStorage.setItem('skawan_admin_logged', 'true');
+        localStorage.setItem('skawan_role', 'admin');
+        localStorage.setItem('skawan_user_level', 'admin');
+        localStorage.setItem('skawan_user', 'Super Admin');
         localStorage.setItem('skawan_room', 'SKASA');
         window.location.href = "admin.html?role=admin";
       } else {
