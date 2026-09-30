@@ -1231,10 +1231,8 @@
         activeCueIndex = index;
         const cuedClip = vtPlaylist[index];
         
-        // Perbarui teks status standby cue
+        // Perbarui teks status standby cue secara halus di tampilan tanpa modal alert
         document.getElementById('overlayClipStatus').innerText = `NEXT CUE: ${cuedClip.title}`;
-        
-        showNotice("Klip Masuk CUE (Standby)", `"${cuedClip.title}" siap sebagai antrean berikutnya. Video On-Air tetap berjalan lancar.`, true);
       } else {
         // Pemutar sedang berhenti/standby: langsung muat klip ini ke preview cue
         activePlayingIndex = index;
@@ -1257,7 +1255,6 @@
         activeCueIndex = nextIndex;
         const cuedClip = vtPlaylist[nextIndex];
         document.getElementById('overlayClipStatus').innerText = `NEXT CUE: ${cuedClip.title}`;
-        showNotice("Klip CUE Diganti", `Antrean berikutnya: "${cuedClip.title}".`, true);
         renderPlaylistUI();
       } else {
         activePlayingIndex = nextIndex;
