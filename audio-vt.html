@@ -11,7 +11,7 @@
   <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -21,6 +21,16 @@
             brand: ['Montserrat', 'sans-serif'],
             sans: ['Plus Jakarta Sans', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            skawan: {
+              red: '#E50914',
+              redHover: '#C70812',
+              darkBg: '#090D14',
+              cardDark: '#121824',
+              borderDark: '#1E293B',
+              amberGold: '#F59E0B'
+            }
           }
         }
       }
@@ -37,43 +47,70 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    /* Slider Fader Vertikal Meja Mixer Studio */
-    input[type=range].vertical-slider {
-      writing-mode: vertical-lr;
-      direction: rtl;
-      -webkit-appearance: slider-vertical;
-      width: 26px;
-      height: 155px;
-      padding: 0 4px;
-      cursor: pointer;
+    /* Slider Audio Mixer Kustom */
+    input[type=range].fader-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 4px;
+      background: #1e293b;
+      outline: none;
     }
+    input[type=range].fader-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 24px;
+      border-radius: 4px;
+      background: #f59e0b;
+      cursor: pointer;
+      border: 1px solid #ffffff;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+    }
+    input[type=range].fader-slider::-moz-range-thumb {
+      width: 16px;
+      height: 24px;
+      border-radius: 4px;
+      background: #f59e0b;
+      cursor: pointer;
+      border: 1px solid #ffffff;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+    }
+
     .deck-btn {
-      transition: all 0.12s ease;
+      transition: all 0.1s ease;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-    .deck-btn:active { transform: scale(0.96); }
-    .vu-bar-active { box-shadow: 0 0 6px currentColor; }
-    .dropzone-hover {
-      border-color: #f59e0b !important;
-      background-color: rgba(245, 158, 11, 0.08) !important;
+    .deck-btn:active {
+      transform: scale(0.96);
     }
-    /* Menjamin iframe YouTube mengisi kontainer 16:9 secara penuh tanpa overflow */
-    #audioVtYtWrap iframe {
-      width: 100% !important;
-      height: 100% !important;
+    iframe.video-fit {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       border: 0;
+      pointer-events: none;
+    }
+    /* Akselerasi GPU Halus Tanpa Raster Garis */
+    video, iframe, #audioVtYtWrap iframe {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-font-smoothing: antialiased;
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black pb-8">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black pb-6">
 
-  <!-- Top Navigation Bar -->
-  <nav class="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-md">
+  <!-- ============================================== -->
+  <!-- NAVIGATION BAR (AUDIO & VT DECK)               -->
+  <!-- ============================================== -->
+  <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="index.html" class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center font-brand font-black text-base text-slate-950 shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center font-brand font-black text-base text-black shadow-md shadow-amber-500/30">
             AV
           </div>
           <div>
@@ -81,13 +118,13 @@
               <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
               <span class="font-brand font-black text-amber-500 text-base leading-none">TV</span>
             </div>
-            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">Audio & VT Playout Deck</span>
+            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Audio Mixer &amp; VT Playout Deck</span>
           </div>
         </a>
         <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
-        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-950/60 text-amber-400 border border-amber-800">
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-950/80 text-amber-400 border border-amber-800">
           <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-          Audio & Media Control
+          Audio &amp; VT Operator
         </span>
       </div>
 
@@ -97,8 +134,8 @@
           <span id="navRoomToken" class="font-mono font-bold text-xs text-amber-400">SKASA</span>
         </div>
         <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
-          <span>👤</span>
-          <span id="navUserName">Audio Operator</span>
+          <span>🎧</span>
+          <span id="navUserName">Audio/VT Operator</span>
         </div>
         <button onclick="bukaModalKeluar('ganti')" class="deck-btn text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
           <span>🔄</span>
@@ -112,134 +149,144 @@
     </div>
   </nav>
 
-  <!-- Banner Instruksi PD Intercom -->
+  <!-- BANNER NOTIFIKASI KOMANDO INTERCOM DARI SUTRADARA (PD) -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
-    <div id="directorCueBanner" class="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition">
+    <div id="directorCueBanner" class="bg-gradient-to-r from-amber-600 via-orange-600 to-red-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-amber-400/40">
       <div class="flex items-center gap-2.5">
-        <div class="p-1.5 rounded-xl bg-white/20 shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+        <div class="p-1.5 rounded-xl bg-black/30 shrink-0">
+          <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
         </div>
         <div>
-          <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-200 block">INSTRUKSI SUTRADARA (PD):</span>
-          <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby VT Bumper, Siapkan Fader Mic Host</span>
+          <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-200 block">KOMANDO SUTRADARA (PD):</span>
+          <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby VT Bumper &amp; Naikkan Fader Host</span>
         </div>
       </div>
-      <span id="directorCueTime" class="text-[10px] font-mono bg-black/30 px-2 py-0.5 rounded font-bold shrink-0">LIVE</span>
+      <span id="directorCueTime" class="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded font-bold shrink-0">LIVE</span>
     </div>
   </div>
 
+  <!-- ============================================== -->
+  <!-- MAIN WORKSPACE: SIDE-BY-SIDE + AUDIO MIXER     -->
+  <!-- ============================================== -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
 
-    <!-- ========================================================================= -->
-    <!-- BAGIAN ATAS: VIDEO VT & RETURN MONITOR (KIRI) vs PLAYLIST DECK (KANAN)    -->
-    <!-- ========================================================================= -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+    <!-- BARIS ATAS: 2 KOLOM (KIRI: VT & PGM RETURN | KANAN: PLAYLIST QUEUE) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
       <!-- ============================================== -->
-      <!-- KOLOM KIRI ATAS: VT PLAYER & PGM RETURN (6 Kol) -->
+      <!-- KOLOM KIRI (6 Kolom): PEMUTAR VT & RETURN PGM   -->
       <!-- ============================================== -->
       <div class="lg:col-span-6 space-y-3">
-
-        <!-- DECK PEMUTAR VT UTAMA -->
-        <div class="bg-slate-950 border-2 border-amber-500/70 rounded-2xl p-3 shadow-xl space-y-2.5 relative overflow-hidden">
+        
+        <!-- CARD PEMUTAR VT UTAMA (16:9 CLEAN DIGITAL) -->
+        <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-3 shadow-xl space-y-2.5">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
             <div class="flex items-center gap-2">
-              <span id="vtStatusDot" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-              <span class="font-brand font-black text-xs uppercase tracking-wider text-amber-400">VT / INSERT MEDIA DECK</span>
+              <span id="vtPulseDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="font-brand font-black text-xs uppercase tracking-wider text-amber-400">VT Playout Viewport</span>
             </div>
-            
             <div class="flex items-center gap-1.5">
-              <span id="vtOnAirBadge" class="hidden font-mono text-[10px] font-black px-2 py-0.5 rounded bg-red-600 text-white animate-pulse border border-red-400 shadow">
-                🔴 VT LIVE ON AIR
+              <span id="badgeVtOnAirStatus" class="font-mono text-[10px] font-black px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 uppercase">
+                READY
               </span>
-              <span id="badgeActiveSourceType" class="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700 uppercase">
+              <span id="badgeVtSourceType" class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 uppercase">
                 YOUTUBE
               </span>
             </div>
           </div>
 
-          <!-- Video Viewport 16:9 Multi-Format Player (Clean Digital - Tanpa Garis) -->
-          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="vtPlayerContainer">
-            <video id="audioVtHtml5" class="absolute inset-0 w-full h-full object-contain hidden" playsinline></video>
-            <div id="audioVtYtWrap" class="absolute inset-0 w-full h-full hidden pointer-events-none">
+          <!-- Layar Pemutar Video (Tanpa Garis / Clean Viewport) -->
+          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 shadow-inner" id="vtPlayerContainer">
+            
+            <!-- Video HTML5 Native (MP4) -->
+            <video id="audioVtHtml5Video" class="w-full h-full object-contain hidden" playsinline></video>
+
+            <!-- YouTube Video Wrap (youtube-nocookie bebas iklan) -->
+            <div id="audioVtYtWrap" class="w-full h-full">
               <div id="audioVtYtEl" class="w-full h-full"></div>
             </div>
-            <iframe id="audioVtGdrive" class="absolute inset-0 w-full h-full border-0 hidden" allow="autoplay"></iframe>
 
-            <!-- Overlay Klip Standby / CUE -->
-            <div id="vtStandbyOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 space-y-1.5 z-10 transition-opacity">
-              <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-lg font-bold">
-                🎬
-              </div>
-              <span id="overlayClipTitle" class="font-brand font-black text-sm sm:text-base text-white line-clamp-1 max-w-sm">
-                SKAWAN TV Broadcast
-              </span>
-              <span id="overlayClipStatus" class="font-mono text-[10px] font-bold text-amber-400 uppercase tracking-wider bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-slate-700">
-                STANDBY / CUE AT 00:00
-              </span>
+            <!-- Google Drive Video Iframe Wrap -->
+            <iframe id="audioVtGdriveIframe" class="video-fit hidden" allow="autoplay"></iframe>
+
+            <!-- Fallback Jika Video Kosong -->
+            <div id="audioVtFallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-slate-950/80 space-y-2">
+              <span class="text-3xl">🎬</span>
+              <span class="font-brand font-black text-sm text-slate-300">Belum Ada Media VT Dipilih</span>
+              <span class="text-[11px] font-mono text-slate-500">Pilih klip di playlist sebelah kanan atau tempel link baru</span>
+            </div>
+
+            <!-- Ticker Waktu / Timecode di Pojok Kanan Bawah Player -->
+            <div class="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-white/10 font-mono text-[11px] text-amber-400 font-bold z-20">
+              <span id="lblTimecodeCurrent">00:00</span> / <span id="lblTimecodeTotal" class="text-slate-400">02:00</span>
             </div>
           </div>
 
-          <!-- Timecode & Timeline Slider -->
-          <div class="space-y-1.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
-            <div class="flex items-center justify-between font-mono text-[11px]">
-              <span id="lblCurrentTime" class="font-bold text-amber-400">00:00</span>
-              <span id="lblClipTitlePlaying" class="text-xs text-slate-300 font-semibold truncate max-w-[200px] text-center">
-                SKAWAN TV Broadcast
-              </span>
-              <div class="flex items-center gap-1.5">
-                <span class="text-slate-500">Sisa:</span>
-                <span id="lblRemainingTime" class="font-bold text-slate-300">-02:00</span>
-              </div>
+          <!-- Timeline Slider & Pengatur Posisi Waktu Detik -->
+          <div class="space-y-1">
+            <input type="range" id="sliderVtProgress" min="0" max="120" value="0" step="1" oninput="seekVtPosition(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+            <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+              <span id="lblActiveClipTitle" class="text-white font-bold truncate max-w-[280px]">SKAWAN TV Broadcast</span>
+              <span id="lblVtPercent" class="text-amber-400 font-bold">0%</span>
             </div>
-
-            <input type="range" id="vtScrubber" min="0" max="120" value="0" step="0.5" oninput="seekVideo(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
           </div>
 
-          <!-- Tombol Eksekusi Siaran VT -->
-          <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
-            <button onclick="eksekusiCue()" id="btnCue" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-brand font-bold text-xs flex flex-col items-center justify-center shadow">
-              <span>⏮️ CUE</span>
-              <span class="text-[8px] font-mono text-slate-400">[Detik 0]</span>
+          <!-- Tombol Kontrol Siaran VT (Roll, Pause, Prev, Next) -->
+          <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 pt-1 border-t border-slate-800">
+            <!-- Tombol CUE (Reset ke Detik 0) -->
+            <button onclick="eksekusiCueVt()" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Kembalikan ke Detik Awal">
+              <span>⏮️</span>
+              <span>CUE</span>
             </button>
 
-            <button onclick="eksekusiRollVt()" id="btnRoll" class="deck-btn col-span-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-black text-sm tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30 border border-emerald-400">
-              <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            <!-- Tombol ROLL VT (Tombol Utama Siaran) -->
+            <button onclick="eksekusiRollVt()" id="btnRollVt" class="col-span-4 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30">
+              <span>▶️</span>
               <span>ROLL VT!</span>
             </button>
 
-            <button onclick="eksekusiPause()" id="btnPause" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center shadow">
-              ⏸️ PAUSE
+            <!-- Tombol PAUSE -->
+            <button onclick="eksekusiPauseVt()" id="btnPauseVt" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700">
+              <span>⏸️</span>
+              <span>PAUSE</span>
             </button>
 
-            <button onclick="pindahKlip(-1)" class="deck-btn col-span-2 sm:col-span-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center shadow" title="Klip Sebelumnya">
-              ⏮️ PREV
+            <!-- Tombol Klip Sebelumnya -->
+            <button onclick="pindahKlip(-1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Sebelumnya">
+              ◀
             </button>
 
-            <button onclick="pindahKlip(1)" class="deck-btn col-span-2 sm:col-span-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center shadow" title="Klip Berikutnya">
-              NEXT ⏭
+            <!-- Tombol Klip Selanjutnya -->
+            <button onclick="pindahKlip(1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Selanjutnya">
+              ▶
             </button>
           </div>
         </div>
 
-        <!-- LAYAR MONITOR INTIP PGM LIVE RETURN (Clean Digital - Tanpa Garis) -->
-        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-2.5 shadow-lg space-y-1.5">
-          <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+        <!-- MONITOR RETURN PGM SIARAN (Intip Siaran Penonton Langsung) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md space-y-2">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
             <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
-              <span class="font-brand font-bold text-[11px] uppercase tracking-wider text-slate-200">PGM Live Return Monitor</span>
+              <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+              <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">PGM Live Return Monitor</span>
             </div>
-            <span id="audioPgmReturnSource" class="font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 uppercase">
-              CAM 1 ON-AIR
+            <span id="badgeActivePgmSource" class="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 uppercase">
+              CAM 1
             </span>
           </div>
-          
-          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 h-28 sm:h-32 mx-auto">
-            <video id="audioReturnCamVideo" class="hidden absolute inset-0 w-full h-full object-cover" autoplay playsinline muted></video>
-            
-            <div id="audioReturnFallback" class="text-center p-2 text-slate-500 font-mono text-xs">
-              <span class="block text-slate-400 font-bold mb-0.5 text-[11px]">FEED STUDIO MENUNGGU</span>
-              <span class="text-[9px] text-slate-600">Feed kamera studio aktif akan tampil di sini</span>
+
+          <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="pgmReturnViewport">
+            <!-- Video Kamera Studio jika PGM memilih Kamera -->
+            <video id="pgmReturnCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
+
+            <!-- Fallback Jika PGM Bukan Kamera -->
+            <div id="pgmReturnFallback" class="text-center space-y-1 relative z-0">
+              <span id="pgmReturnFallbackLabel" class="font-brand font-black text-2xl text-slate-500">CAM 1</span>
+              <span class="text-[10px] font-mono text-slate-400 block uppercase">SUMBER SIARAN AKTIF</span>
+            </div>
+
+            <div class="absolute bottom-2 left-2 bg-red-600 text-white font-mono text-[9px] px-2 py-0.5 rounded font-bold z-20 shadow">
+              PROGRAM OUT
             </div>
           </div>
         </div>
@@ -247,341 +294,248 @@
       </div>
 
       <!-- ============================================== -->
-      <!-- KOLOM KANAN ATAS: PLAYLIST PLAYOUT DECK (6 Kol)-->
+      <!-- KOLOM KANAN (6 Kolom): PLAYLIST PLAYSINKRON    -->
       <!-- ============================================== -->
-      <div class="lg:col-span-6 bg-slate-950 border-2 border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xl space-y-3">
+      <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3.5 flex flex-col justify-between">
         
-        <!-- Baris Judul & Tombol Aksi Header Playlist -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 border-b border-slate-800 gap-2">
-          <div>
+        <div class="space-y-3">
+          <!-- Header Playlist & Tombol Import / Export JSON -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-2">
             <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <h3 class="font-brand font-black text-xs uppercase tracking-wider text-white">Antrean Daftar Putar (Playlist Playout)</h3>
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow"></span>
+              <h3 class="font-brand font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Antrean Daftar Putar (Playlist Playout)</h3>
             </div>
-            <span class="text-[10px] text-slate-400 font-mono">Daftar tersimpan otomatis ke database & memori lokal</span>
-          </div>
+            
+            <div class="flex items-center gap-1.5 self-end sm:self-center">
+              <!-- Tombol Import JSON -->
+              <input type="file" id="inputImportJsonFile" accept=".json,application/json" class="hidden" onchange="tanganiImporFileJson(event)">
+              <button onclick="document.getElementById('inputImportJsonFile').click()" class="deck-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold text-[11px] flex items-center gap-1 transition" title="Impor Playlist dari File JSON">
+                <span>📥</span>
+                <span>Import</span>
+              </button>
 
-          <!-- Tombol Aksi: Import, Export, Tambah Manual, Reset -->
-          <div class="flex items-center flex-wrap gap-1.5 self-end sm:self-center">
-            <button onclick="bukaModalImport()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-400 hover:text-white font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Impor daftar putar dari berkas .json">
-              <span>📥</span>
-              <span>Import</span>
-            </button>
+              <!-- Tombol Export JSON -->
+              <button onclick="eksporPlaylistKeJson()" class="deck-btn px-2.5 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 font-semibold text-[11px] flex items-center gap-1 transition" title="Ekspor Playlist ke File JSON">
+                <span>📤</span>
+                <span>Export</span>
+              </button>
 
-            <button onclick="eksporPlaylistJson()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 hover:text-white font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Unduh seluruh playlist saat ini ke berkas .json">
-              <span>📤</span>
-              <span>Export</span>
-            </button>
-
-            <button onclick="bukaModalTambahVt()" class="deck-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow-sm" title="Buka dialog formulir lengkap">
-              <span>+</span>
-              <span>Manual</span>
-            </button>
-
-            <button onclick="resetPlaylistDefault()" class="deck-btn bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold px-2 py-1.5 rounded-lg text-xs" title="Reset ke 1 Video Default">
-              🔄
-            </button>
-          </div>
-        </div>
-
-        <!-- BARIS INPUT CEPAT OTOMATIS (INLINE QUICK-ADD BAR) -->
-        <div class="bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl space-y-2">
-          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
-            <span class="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-              <span>⚡</span>
-              <span>Tambah Cepat (Smart Auto-Detect):</span>
-            </span>
-            <span id="quickAddPreviewLabel" class="text-slate-400 truncate max-w-xs text-[10px]">
-              Tempel link YouTube, Drive, atau MP4
-            </span>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-            <!-- Kolom Link URL dengan auto-detect -->
-            <div class="sm:col-span-5 relative">
-              <input type="text" id="quickInputUrl" placeholder="Tempel tautan video di sini..." oninput="deteksiLinkOtomatis(this.value)" onkeydown="if(event.key==='Enter') eksekusiTambahCepat()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 font-mono outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
-              <span id="quickTypeIndicator" class="hidden absolute right-2.5 top-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">YT</span>
-            </div>
-
-            <!-- Kolom Judul (Opsional) -->
-            <div class="sm:col-span-3">
-              <input type="text" id="quickInputTitle" placeholder="Judul klip (opsional)" onkeydown="if(event.key==='Enter') eksekusiTambahCepat()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
-            </div>
-
-            <!-- Kolom Durasi (Detik) -->
-            <div class="sm:col-span-2">
-              <input type="number" id="quickInputDuration" value="120" min="5" max="3600" title="Estimasi Durasi (Detik)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-amber-300 font-mono text-center outline-none focus:border-amber-500">
-            </div>
-
-            <!-- Tombol Tambahkan -->
-            <div class="sm:col-span-2">
-              <button type="button" onclick="eksekusiTambahCepat()" class="deck-btn w-full h-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-1 shadow">
-                <span>+ Tambah</span>
+              <!-- Tombol Tambah Klip Manual -->
+              <button onclick="bukaModalTambahKlip()" class="deck-btn px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold text-[11px] flex items-center gap-1 shadow-md shadow-amber-600/30">
+                <span>+</span>
+                <span>Tambah VT</span>
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- Opsi Pemutaran Lanjutan: Loop & Auto-Advance -->
-        <div class="bg-slate-900 border border-slate-800 p-2 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-mono uppercase text-slate-400 font-bold">Mode Putar:</span>
-            <select id="selectLoopMode" onchange="ubahLoopMode(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[11px] rounded-lg px-2 py-1 outline-none">
-              <option value="no_loop">No Loop (Stop di Akhir)</option>
-              <option value="loop_all" selected>Loop All (Ulang Playlist)</option>
-              <option value="loop_single">Loop Single (Ulang Klip Ini)</option>
-            </select>
+          <!-- Bilah Input Cepat (Quick Add Bar) -->
+          <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Input Cepat Tautan YouTube / Google Drive / MP4:</span>
+            <div class="grid grid-cols-12 gap-1.5">
+              <input type="text" id="quickAddTitle" placeholder="Judul Klip (cth: Bumper Bincang)" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500">
+              <input type="text" id="quickAddUrl" placeholder="Tempel URL YouTube / Drive / MP4" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-500">
+              <button onclick="eksekusiQuickAdd()" class="col-span-2 deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-black rounded-lg text-xs flex items-center justify-center">
+                + Tambah
+              </button>
+            </div>
           </div>
 
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-mono uppercase text-slate-400 font-bold">Aksi Akhir:</span>
-            <select id="selectEndAction" onchange="ubahEndAction(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[11px] rounded-lg px-2 py-1 outline-none">
-              <option value="auto_cue" selected>Auto-CUE Klip Berikutnya</option>
-              <option value="auto_roll">Auto-Roll (Lanjut Putar)</option>
-            </select>
+          <!-- Daftar Klip Video Playlist (Scrollable) -->
+          <div class="space-y-1.5 max-h-[310px] sm:max-h-[350px] overflow-y-auto pr-1" id="playlistItemsContainer">
+            <!-- Di-render dinamis via JavaScript -->
           </div>
         </div>
 
-        <!-- Tabel Baris Antrean Playlist (Scrollable Vertikal) -->
-        <div class="space-y-1.5 max-h-[340px] sm:max-h-[380px] overflow-y-auto pr-1" id="playlistItemsContainer">
-          <!-- Render dinamis via JavaScript -->
+        <!-- Footer Playlist: Total Klip & Reset ke Default -->
+        <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+          <span id="lblPlaylistCount">Total Klip: 1 Video</span>
+          <button onclick="resetPlaylistKeDefault()" class="text-slate-500 hover:text-amber-400 text-[11px] underline transition" title="Kembalikan Playlist ke Klip Bawaan SKAWAN TV">
+            Muat Klip Bawaan SKAWAN TV
+          </button>
         </div>
 
       </div>
 
     </div>
 
-    <!-- ========================================================================= -->
-    <!-- BAGIAN BAWAH: BROADCAST AUDIO MIXER 6-CHANNEL MEMBENTANG PENUH (FULL WIDTH) -->
-    <!-- ========================================================================= -->
-    <div class="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+    <!-- ============================================== -->
+    <!-- BARIS BAWAH: BROADCAST AUDIO MIXER 6-CHANNEL  -->
+    <!-- ============================================== -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
       
-      <!-- Baris Header Mixer & Modul Mic Fisik & Soundbite Cart -->
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        
-        <!-- Judul Konsol Audio -->
-        <div class="flex items-center gap-2.5">
-          <div class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-md shadow-amber-500/30"></div>
-          <div>
-            <h2 class="font-brand font-black text-sm uppercase tracking-wider text-white">Broadcast Audio Mixer (6-Channel Console)</h2>
-            <span class="text-[10px] font-mono text-slate-400 block -mt-0.5">Meja fader audio terintegrasi siaran multi-kanal</span>
-          </div>
+      <!-- Header Mixer Audio & Hardware Mic Connector -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-amber-500 shadow"></span>
+          <h3 class="font-brand font-black text-sm uppercase tracking-wider text-white">Broadcast Audio Console (6-Channel Studio Mixer)</h3>
         </div>
 
-        <!-- Modul Mic Fisik Hardware & Soundbite Bersebelahan di Header -->
-        <div class="flex flex-wrap items-center gap-3">
-          
-          <!-- Kotak Kontrol Mic Fisik (Web Audio API) -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2.5 text-xs">
-            <div class="flex items-center gap-1.5">
-              <span id="micHardwareDot" class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
-              <span id="micHardwareStatus" class="font-mono text-[9px] text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                TERPUTUS
-              </span>
-            </div>
+        <!-- Sambungkan Mikrofon Laptop Fisik (Web Audio API) -->
+        <div class="flex items-center gap-2">
+          <button id="btnHardwareMic" onclick="toggleHardwareMicInput()" class="deck-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition">
+            <span id="iconHardwareMic">🎙️</span>
+            <span id="lblHardwareMic">Sambungkan Mic Laptop</span>
+          </button>
 
-            <button onclick="toggleMicrophoneHardware()" id="btnToggleMicHw" class="deck-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 shadow">
-              <span>🔌</span>
-              <span id="lblBtnMicHw">Sambungkan Mic</span>
-            </button>
+          <!-- Dropdown Rute Kanal Mic Fisik -->
+          <select id="selectMicChannelRoute" class="bg-slate-950 border border-slate-700 text-slate-200 text-[11px] font-mono rounded-lg px-2 py-1 outline-none">
+            <option value="ch1">Rute: CH 1 (Host)</option>
+            <option value="ch2">Rute: CH 2 (Guest)</option>
+            <option value="ch3">Rute: CH 3 (Floor)</option>
+          </select>
+        </div>
+      </div>
 
-            <div class="flex items-center gap-1">
-              <span class="text-[10px] font-mono text-slate-400">Rute:</span>
-              <select id="selectMicTargetChannel" onchange="ubahTargetKanalMic(this.value)" class="bg-slate-950 border border-slate-700 text-amber-300 font-mono text-[10px] rounded-lg px-2 py-1 outline-none">
-                <option value="ch1">CH 1 (Host)</option>
-                <option value="ch2">CH 2 (Guest)</option>
-              </select>
-            </div>
-
-            <label class="hidden md:flex items-center gap-1 cursor-pointer text-[10px] font-mono text-slate-400 border-l border-slate-800 pl-2">
-              <input type="checkbox" id="chkMuteLocalFeedback" checked onchange="toggleLocalFeedback(this.checked)" class="rounded bg-slate-950 accent-amber-500">
-              <span>Anti-Feedback</span>
-            </label>
+      <!-- 6 Strip Fader Kanal Audio Mixer -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" id="audioMixerStripsGrid">
+        
+        <!-- STRIP 1: CH 1 - MIC HOST -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch1">
+          <div class="w-full">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">CH 1</span>
+            <span class="font-brand font-black text-xs text-white block truncate">MIC HOST</span>
           </div>
 
-          <!-- Quick Soundbite Cart (SFX) -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 text-xs font-bold">
-            <span class="text-[9px] font-mono text-slate-400 uppercase font-bold mr-1 hidden sm:inline">SFX:</span>
-            <button onclick="mainkanSfxBeep(600, 0.4)" class="deck-btn py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs" title="Mainkan Bunyi Clapper">
-              🔔 Clapper
-            </button>
-            <button onclick="mainkanSfxBeep(1000, 0.8)" class="deck-btn py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs" title="Mainkan 1K Tone Standar">
-              ⏱️ 1K Tone
-            </button>
-            <button onclick="mainkanSfxBeep(350, 0.5)" class="deck-btn py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-xs" title="Mainkan Bunyi Chime">
-              ✨ Chime
-            </button>
+          <!-- LED VU Meter Simulation -->
+          <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
+            <div id="vu-bar-ch1" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 75%;"></div>
           </div>
 
+          <!-- Slider Nilai Fader -->
+          <div class="w-full space-y-1">
+            <input type="range" min="0" max="100" value="85" class="fader-slider" id="fader-ch1" oninput="updateChannelFader('ch1', this.value)">
+            <span id="lbl-val-ch1" class="font-mono text-[11px] font-bold text-amber-400 block">85%</span>
+          </div>
+
+          <!-- Tombol Mute -->
+          <button id="btn-mute-ch1" onclick="toggleChannelMute('ch1')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">
+            MUTE
+          </button>
+        </div>
+
+        <!-- STRIP 2: CH 2 - MIC GUEST / NARASUMBER -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch2">
+          <div class="w-full">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">CH 2</span>
+            <span class="font-brand font-black text-xs text-white block truncate">MIC GUEST</span>
+          </div>
+
+          <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
+            <div id="vu-bar-ch2" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 60%;"></div>
+          </div>
+
+          <div class="w-full space-y-1">
+            <input type="range" min="0" max="100" value="80" class="fader-slider" id="fader-ch2" oninput="updateChannelFader('ch2', this.value)">
+            <span id="lbl-val-ch2" class="font-mono text-[11px] font-bold text-amber-400 block">80%</span>
+          </div>
+
+          <button id="btn-mute-ch2" onclick="toggleChannelMute('ch2')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">
+            MUTE
+          </button>
+        </div>
+
+        <!-- STRIP 3: CH 3 - FLOOR MIC / AMBIENCE -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch3">
+          <div class="w-full">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">CH 3</span>
+            <span class="font-brand font-black text-xs text-white block truncate">FLOOR / AMB</span>
+          </div>
+
+          <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
+            <div id="vu-bar-ch3" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 40%;"></div>
+          </div>
+
+          <div class="w-full space-y-1">
+            <input type="range" min="0" max="100" value="50" class="fader-slider" id="fader-ch3" oninput="updateChannelFader('ch3', this.value)">
+            <span id="lbl-val-ch3" class="font-mono text-[11px] font-bold text-amber-400 block">50%</span>
+          </div>
+
+          <button id="btn-mute-ch3" onclick="toggleChannelMute('ch3')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">
+            MUTE
+          </button>
+        </div>
+
+        <!-- STRIP 4: CH 4 - VT AUDIO (Suara Video yang Diputar) -->
+        <div class="bg-slate-950/80 border border-amber-500/40 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center ring-1 ring-amber-500/20" id="strip-ch4">
+          <div class="w-full">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 block">CH 4 (VT IN)</span>
+            <span class="font-brand font-black text-xs text-amber-300 block truncate">VT PLAYBACK</span>
+          </div>
+
+          <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
+            <div id="vu-bar-ch4" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 80%;"></div>
+          </div>
+
+          <div class="w-full space-y-1">
+            <input type="range" min="0" max="100" value="90" class="fader-slider" id="fader-ch4" oninput="updateChannelFader('ch4', this.value)">
+            <span id="lbl-val-ch4" class="font-mono text-[11px] font-bold text-amber-400 block">90%</span>
+          </div>
+
+          <button id="btn-mute-ch4" onclick="toggleChannelMute('ch4')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">
+            MUTE
+          </button>
+        </div>
+
+        <!-- STRIP 5: CH 5 - BGM / MUSIK LATAR -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch5">
+          <div class="w-full">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">CH 5</span>
+            <span class="font-brand font-black text-xs text-white block truncate">BGM / SFX</span>
+          </div>
+
+          <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
+            <div id="vu-bar-ch5" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 55%;"></div>
+          </div>
+
+          <div class="w-full space-y-1">
+            <input type="range" min="0" max="100" value="65" class="fader-slider" id="fader-ch5" oninput="updateChannelFader('ch5', this.value)">
+            <span id="lbl-val-ch5" class="font-mono text-[11px] font-bold text-amber-400 block">65%</span>
+          </div>
+
+          <button id="btn-mute-ch5" onclick="toggleChannelMute('ch5')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">
+            MUTE
+          </button>
+        </div>
+
+        <!-- STRIP 6: MASTER BUS OUTPUT (PGM MAIN OUT) -->
+        <div class="bg-gradient-to-b from-red-950/40 to-slate-950 border border-red-500/50 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center ring-1 ring-red-500/30" id="strip-master">
+          <div class="w-full">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-red-400 block">MASTER</span>
+            <span class="font-brand font-black text-xs text-red-300 block truncate">PGM OUT</span>
+          </div>
+
+          <div class="w-3.5 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
+            <div id="vu-bar-master" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 85%;"></div>
+          </div>
+
+          <div class="w-full space-y-1">
+            <input type="range" min="0" max="100" value="95" class="fader-slider accent-red-500" id="fader-master" oninput="updateChannelFader('master', this.value)">
+            <span id="lbl-val-master" class="font-mono text-[11px] font-bold text-red-400 block">95%</span>
+          </div>
+
+          <button id="btn-mute-master" onclick="toggleChannelMute('master')" class="deck-btn w-full py-1.5 rounded-lg border border-red-800/80 bg-red-950/40 hover:bg-red-900 text-red-300 font-mono text-[10px] font-bold">
+            MUTE ALL
+          </button>
         </div>
 
       </div>
 
-      <!-- 6-Kanal Fader Strip & LED VU Meter (Membentang Penuh Horizontal) -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-1 text-center" id="mixerChannelsStrip">
-        
-        <!-- CH 1: MIC HOST -->
-        <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow">
-          <div class="w-full border-b border-slate-800 pb-1">
-            <span class="text-[10px] font-mono font-bold text-slate-400 block">CH 1</span>
-            <span class="text-xs font-brand font-black text-amber-400 block truncate">MIC HOST</span>
-          </div>
-
-          <div class="flex items-center justify-center gap-2.5 my-1">
-            <input type="range" min="0" max="100" value="80" oninput="ubahVolumeKanal('ch1', this.value)" class="vertical-slider accent-amber-500">
-            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh1">
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-            </div>
-          </div>
-
-          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
-            <span id="lblGainCh1" class="font-mono text-[10px] font-bold text-slate-300 block">0 dB</span>
-            <button onclick="toggleMuteKanal('ch1')" id="btnMuteCh1" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
-          </div>
+      <!-- Quick Soundbite Cart (Tone Generator Bebas URL Luar via Web Audio) -->
+      <div class="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-slate-400 text-[11px] uppercase">Quick SFX Cart:</span>
+          <button onclick="mainkanSfxBeep(1000, 0.4)" class="deck-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-bold">
+            🔔 1 kHz Beep
+          </button>
+          <button onclick="mainkanSfxBeep(440, 0.5)" class="deck-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-bold">
+            ⏱️ Countdown Tone
+          </button>
+          <button onclick="mainkanSfxChime()" class="deck-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-bold">
+            ✨ Studio Chime
+          </button>
         </div>
 
-        <!-- CH 2: GUEST -->
-        <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow">
-          <div class="w-full border-b border-slate-800 pb-1">
-            <span class="text-[10px] font-mono font-bold text-slate-400 block">CH 2</span>
-            <span class="text-xs font-brand font-black text-slate-200 block truncate">MIC GUEST</span>
-          </div>
-
-          <div class="flex items-center justify-center gap-2.5 my-1">
-            <input type="range" min="0" max="100" value="75" oninput="ubahVolumeKanal('ch2', this.value)" class="vertical-slider accent-amber-500">
-            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh2">
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-            </div>
-          </div>
-
-          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
-            <span id="lblGainCh2" class="font-mono text-[10px] font-bold text-slate-300 block">-2 dB</span>
-            <button onclick="toggleMuteKanal('ch2')" id="btnMuteCh2" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
-          </div>
-        </div>
-
-        <!-- CH 3: FLOOR / AMBIENCE -->
-        <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow">
-          <div class="w-full border-b border-slate-800 pb-1">
-            <span class="text-[10px] font-mono font-bold text-slate-400 block">CH 3</span>
-            <span class="text-xs font-brand font-black text-slate-200 block truncate">FLOOR MIC</span>
-          </div>
-
-          <div class="flex items-center justify-center gap-2.5 my-1">
-            <input type="range" min="0" max="100" value="45" oninput="ubahVolumeKanal('ch3', this.value)" class="vertical-slider accent-amber-500">
-            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh3">
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-            </div>
-          </div>
-
-          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
-            <span id="lblGainCh3" class="font-mono text-[10px] font-bold text-slate-300 block">-8 dB</span>
-            <button onclick="toggleMuteKanal('ch3')" id="btnMuteCh3" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
-          </div>
-        </div>
-
-        <!-- CH 4: VT IN (PLAYLIST AUDIO) -->
-        <div class="bg-slate-900/90 border-2 border-amber-500/70 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow-lg shadow-amber-950/20">
-          <div class="w-full border-b border-amber-500/40 pb-1">
-            <span class="text-[10px] font-mono font-bold text-amber-400 block">CH 4</span>
-            <span class="text-xs font-brand font-black text-amber-300 block truncate">VT IN (MEDIA)</span>
-          </div>
-
-          <div class="flex items-center justify-center gap-2.5 my-1">
-            <input type="range" min="0" max="100" value="85" oninput="ubahVolumeKanal('ch4', this.value)" class="vertical-slider accent-amber-500">
-            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh4">
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-            </div>
-          </div>
-
-          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
-            <span id="lblGainCh4" class="font-mono text-[10px] font-bold text-amber-400 block">+1 dB</span>
-            <button onclick="toggleMuteKanal('ch4')" id="btnMuteCh4" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
-          </div>
-        </div>
-
-        <!-- CH 5: MUSIC BED / SFX -->
-        <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow">
-          <div class="w-full border-b border-slate-800 pb-1">
-            <span class="text-[10px] font-mono font-bold text-slate-400 block">CH 5</span>
-            <span class="text-xs font-brand font-black text-slate-200 block truncate">MUSIC BED</span>
-          </div>
-
-          <div class="flex items-center justify-center gap-2.5 my-1">
-            <input type="range" min="0" max="100" value="60" oninput="ubahVolumeKanal('ch5', this.value)" class="vertical-slider accent-amber-500">
-            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterCh5">
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-            </div>
-          </div>
-
-          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
-            <span id="lblGainCh5" class="font-mono text-[10px] font-bold text-slate-300 block">-5 dB</span>
-            <button onclick="toggleMuteKanal('ch5')" id="btnMuteCh5" class="deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm">MUTE</button>
-          </div>
-        </div>
-
-        <!-- CH 6: MASTER PGM OUT -->
-        <div class="bg-gradient-to-b from-red-950/50 to-slate-900 border-2 border-red-500/70 rounded-2xl p-2.5 flex flex-col items-center justify-between space-y-2.5 shadow-xl shadow-red-950/30">
-          <div class="w-full border-b border-red-500/50 pb-1">
-            <span class="text-[10px] font-mono font-black text-red-400 block">MAIN BUS</span>
-            <span class="text-xs font-brand font-black text-red-500 block truncate">MASTER PGM</span>
-          </div>
-
-          <div class="flex items-center justify-center gap-2.5 my-1">
-            <input type="range" min="0" max="100" value="90" oninput="ubahVolumeKanal('master', this.value)" class="vertical-slider accent-red-500">
-            <div class="w-3 h-40 bg-slate-950 rounded border border-slate-800 flex flex-col-reverse p-0.5 gap-0.5 overflow-hidden shadow-inner" id="vuMeterMaster">
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-              <div class="w-full h-3 rounded-sm bg-slate-800 vu-seg"></div>
-            </div>
-          </div>
-
-          <div class="w-full pt-1 border-t border-slate-800/80 space-y-1.5">
-            <span id="lblGainMaster" class="font-mono text-[10px] font-bold text-red-400 block">+2 dB</span>
-            <button onclick="toggleMuteKanal('master')" id="btnMuteMaster" class="deck-btn w-full py-1.5 rounded-lg bg-red-950/90 hover:bg-red-900 text-red-200 font-mono text-[10px] font-bold border border-red-800 shadow-sm">MUTE</button>
-          </div>
-        </div>
-
+        <span class="text-[10px] font-mono text-slate-500">Audio Web Audio API &bull; 48 kHz Studio Reference</span>
       </div>
 
     </div>
@@ -589,135 +543,82 @@
   </main>
 
   <!-- ============================================== -->
-  <!-- MODAL: IMPORT PLAYLIST JSON (DRAG & DROP)      -->
+  <!-- MODAL: TAMBAH KLIP PLAYLIST SECARA LENGKAP     -->
   <!-- ============================================== -->
-  <div id="modalImportJson" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-white">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+  <div id="modalTambahKlip" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-white">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
-          <h3 class="font-brand font-black text-sm text-white">Import Daftar Putar (JSON)</h3>
+          <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+          <h3 class="font-brand font-black text-sm uppercase tracking-wider text-white">Tambah Klip Video ke Playlist</h3>
         </div>
-        <button onclick="tutupModalImport()" class="text-slate-400 hover:text-white">✕</button>
-      </div>
-
-      <!-- Area Drag & Drop Berkas JSON -->
-      <div id="importDropZone" ondragover="tanganiDragOver(event)" ondragleave="tanganiDragLeave(event)" ondrop="tanganiDropFile(event)" onclick="document.getElementById('fileInputJson').click()" class="border-2 border-dashed border-slate-700 hover:border-amber-500 rounded-xl p-6 text-center cursor-pointer transition bg-slate-950/60 space-y-2">
-        <input type="file" id="fileInputJson" accept=".json,application/json" class="hidden" onchange="tanganiFileDipilih(event)">
-        <div class="w-12 h-12 rounded-full bg-slate-800 text-amber-400 border border-slate-700 flex items-center justify-center mx-auto text-2xl">
-          📥
-        </div>
-        <div>
-          <span class="text-xs font-bold text-slate-200 block">Tarik & Letakkan Berkas .JSON ke Sini</span>
-          <span class="text-[11px] text-slate-400">atau klik untuk memilih berkas dari laptop</span>
-        </div>
-        <span class="text-[10px] font-mono text-slate-500 block">Format: .json (Standar SKAWAN TV)</span>
-      </div>
-
-      <!-- Pratinjau Info Berkas yang Terpilih -->
-      <div id="importFilePreviewBox" class="hidden bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5 text-xs">
-        <div class="flex items-center justify-between">
-          <span class="text-slate-400 font-mono">Berkas Terpilih:</span>
-          <span id="importFileName" class="font-bold text-amber-400 truncate max-w-[200px]">playlist.json</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-slate-400 font-mono">Jumlah Klip:</span>
-          <span id="importClipCount" class="font-bold text-emerald-400 font-mono">0 Klip</span>
-        </div>
-      </div>
-
-      <!-- Pilihan Mode Penggabungan: Timpa vs Gabungkan -->
-      <div class="space-y-1.5 pt-1">
-        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">Opsi Penggabungan:</label>
-        <div class="grid grid-cols-2 gap-2 text-xs">
-          <label class="p-2.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-slate-850 cursor-pointer flex items-start gap-2">
-            <input type="radio" name="importMergeMode" value="replace" checked class="mt-0.5 accent-amber-500">
-            <div>
-              <span class="font-bold text-white block">Timpa Total</span>
-              <span class="text-[10px] text-slate-400">Ganti seluruh playlist lama</span>
-            </div>
-          </label>
-
-          <label class="p-2.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-slate-850 cursor-pointer flex items-start gap-2">
-            <input type="radio" name="importMergeMode" value="append" class="mt-0.5 accent-amber-500">
-            <div>
-              <span class="font-bold text-white block">Gabungkan</span>
-              <span class="text-[10px] text-slate-400">Tambahkan ke baris bawah</span>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-        <button onclick="tutupModalImport()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">
-          Batal
-        </button>
-        <button id="btnEksekusiImport" onclick="terapkanImportJson()" disabled class="deck-btn bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow">
-          Terapkan Import
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: Tambah Video VT Manual (Formulir Lengkap) -->
-  <div id="modalTambahVt" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 text-white">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="font-brand font-black text-sm text-white">Tambah Klip ke Antrean Playlist</h3>
-        <button onclick="tutupModalTambahVt()" class="text-slate-400 hover:text-white">✕</button>
+        <button onclick="tutupModalTambahKlip()" class="text-slate-400 hover:text-white">✕</button>
       </div>
 
       <div class="space-y-3 text-xs">
         <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Judul Video Klip:</label>
-          <input type="text" id="inputVtTitle" placeholder="Contoh: Liputan Kegiatan Sekolah" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500">
+          <label class="block font-bold text-slate-400 uppercase mb-1">Judul Klip:</label>
+          <input type="text" id="modalInputClipTitle" placeholder="Contoh: Profil SMK Negeri 1 Pacitan" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-amber-500">
         </div>
 
         <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Jenis Sumber Media:</label>
-          <select id="selectVtSourceType" onchange="sesuaikanPlaceholderLink(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-bold outline-none">
-            <option value="youtube">YouTube (Link / ID Video)</option>
-            <option value="gdrive">Google Drive (Link Berbagi Publik)</option>
-            <option value="html5">Direct File URL (MP4 Webm)</option>
+          <label class="block font-bold text-slate-400 uppercase mb-1">Tipe Sumber Media:</label>
+          <select id="modalSelectSourceType" onchange="sesuaikanPlaceholderModalUrl(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none">
+            <option value="youtube">YouTube (URL / 11-Digit Video ID)</option>
+            <option value="gdrive">Google Drive Video (Share Link / File ID)</option>
+            <option value="mp4">HTML5 Native MP4 (Tautan Langsung Berkas .mp4)</option>
           </select>
         </div>
 
         <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Tautan / ID Media:</label>
-          <input type="text" id="inputVtUrl" placeholder="https://www.youtube.com/watch?v=... atau ID" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-amber-500 font-mono text-[11px]">
+          <label class="block font-bold text-slate-400 uppercase mb-1" id="lblModalUrlInput">URL YouTube / Video ID:</label>
+          <input type="text" id="modalInputClipUrl" placeholder="https://www.youtube.com/watch?v=Jnp3esoHb9k" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono outline-none focus:border-amber-500">
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block font-bold text-slate-400 uppercase mb-1">Estimasi Durasi (Detik):</label>
-            <input type="number" id="inputVtDuration" value="120" min="5" max="3600" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none font-mono">
-          </div>
-          <div>
-            <label class="block font-bold text-slate-400 uppercase mb-1">Posisi Masuk:</label>
-            <select id="selectInsertPosition" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none font-bold">
-              <option value="end" selected>Di Akhir Antrean</option>
-              <option value="next">Setelah Klip Aktif</option>
-              <option value="first">Urutan Pertama (#1)</option>
-            </select>
-          </div>
+        <div>
+          <label class="block font-bold text-slate-400 uppercase mb-1">Perkiraan Durasi (Detik):</label>
+          <input type="number" id="modalInputClipDuration" min="5" max="3600" value="120" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono outline-none focus:border-amber-500">
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-        <button onclick="tutupModalTambahVt()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="tutupModalTambahKlip()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">
           Batal
         </button>
-        <button onclick="eksekusiTambahVt()" class="deck-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow">
-          Tambahkan ke Playlist
+        <button onclick="eksekusiModalTambahKlip()" class="deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">
+          Simpan ke Playlist
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: Notifikasi Dialog Kustom -->
+  <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN -->
+  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">
+        🔄
+      </div>
+      <div>
+        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Kru?</h4>
+        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">
+          Slot posisi <strong>Audio &amp; VT Operator</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
+          Batal
+        </button>
+        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
+          Ya, Lepaskan Slot
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NOTIFIKASI DIALOG -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
-      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold">✓</div>
       <h4 id="noticeTitle" class="text-base font-bold text-white mb-1">Pemberitahuan</h4>
       <p id="noticeMessage" class="text-xs text-slate-300 leading-relaxed"></p>
       <button onclick="closeNotice()" class="deck-btn w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-600">
@@ -726,107 +627,84 @@
     </div>
   </div>
 
-  <!-- MODAL: Konfirmasi Keluar / Ganti Peran -->
-  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
-      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">
-        🔄
-      </div>
-      <div>
-        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Kru?</h4>
-        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Slot posisi <strong>Audio & VT Operator</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.
-        </p>
-      </div>
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
-          Batal
-        </button>
-        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
-          Ya, Lepaskan Slot
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- ============================================== -->
-  <!-- SKRIP LOGIKA MEJA KERJA AUDIO & VT OPERATOR    -->
+  <!-- JAVASCRIPT LOGIC WORKSPACE AUDIO & VT DECK     -->
   <!-- ============================================== -->
   <script>
-    // State Ruangan & Pengguna
     let currentRoomToken = 'SKASA';
     let currentRoleKey = 'audio_vt';
     let currentSiswaUser = '';
     let pendingExitType = 'ganti';
-    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let isInitialStartup = true;
 
-    // Default Video Standby ID aktif
-    let currentActiveStandbyYtId = 'Jnp3esoHb9k';
+    // Data Playlist Default Bawaan
+    let vtPlaylist = [
+      {
+        id: 'vt_default_skawan',
+        title: 'SKAWAN TV Broadcast',
+        sourceType: 'youtube',
+        youtubeId: 'Jnp3esoHb9k',
+        url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
+        durationSec: 120
+      }
+    ];
 
-    // Playlist Default Murni (1 Video Standby Awal)
-    const DEFAULT_SKASA_CLIP = {
-      id: 'vt_default_skawan',
+    let activePlayingIndex = 0;
+    let activeCueIndex = -1; // -1 = Tidak ada klip manual di-cue
+
+    // State Playback VT
+    let vtPlaybackState = {
+      status: 'playing',
+      currentTime: 0,
+      totalDuration: 120,
       title: 'SKAWAN TV Broadcast',
       sourceType: 'youtube',
       youtubeId: 'Jnp3esoHb9k',
-      url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
-      durationSec: 120
+      url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k'
     };
 
-    let vtPlaylist = [ { ...DEFAULT_SKASA_CLIP } ];
-    
-    // PEMISAHAN LOGIKA: Indeks yang sedang tayang/dimuat vs Indeks yang di-CUE
-    let activePlayingIndex = 0; // Klip yang sedang aktif berputar / dimuat di player
-    let activeCueIndex = -1;     // Klip yang dipilih untuk persiapan (CUE antrean berikutnya)
-    
-    let loopMode = 'loop_all';
-    let endAction = 'auto_cue';
-
-    // Objek sementara penampung berkas Import JSON
-    let parsedImportPlaylist = null;
-
-    // Status Playback VT yang Disiarkan
-    let vtPlaybackState = {
-      status: 'stopped',
-      currentTime: 0,
-      totalDuration: 120,
-      clipId: DEFAULT_SKASA_CLIP.id,
-      title: DEFAULT_SKASA_CLIP.title,
-      sourceType: DEFAULT_SKASA_CLIP.sourceType,
-      youtubeId: DEFAULT_SKASA_CLIP.youtubeId,
-      url: DEFAULT_SKASA_CLIP.url,
-      updatedAt: Date.now()
+    // State Live Switching (Dipantau dari Switcher untuk PGM Return)
+    let liveState = {
+      programSource: 'cam_1',
+      previewSource: 'cam_2'
     };
 
-    // Objek Pemutar Media
+    // State Strip 6-Channel Mixer
+    let audioMixerState = {
+      ch1: { fader: 85, isMuted: false },
+      ch2: { fader: 80, isMuted: false },
+      ch3: { fader: 50, isMuted: false },
+      ch4: { fader: 90, isMuted: false }, // VT IN
+      ch5: { fader: 65, isMuted: false }, // BGM
+      master: { fader: 95, isMuted: false }
+    };
+
+    // YouTube API Player & Timers
     let audioYtPlayer = null;
     let isYtReady = false;
-    let playbackInterval = null;
-    let isInitialStartup = true; // Mencegah penimpaan database Firebase saat baru dimuat / refresh
+    let currentLoadedYtId = '';
+    let vtTickerInterval = null;
+    let vuMeterInterval = null;
 
-    // WebRTC PGM Return & Hardware Mic Web Audio API
-    let streamerInstance = null;
-    let remoteCamStreams = new Map();
-    let currentLiveState = { programSource: 'cam_1', previewSource: 'vt' };
-
+    // Web Audio API & Hardware Mic
     let audioCtx = null;
-    let micStream = null;
+    let micMediaStream = null;
     let micSourceNode = null;
     let micGainNode = null;
-    let micAnalyserNode = null;
-    let isMicHardwareActive = false;
-    let targetMicChannel = 'ch1';
-    let isMuteLocalFeedback = true;
+    let isHardwareMicActive = false;
 
-    // State 6-Channel Virtual Mixer
-    const mixerState = {
-      ch1: { gain: 80, isMuted: false, label: 'HOST' },
-      ch2: { gain: 75, isMuted: false, label: 'GUEST' },
-      ch3: { gain: 45, isMuted: false, label: 'FLOOR' },
-      ch4: { gain: 85, isMuted: false, label: 'VT IN' },
-      ch5: { gain: 60, isMuted: false, label: 'MUSIC' },
-      master: { gain: 90, isMuted: false, label: 'MASTER' }
-    };
+    // WebRTC Streamer untuk PGM Return Camera
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
+
+    function getDatabase() {
+      if (window.db) return window.db;
+      if (typeof firebase !== 'undefined' && firebase.database) {
+        window.db = firebase.database();
+        return window.db;
+      }
+      return null;
+    }
 
     function showNotice(title, message, isSuccess = true) {
       document.getElementById('noticeTitle').innerText = title;
@@ -846,6 +724,21 @@
       document.getElementById('noticeModal').classList.add('hidden');
     }
 
+    function extractCleanYtId(raw) {
+      if (!raw) return 'Jnp3esoHb9k';
+      const str = String(raw).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+      const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      return match ? match[1] : 'Jnp3esoHb9k';
+    }
+
+    function formatTimecode(sec) {
+      sec = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
     function matikanSubtitleYouTube(player) {
       if (!player) return;
       try {
@@ -860,13 +753,15 @@
       } catch (e) {}
     }
 
-    // Inisialisasi YouTube API Kuat & Terproteksi Polling
+    // ==============================================
+    // INISIALISASI YOUTUBE IFRAME API (NO-COOKIE)
+    // ==============================================
     function initAudioYtPlayer() {
       if (isYtReady && audioYtPlayer) return;
       if (typeof YT === 'undefined' || !YT.Player) return;
 
-      const clip = vtPlaylist[activePlayingIndex] || DEFAULT_SKASA_CLIP;
-      const vidId = clip.youtubeId || DEFAULT_SKASA_CLIP.youtubeId;
+      const currentClip = vtPlaylist[activePlayingIndex] || vtPlaylist[0];
+      const vidId = extractCleanYtId(currentClip.youtubeId || currentClip.url);
 
       try {
         audioYtPlayer = new YT.Player('audioVtYtEl', {
@@ -876,41 +771,60 @@
           videoId: vidId,
           playerVars: {
             playsinline: 1,
-            controls: 0,
+            controls: 1,
             rel: 0,
-            autoplay: 0,
+            autoplay: 1,
             mute: 0,
             modestbranding: 1,
-            disablekb: 1,
+            disablekb: 0,
             cc_load_policy: 0,
             cc_lang_pref: 'none',
             iv_load_policy: 3,
-            origin: window.location.origin || 'http://localhost'
+            origin: window.location.origin || 'http://localhost',
+            widget_referrer: window.location.href || 'http://localhost'
           },
           events: {
-            onReady: () => {
+            onReady: (e) => {
               isYtReady = true;
-              matikanSubtitleYouTube(audioYtPlayer);
-              if (typeof audioYtPlayer.setVolume === 'function') {
-                audioYtPlayer.setVolume(mixerState.ch4.isMuted ? 0 : mixerState.ch4.gain);
+              currentLoadedYtId = vidId;
+              matikanSubtitleYouTube(e.target);
+              
+              if (vtPlaybackState.status === 'playing') {
+                e.target.playVideo();
+                if (vtPlaybackState.currentTime > 0) {
+                  e.target.seekTo(vtPlaybackState.currentTime, true);
+                }
+              } else {
+                e.target.pauseVideo();
               }
-              // Muat status lokal tanpa menyiarkan penimpaan ke Firebase saat startup
-              const isPlaying = (vtPlaybackState.status === 'playing');
-              muatKlipKePlayer(activePlayingIndex, isPlaying, false);
+              updateAudioFaderVolume();
             },
             onStateChange: (e) => {
               if (e.data === YT.PlayerState.PLAYING) {
-                matikanSubtitleYouTube(audioYtPlayer);
-              }
-              if (e.data === YT.PlayerState.ENDED) {
-                tanganiKlipSelesai();
+                matikanSubtitleYouTube(e.target);
+                vtPlaybackState.status = 'playing';
+                updatePlaybackBadges();
+                broadcastVtPlaybackState();
+              } else if (e.data === YT.PlayerState.PAUSED) {
+                vtPlaybackState.status = 'paused';
+                updatePlaybackBadges();
+                broadcastVtPlaybackState();
+              } else if (e.data === YT.PlayerState.ENDED) {
+                // Auto Advance ke klip berikutnya jika ada lebih dari 1 klip
+                if (vtPlaylist.length > 1) {
+                  pindahKlip(1);
+                  eksekusiRollVt();
+                } else {
+                  audioYtPlayer.seekTo(0, true);
+                  audioYtPlayer.playVideo();
+                }
               }
             }
           }
         });
         isYtReady = true;
       } catch (err) {
-        console.warn("[Audio-VT] Galat inisialisasi YouTube API:", err);
+        console.warn("[Audio-VT] Inisialisasi YouTube player gagal:", err);
       }
     }
 
@@ -926,8 +840,11 @@
       } else if (window.YT && window.YT.Player) {
         initAudioYtPlayer();
       }
-    }, 350);
+    }, 400);
 
+    // ==============================================
+    // SINKRONISASI PASCA-REFRESH & SISTEM DATABASE
+    // ==============================================
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
@@ -935,140 +852,105 @@
       const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
 
       currentRoomToken = (roomParam || sessionRoom || 'SKASA').toUpperCase();
-      currentSiswaUser = sessionUser || 'Audio Operator';
+      currentSiswaUser = sessionUser || 'Audio/VT Operator';
 
       document.getElementById('navRoomToken').innerText = currentRoomToken;
       const userBadge = document.getElementById('navUserName');
       if (userBadge) userBadge.innerText = currentSiswaUser;
 
-      initPlaylistStorage();
+      initAudioMixerUi();
+      startStudioTimecodeTicker();
+      startVuMeterSimulator();
       initAudioVtSystem(currentRoomToken);
-      startVuMeterAnimationLoop();
-      startPlaybackTimer();
     });
 
-    function getDatabase() {
-      if (window.db) return window.db;
-      if (typeof firebase !== 'undefined' && firebase.database) {
-        window.db = firebase.database();
-        return window.db;
-      }
-      return null;
-    }
-
-    function initPlaylistStorage() {
-      const localKey = `skawan_playlist_${currentRoomToken}`;
-      const localData = localStorage.getItem(localKey);
-      if (localData) {
-        try {
-          const parsed = JSON.parse(localData);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            vtPlaylist = parsed;
-          }
-        } catch (e) {
-          console.warn("[Playlist] Parsing localStorage gagal:", e);
-        }
-      }
-
+    function initAudioVtSystem(token) {
       const activeDb = getDatabase();
+
+      // 1. Tarik Playlist dari LocalStorage terlebih dahulu
+      const localPlaylist = localStorage.getItem(`skawan_vt_playlist_${token}`);
+      if (localPlaylist) {
+        try {
+          const parsed = JSON.parse(localPlaylist);
+          if (Array.isArray(parsed) && parsed.length > 0) vtPlaylist = parsed;
+        } catch (e) {}
+      }
+
       if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).on('value', snap => {
+        // A. Tarik Sesi Ruangan & Default Standby
+        activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
+          if (!snap.exists()) return;
+          const meta = snap.val();
+          if (meta.status === 'ended' && token !== 'SKASA') {
+            tanganiSesiDiakhiriGuru();
+          }
+          if (meta.defaultStandbyYtId && vtPlaylist.length === 1 && vtPlaylist[0].id === 'vt_default_skawan') {
+            vtPlaylist[0].youtubeId = meta.defaultStandbyYtId;
+            vtPlaylist[0].url = `https://www.youtube.com/watch?v=${meta.defaultStandbyYtId}`;
+            renderPlaylistUI();
+          }
+        });
+
+        // B. Tarik Playlist Terkoordinasi dari Firebase
+        activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
           if (snap.exists()) {
             const data = snap.val();
             if (Array.isArray(data) && data.length > 0) {
               vtPlaylist = data;
-              localStorage.setItem(localKey, JSON.stringify(vtPlaylist));
+              localStorage.setItem(`skawan_vt_playlist_${token}`, JSON.stringify(vtPlaylist));
               renderPlaylistUI();
             }
           } else {
-            simpanPlaylistKeStorage();
+            activeDb.ref(`rooms/${token}/vt_playlist`).set(vtPlaylist);
           }
         });
 
-        // Pantau jika ada perubahan defaultStandbyYtId di Firebase
-        activeDb.ref(`rooms/${currentRoomToken}/meta/defaultStandbyYtId`).on('value', snap => {
-          if (snap.exists() && snap.val()) {
-            currentActiveStandbyYtId = snap.val();
-            renderPlaylistUI();
-          }
-        });
-      }
-
-      renderPlaylistUI();
-    }
-
-    function simpanPlaylistKeStorage() {
-      const localKey = `skawan_playlist_${currentRoomToken}`;
-      localStorage.setItem(localKey, JSON.stringify(vtPlaylist));
-
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(vtPlaylist);
-      }
-      renderPlaylistUI();
-    }
-
-    function initAudioVtSystem(token) {
-      const activeDb = getDatabase();
-      if (activeDb) {
-        // 1. Ambil status siaran terkini dari Firebase terlebih dahulu agar tidak menimpa siaran saat refresh
+        // C. SINKRONISASI AWAL PASCA-REFRESH: Baca State Terakhir Dahulu (Tanpa Menimpa ke Stopped)
         activeDb.ref(`rooms/${token}/vt_state`).once('value', snap => {
           if (snap.exists()) {
             const remoteVt = snap.val();
-            if (remoteVt && remoteVt.status) {
-              // Cocokkan klip yang sedang tayang di playlist lokal
-              let foundIndex = -1;
-              if (remoteVt.clipId) {
-                foundIndex = vtPlaylist.findIndex(c => c.id === remoteVt.clipId);
-              }
-              if (foundIndex === -1 && remoteVt.youtubeId) {
-                foundIndex = vtPlaylist.findIndex(c => c.youtubeId === remoteVt.youtubeId);
-              }
-              if (foundIndex === -1 && remoteVt.url) {
-                foundIndex = vtPlaylist.findIndex(c => c.url === remoteVt.url);
-              }
-
-              if (foundIndex !== -1) {
-                activePlayingIndex = foundIndex;
-              }
-
-              vtPlaybackState = { ...vtPlaybackState, ...remoteVt };
-
-              // Hitung estimasi kemajuan waktu jika video sedang berputar (playing)
-              if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
-                const elapsedSec = (Date.now() - remoteVt.updatedAt) / 1000;
-                const dur = remoteVt.totalDuration || (vtPlaylist[activePlayingIndex]?.durationSec || 120);
-                vtPlaybackState.currentTime = Math.min(dur, (remoteVt.currentTime || 0) + elapsedSec);
-              }
-
-              // Sinkronkan player lokal tanpa memotong siaran penonton
-              const isPlaying = (vtPlaybackState.status === 'playing');
-              muatKlipKePlayer(activePlayingIndex, isPlaying, false);
+            let startAt = remoteVt.currentTime || 0;
+            
+            // Hitung selisih waktu detik jika sedang playing saat halaman di-refresh
+            if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
+              const elapsedSec = Math.max(0, (Date.now() - remoteVt.updatedAt) / 1000);
+              const totalD = remoteVt.totalDuration || 120;
+              startAt = (remoteVt.currentTime + elapsedSec) % totalD;
             }
+
+            const matchedIdx = vtPlaylist.findIndex(p => 
+              (p.youtubeId && p.youtubeId === remoteVt.youtubeId) || 
+              (p.url && p.url === remoteVt.url)
+            );
+
+            if (matchedIdx !== -1) {
+              activePlayingIndex = matchedIdx;
+            }
+
+            vtPlaybackState = {
+              ...vtPlaybackState,
+              ...remoteVt,
+              currentTime: startAt
+            };
+
+            // Muat klip lokal di detik tersinkronkan tanpa memancarkan sinyal reset
+            muatKlipKePlayer(activePlayingIndex, false);
+          } else {
+            muatKlipKePlayer(0, false);
           }
           isInitialStartup = false;
         });
 
-        activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
-          if (!snap.exists()) return;
-          const meta = snap.val();
-          if (meta.defaultStandbyYtId) {
-            currentActiveStandbyYtId = meta.defaultStandbyYtId;
-          }
-          if (token === 'SKASA' && meta.status !== 'live') {
-            activeDb.ref('rooms/SKASA/meta/status').set('live');
-          } else if (token !== 'SKASA' && meta.status === 'ended') {
-            tanganiSesiDiakhiriGuru();
-          }
-        });
-
+        // D. Dengarkan Live State dari Switcher untuk Monitor PGM Return
         activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
           if (!snap.exists()) return;
-          currentLiveState = snap.val();
-          updateVtOnAirTallyBadge();
-          renderPgmReturnMonitor();
+          const live = snap.val();
+          liveState.programSource = live.programSource || liveState.programSource;
+          liveState.previewSource = live.previewSource || liveState.previewSource;
+          updatePgmReturnMonitor();
         });
 
+        // E. Dengarkan Komando Sutradara (PD)
         activeDb.ref(`rooms/${token}/director_cues`).on('value', snap => {
           if (!snap.exists()) return;
           const cue = snap.val();
@@ -1078,59 +960,35 @@
             document.getElementById('directorCueTime').innerText = now.toTimeString().split(' ')[0];
 
             const banner = document.getElementById('directorCueBanner');
-            banner.classList.add('ring-4', 'ring-amber-400');
-            setTimeout(() => banner.classList.remove('ring-4', 'ring-amber-400'), 1500);
+            banner.classList.add('ring-4', 'ring-amber-300');
+            setTimeout(() => banner.classList.remove('ring-4', 'ring-amber-300'), 1500);
           }
         });
+      } else {
+        muatKlipKePlayer(0, false);
+        renderPlaylistUI();
+        updatePgmReturnMonitor();
       }
 
+      // Hubungkan WebRTC Streamer untuk Menerima Feed Kamera Studio di PGM Return
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
           roleKey: 'audio_vt',
           onRemoteStream: (camKey, stream) => {
-            console.log(`[Audio-VT] Feed studio diterima: ${camKey}`);
+            console.log(`[Audio/VT] Stream kamera diterima: ${camKey}`);
+            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+            remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
-            renderPgmReturnMonitor();
+            updatePgmReturnMonitor();
           },
           onStatusChange: (status, info) => {
-            console.log(`[Audio-VT WebRTC]: ${status} - ${info}`);
+            console.log(`[Audio/VT WebRTC]: ${status} - ${info}`);
           }
         });
       }
-    }
 
-    function renderPgmReturnMonitor() {
-      const activeSrc = currentLiveState.programSource || 'cam_1';
-      const label = document.getElementById('audioPgmReturnSource');
-      const video = document.getElementById('audioReturnCamVideo');
-      const fallback = document.getElementById('audioReturnFallback');
-
-      label.innerText = activeSrc === 'vt' ? 'VT ON-AIR' : `${activeSrc.toUpperCase().replace('_', ' ')} ON-AIR`;
-
-      if (activeSrc === 'vt') {
-        video.classList.add('hidden');
-        fallback.classList.remove('hidden');
-        fallback.innerHTML = `
-          <span class="block text-amber-400 font-bold mb-0.5 text-[11px]">VT LIVE TAYANG</span>
-          <span class="text-[9px] text-slate-400 line-clamp-1">${vtPlaybackState.title}</span>
-        `;
-      } else {
-        const stream = getCameraStream(activeSrc);
-        if (stream) {
-          if (video.srcObject !== stream) video.srcObject = stream;
-          video.classList.remove('hidden');
-          fallback.classList.add('hidden');
-          video.play().catch(() => {});
-        } else {
-          video.classList.add('hidden');
-          fallback.classList.remove('hidden');
-          fallback.innerHTML = `
-            <span class="block text-slate-400 font-bold mb-0.5 text-[11px]">${activeSrc.toUpperCase().replace('_', ' ')} STANDBY</span>
-            <span class="text-[9px] text-slate-600">Menunggu sinyal kamera studio</span>
-          `;
-        }
-      }
+      renderPlaylistUI();
     }
 
     function getCameraStream(key) {
@@ -1141,1097 +999,808 @@
       return null;
     }
 
-    function updateVtOnAirTallyBadge() {
-      const badge = document.getElementById('vtOnAirBadge');
-      if (currentLiveState.programSource === 'vt') {
-        badge.classList.remove('hidden');
+    // ==============================================
+    // PEMUTAR VT & MANAJEMEN PLAYLIST CUE
+    // ==============================================
+    function muatKlipKePlayer(index, shouldBroadcast = true) {
+      if (index < 0 || index >= vtPlaylist.length) return;
+      activePlayingIndex = index;
+      const clip = vtPlaylist[index];
+
+      vtPlaybackState.title = clip.title || 'Video Tape Media';
+      vtPlaybackState.sourceType = clip.sourceType || 'youtube';
+      vtPlaybackState.url = clip.url || '';
+      vtPlaybackState.youtubeId = clip.youtubeId || extractCleanYtId(clip.url);
+      vtPlaybackState.totalDuration = clip.durationSec || 120;
+
+      document.getElementById('lblActiveClipTitle').innerText = vtPlaybackState.title;
+      document.getElementById('badgeVtSourceType').innerText = vtPlaybackState.sourceType.toUpperCase();
+      document.getElementById('sliderVtProgress').max = vtPlaybackState.totalDuration;
+
+      const ytWrap = document.getElementById('audioVtYtWrap');
+      const html5Vid = document.getElementById('audioVtHtml5Video');
+      const gdriveIframe = document.getElementById('audioVtGdriveIframe');
+      const fallbackBox = document.getElementById('audioVtFallback');
+
+      if (fallbackBox) fallbackBox.classList.add('hidden');
+
+      if (vtPlaybackState.sourceType === 'youtube') {
+        if (html5Vid) html5Vid.classList.add('hidden');
+        if (gdriveIframe) gdriveIframe.classList.add('hidden');
+        if (ytWrap) ytWrap.classList.remove('hidden');
+
+        const vidId = vtPlaybackState.youtubeId;
+
+        if (isYtReady && audioYtPlayer && typeof audioYtPlayer.loadVideoById === 'function') {
+          matikanSubtitleYouTube(audioYtPlayer);
+          currentLoadedYtId = vidId;
+          const startSeconds = vtPlaybackState.currentTime || 0;
+
+          if (vtPlaybackState.status === 'playing') {
+            audioYtPlayer.loadVideoById({ videoId: vidId, startSeconds: startSeconds });
+            audioYtPlayer.playVideo();
+          } else {
+            audioYtPlayer.cueVideoById({ videoId: vidId, startSeconds: startSeconds });
+          }
+        }
+      } else if (vtPlaybackState.sourceType === 'gdrive') {
+        if (ytWrap) ytWrap.classList.add('hidden');
+        if (html5Vid) html5Vid.classList.add('hidden');
+        if (gdriveIframe) {
+          gdriveIframe.classList.remove('hidden');
+          if (vtPlaybackState.url && gdriveIframe.src !== vtPlaybackState.url) {
+            gdriveIframe.src = vtPlaybackState.url;
+          }
+        }
       } else {
-        badge.classList.add('hidden');
+        // Tipe Native HTML5 MP4
+        if (ytWrap) ytWrap.classList.add('hidden');
+        if (gdriveIframe) gdriveIframe.classList.add('hidden');
+        if (html5Vid) {
+          html5Vid.classList.remove('hidden');
+          if (vtPlaybackState.url && html5Vid.src !== vtPlaybackState.url) {
+            html5Vid.src = vtPlaybackState.url;
+          }
+          if (vtPlaybackState.status === 'playing') {
+            html5Vid.play().catch(() => {});
+          } else {
+            html5Vid.pause();
+          }
+        }
       }
+
+      updatePlaybackBadges();
+      renderPlaylistUI();
+
+      if (shouldBroadcast) {
+        broadcastVtPlaybackState();
+      }
+    }
+
+    // Pemilihan Klip dari Playlist (Senyap Tanpa Menghentikan Siaran)
+    function pilihKlipPlaylist(index) {
+      if (index < 0 || index >= vtPlaylist.length) return;
+
+      const isRolling = vtPlaybackState.status === 'playing';
+
+      if (isRolling) {
+        // JANGAN HENTIKAN SIARAN: Setel sebagai NEXT CUE
+        activeCueIndex = index;
+        renderPlaylistUI();
+      } else {
+        // Jika sedang standby/paused, langsung muat klip tersebut
+        activeCueIndex = -1;
+        vtPlaybackState.currentTime = 0;
+        muatKlipKePlayer(index, true);
+      }
+    }
+
+    function eksekusiRollVt() {
+      // Jika ada klip yang sedang di-CUE, jalankan klip CUE tersebut
+      if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
+        activePlayingIndex = activeCueIndex;
+        activeCueIndex = -1;
+        vtPlaybackState.currentTime = 0;
+        muatKlipKePlayer(activePlayingIndex, true);
+      }
+
+      vtPlaybackState.status = 'playing';
+
+      if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+        matikanSubtitleYouTube(audioYtPlayer);
+        audioYtPlayer.playVideo();
+      } else if (vtPlaybackState.sourceType === 'mp4') {
+        const vid = document.getElementById('audioVtHtml5Video');
+        if (vid) vid.play().catch(() => {});
+      }
+
+      updatePlaybackBadges();
+      renderPlaylistUI();
+      broadcastVtPlaybackState();
+    }
+
+    function eksekusiPauseVt() {
+      vtPlaybackState.status = 'paused';
+
+      if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+        audioYtPlayer.pauseVideo();
+        vtPlaybackState.currentTime = audioYtPlayer.getCurrentTime() || vtPlaybackState.currentTime;
+      } else if (vtPlaybackState.sourceType === 'mp4') {
+        const vid = document.getElementById('audioVtHtml5Video');
+        if (vid) {
+          vid.pause();
+          vtPlaybackState.currentTime = vid.currentTime || vtPlaybackState.currentTime;
+        }
+      }
+
+      updatePlaybackBadges();
+      broadcastVtPlaybackState();
+    }
+
+    function eksekusiCueVt() {
+      vtPlaybackState.currentTime = 0;
+
+      if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+        audioYtPlayer.seekTo(0, true);
+        if (vtPlaybackState.status === 'playing') {
+          audioYtPlayer.playVideo();
+        } else {
+          audioYtPlayer.pauseVideo();
+        }
+      } else if (vtPlaybackState.sourceType === 'mp4') {
+        const vid = document.getElementById('audioVtHtml5Video');
+        if (vid) vid.currentTime = 0;
+      }
+
+      document.getElementById('sliderVtProgress').value = 0;
+      document.getElementById('lblTimecodeCurrent').innerText = '00:00';
+      broadcastVtPlaybackState();
+    }
+
+    function seekVtPosition(val) {
+      const sec = parseFloat(val) || 0;
+      vtPlaybackState.currentTime = sec;
+
+      if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+        audioYtPlayer.seekTo(sec, true);
+      } else if (vtPlaybackState.sourceType === 'mp4') {
+        const vid = document.getElementById('audioVtHtml5Video');
+        if (vid) vid.currentTime = sec;
+      }
+
+      document.getElementById('lblTimecodeCurrent').innerText = formatTimecode(sec);
+      broadcastVtPlaybackState();
+    }
+
+    function pindahKlip(delta) {
+      let target = activePlayingIndex + delta;
+      if (target < 0) target = vtPlaylist.length - 1;
+      if (target >= vtPlaylist.length) target = 0;
+
+      const isRolling = vtPlaybackState.status === 'playing';
+
+      if (isRolling) {
+        activeCueIndex = target;
+        renderPlaylistUI();
+      } else {
+        activeCueIndex = -1;
+        vtPlaybackState.currentTime = 0;
+        muatKlipKePlayer(target, true);
+      }
+    }
+
+    function updatePlaybackBadges() {
+      const badgeStatus = document.getElementById('badgeVtOnAirStatus');
+      const pulseDot = document.getElementById('vtPulseDot');
+      const isRolling = vtPlaybackState.status === 'playing';
+
+      if (isRolling) {
+        badgeStatus.className = "font-mono text-[10px] font-black px-2 py-0.5 rounded bg-emerald-600 text-white shadow-md animate-pulse uppercase";
+        badgeStatus.innerText = "ROLLING (ON-AIR)";
+        pulseDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+      } else {
+        badgeStatus.className = "font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700 uppercase";
+        badgeStatus.innerText = "STANDBY (PAUSED)";
+        pulseDot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
+      }
+    }
+
+    function broadcastVtPlaybackState() {
+      // Cegah broadcast palsu saat startup agar PGM penonton tidak terhenti
+      if (isInitialStartup) return;
+
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
+        status: vtPlaybackState.status,
+        currentTime: vtPlaybackState.currentTime || 0,
+        totalDuration: vtPlaybackState.totalDuration || 120,
+        title: vtPlaybackState.title || 'VT Playout',
+        sourceType: vtPlaybackState.sourceType || 'youtube',
+        youtubeId: vtPlaybackState.youtubeId || '',
+        url: vtPlaybackState.url || '',
+        updatedAt: Date.now()
+      });
     }
 
     function renderPlaylistUI() {
       const container = document.getElementById('playlistItemsContainer');
       container.innerHTML = '';
 
-      if (!vtPlaylist || vtPlaylist.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-6 text-slate-500 font-mono text-xs">
-            Antrean playlist kosong. Gunakan input cepat di atas atau klik tombol "Import".
-          </div>
-        `;
-        return;
-      }
+      document.getElementById('lblPlaylistCount').innerText = `Total Klip: ${vtPlaylist.length} Video`;
 
-      vtPlaylist.forEach((clip, index) => {
-        const isCurrentOnAir = (index === activePlayingIndex && vtPlaybackState.status === 'playing');
-        const isCurrentCued = (index === activeCueIndex);
-        const isDefaultStandby = (clip.youtubeId && clip.youtubeId === currentActiveStandbyYtId) || (index === 0 && !currentActiveStandbyYtId);
+      vtPlaylist.forEach((item, idx) => {
+        const isPlayingNow = (idx === activePlayingIndex);
+        const isCued = (idx === activeCueIndex);
 
-        let rowStyle = 'bg-slate-900 border-slate-800 hover:border-slate-700';
-        let statusBadge = '<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[9px]">STANDBY</span>';
+        const card = document.createElement('div');
+        let cardStyle = "p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ";
 
-        if (isCurrentOnAir) {
-          rowStyle = 'bg-emerald-950/40 border-emerald-500 shadow-md shadow-emerald-950/40 ring-1 ring-emerald-500/50';
-          statusBadge = '<span class="px-2 py-0.5 rounded bg-emerald-600 text-white font-mono text-[9px] font-black animate-pulse shadow">ROLLING</span>';
-        } else if (isCurrentCued) {
-          rowStyle = 'bg-amber-950/50 border-amber-500 shadow-md shadow-amber-950/50 ring-1 ring-amber-500/70';
-          statusBadge = '<span class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-mono text-[9px] font-black animate-pulse shadow">NEXT CUE</span>';
-        } else if (index === activePlayingIndex && vtPlaybackState.status !== 'playing') {
-          rowStyle = 'bg-amber-950/30 border-amber-600/70 shadow-sm';
-          statusBadge = '<span class="px-2 py-0.5 rounded bg-amber-600 text-white font-mono text-[9px] font-bold">CUE / READY</span>';
-        }
-
-        let standbyBadge = isDefaultStandby
-          ? `<span class="px-1.5 py-0.2 rounded bg-amber-900/60 border border-amber-600 text-amber-300 font-mono text-[8px] font-bold tracking-tight">⭐ STANDBY</span>`
-          : '';
-
-        let thumbHtml = '';
-        if (clip.sourceType === 'youtube' && clip.youtubeId) {
-          thumbHtml = `
-            <div class="w-12 h-8 rounded-lg overflow-hidden border border-slate-700 bg-black shrink-0 relative">
-              <img src="https://img.youtube.com/vi/${clip.youtubeId}/mqdefault.jpg" class="w-full h-full object-cover" alt="Thumb" loading="lazy">
-              <span class="absolute bottom-0 right-0 bg-black/80 text-[7px] font-mono px-0.5 text-white">YT</span>
-            </div>
-          `;
-        } else if (clip.sourceType === 'gdrive') {
-          thumbHtml = `
-            <div class="w-12 h-8 rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center text-xs shrink-0" title="Google Drive Media">
-              📁
-            </div>
-          `;
+        if (isPlayingNow) {
+          cardStyle += "bg-emerald-950/40 border-emerald-500 shadow-md ring-1 ring-emerald-500/50";
+        } else if (isCued) {
+          cardStyle += "bg-amber-950/40 border-amber-500 shadow-md ring-1 ring-amber-500/50";
         } else {
-          thumbHtml = `
-            <div class="w-12 h-8 rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center text-xs shrink-0" title="Direct Video File">
-              🎬
-            </div>
-          `;
+          cardStyle += "bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60";
         }
 
-        const row = document.createElement('div');
-        row.className = `p-2 sm:p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 ${rowStyle}`;
+        card.className = cardStyle;
+        card.onclick = () => pilihKlipPlaylist(idx);
 
-        row.innerHTML = `
-          <div class="flex items-center gap-2.5 overflow-hidden flex-1 cursor-pointer" onclick="pilihKlipPlaylist(${index})" title="Klik untuk CUE klip ini (tidak memotong siaran aktif)">
-            <span class="font-mono font-bold text-xs ${isCurrentOnAir ? 'text-emerald-400' : (isCurrentCued ? 'text-amber-400' : 'text-slate-500')} w-5 shrink-0 text-center">
-              #${index + 1}
+        let badgePill = '';
+        if (isPlayingNow) {
+          badgePill = `<span class="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white animate-pulse">ROLLING</span>`;
+        } else if (isCued) {
+          badgePill = `<span class="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-amber-500 text-black">NEXT CUE</span>`;
+        } else {
+          badgePill = `<span class="text-[9px] font-mono text-slate-500 font-bold">${item.sourceType.toUpperCase()}</span>`;
+        }
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-5 h-5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-mono text-[10px] font-bold text-slate-400 shrink-0">
+              ${idx + 1}
             </span>
-
-            ${thumbHtml}
-
-            <div class="truncate">
-              <div class="flex items-center gap-1.5">
-                <span class="text-xs font-brand font-bold text-white truncate ${isCurrentOnAir ? 'text-emerald-200' : (isCurrentCued ? 'text-amber-200' : '')}">
-                  ${clip.title}
-                </span>
-                ${standbyBadge}
-              </div>
-              <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
-                <span class="uppercase text-amber-400/90 font-bold">${clip.sourceType}</span>
-                <span>&bull;</span>
-                <span>${formatDurasi(clip.durationSec || 120)}</span>
-              </div>
+            <div class="min-w-0">
+              <span class="font-brand font-bold text-xs text-white block truncate">${item.title}</span>
+              <span class="text-[10px] font-mono text-slate-400 block truncate">${formatTimecode(item.durationSec || 120)} &bull; ${item.url || item.youtubeId}</span>
             </div>
           </div>
 
-          <div class="flex items-center gap-1 shrink-0">
-            ${statusBadge}
-
-            ${clip.sourceType === 'youtube' && clip.youtubeId ? `
-              <button onclick="tetapkanSebagaiDefaultStandby(${index})" class="px-2 py-1 rounded bg-slate-800 hover:bg-amber-600 hover:text-slate-950 text-amber-400 text-[10px] font-mono font-bold border border-slate-700 transition flex items-center gap-0.5" title="Jadikan video ini sebagai tayangan Standby default di Index.html">
-                <span>⭐</span>
-                <span class="hidden md:inline text-[9px]">Standby</span>
-              </button>
-            ` : ''}
-
-            <button onclick="geserUrutanKlip(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] font-bold flex items-center justify-center transition" title="Naikkan Urutan">
-              ▲
-            </button>
-            <button onclick="geserUrutanKlip(${index}, 1)" ${index === vtPlaylist.length - 1 ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] font-bold flex items-center justify-center transition" title="Turunkan Urutan">
-              ▼
-            </button>
-
-            <button onclick="hapusKlipPlaylist(${index})" ${vtPlaylist.length <= 1 ? 'disabled' : ''} class="w-6 h-6 rounded bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 disabled:opacity-20 disabled:cursor-not-allowed text-xs flex items-center justify-center transition ml-1" title="Hapus dari Playlist">
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${badgePill}
+            <button onclick="hapusKlipDariPlaylist(event, ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="Hapus Klip Ini">
               ✕
             </button>
           </div>
         `;
 
-        container.appendChild(row);
+        container.appendChild(card);
       });
     }
 
-    // LOGIKA PERBAIKAN: Memilih klip di playlist HANYA menyiapkan CUE jika video sedang berputar
-    function pilihKlipPlaylist(index) {
-      if (index < 0 || index >= vtPlaylist.length) return;
-      
-      const isPlaying = (vtPlaybackState.status === 'playing');
-
-      if (isPlaying) {
-        // Video sedang ON-AIR: JANGAN hentikan pemutar! Cukup set sebagai NEXT CUE
-        activeCueIndex = index;
-        const cuedClip = vtPlaylist[index];
-        
-        // Perbarui teks status standby cue secara halus di tampilan tanpa modal alert
-        document.getElementById('overlayClipStatus').innerText = `NEXT CUE: ${cuedClip.title}`;
-      } else {
-        // Pemutar sedang berhenti/standby: langsung muat klip ini ke preview cue
-        activePlayingIndex = index;
-        activeCueIndex = -1;
-        muatKlipKePlayer(index, false);
-      }
-
-      renderPlaylistUI();
-    }
-
-    function pindahKlip(delta) {
-      const isPlaying = (vtPlaybackState.status === 'playing');
-      const baseIndex = (activeCueIndex !== -1) ? activeCueIndex : activePlayingIndex;
-      
-      let nextIndex = baseIndex + delta;
-      if (nextIndex < 0) nextIndex = vtPlaylist.length - 1;
-      if (nextIndex >= vtPlaylist.length) nextIndex = 0;
-
-      if (isPlaying) {
-        activeCueIndex = nextIndex;
-        const cuedClip = vtPlaylist[nextIndex];
-        document.getElementById('overlayClipStatus').innerText = `NEXT CUE: ${cuedClip.title}`;
-        renderPlaylistUI();
-      } else {
-        activePlayingIndex = nextIndex;
-        activeCueIndex = -1;
-        muatKlipKePlayer(nextIndex, false, true);
-        renderPlaylistUI();
-      }
-    }
-
-    function muatKlipKePlayer(index, autoPlay = false, shouldBroadcast = true) {
-      const clip = vtPlaylist[index];
-      if (!clip) return;
-
-      const html5El = document.getElementById('audioVtHtml5');
-      const ytWrap = document.getElementById('audioVtYtWrap');
-      const gdriveEl = document.getElementById('audioVtGdrive');
-
-      const currentSec = vtPlaybackState.currentTime || 0;
-      const totalSec = clip.durationSec || 120;
-
-      document.getElementById('overlayClipTitle').innerText = clip.title;
-      document.getElementById('lblClipTitlePlaying').innerText = clip.title;
-      document.getElementById('badgeActiveSourceType').innerText = clip.sourceType.toUpperCase();
-      document.getElementById('vtScrubber').max = totalSec;
-      document.getElementById('vtScrubber').value = currentSec;
-      document.getElementById('lblRemainingTime').innerText = `-${formatDurasi(Math.max(0, totalSec - currentSec))}`;
-      document.getElementById('lblCurrentTime').innerText = formatDurasi(currentSec);
-
-      vtPlaybackState.status = autoPlay ? 'playing' : (vtPlaybackState.status || 'stopped');
-      vtPlaybackState.totalDuration = totalSec;
-      vtPlaybackState.clipId = clip.id;
-      vtPlaybackState.title = clip.title;
-      vtPlaybackState.sourceType = clip.sourceType;
-      vtPlaybackState.youtubeId = clip.youtubeId || '';
-      vtPlaybackState.url = clip.url || '';
-
-      const standbyOverlay = document.getElementById('vtStandbyOverlay');
-      if (autoPlay) {
-        standbyOverlay.classList.add('hidden');
-      } else {
-        standbyOverlay.classList.remove('hidden');
-        document.getElementById('overlayClipStatus').innerText = 'STANDBY / CUE AT 00:00';
-      }
-
-      if (clip.sourceType === 'youtube') {
-        html5El.classList.add('hidden');
-        gdriveEl.classList.add('hidden');
-        ytWrap.classList.remove('hidden');
-
-        if (isYtReady && audioYtPlayer && typeof audioYtPlayer.loadVideoById === 'function') {
-          matikanSubtitleYouTube(audioYtPlayer);
-          const startAt = vtPlaybackState.currentTime || 0;
-          if (autoPlay) {
-            audioYtPlayer.loadVideoById({ videoId: clip.youtubeId, startSeconds: startAt });
-          } else {
-            audioYtPlayer.cueVideoById({ videoId: clip.youtubeId, startSeconds: startAt });
-          }
-        } else if (!audioYtPlayer && window.YT && window.YT.Player) {
-          initAudioYtPlayer();
-        }
-      } else if (clip.sourceType === 'gdrive') {
-        html5El.classList.add('hidden');
-        ytWrap.classList.add('hidden');
-        gdriveEl.classList.remove('hidden');
-        gdriveEl.src = clip.url;
-      } else {
-        ytWrap.classList.add('hidden');
-        gdriveEl.classList.add('hidden');
-        html5El.classList.remove('hidden');
-        html5El.src = clip.url;
-        html5El.currentTime = vtPlaybackState.currentTime || 0;
-        if (autoPlay) html5El.play().catch(()=>{}); else html5El.pause();
-      }
-
-      updatePlayerStatusVisuals();
-
-      // Hanya broadcast jika diminta dan bukan saat inisialisasi awal / refresh
-      if (shouldBroadcast && !isInitialStartup) {
-        broadcastVtPlaybackState();
-      }
-    }
-
-    function eksekusiCue() {
-      // Jika ada klip yang sedang di-CUE, jadikan klip tersebut sebagai klip aktif di detik 0
-      if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
-        activePlayingIndex = activeCueIndex;
-        activeCueIndex = -1;
-        muatKlipKePlayer(activePlayingIndex, false, true);
-        renderPlaylistUI();
-        return;
-      }
-
-      const clip = vtPlaylist[activePlayingIndex];
-      vtPlaybackState.status = 'stopped';
-      vtPlaybackState.currentTime = 0;
-
-      const html5El = document.getElementById('audioVtHtml5');
-      if (clip.sourceType === 'youtube' && isYtReady && audioYtPlayer && typeof audioYtPlayer.seekTo === 'function') {
-        audioYtPlayer.pauseVideo();
-        audioYtPlayer.seekTo(0, true);
-      } else if (clip.sourceType === 'html5') {
-        html5El.pause();
-        html5El.currentTime = 0;
-      }
-
-      document.getElementById('vtStandbyOverlay').classList.remove('hidden');
-      document.getElementById('overlayClipStatus').innerText = 'CUE AT 00:00 (READY TO ROLL)';
-      document.getElementById('vtScrubber').value = 0;
-      document.getElementById('lblCurrentTime').innerText = '00:00';
-
-      updatePlayerStatusVisuals();
-      broadcastVtPlaybackState();
-      renderPlaylistUI();
-    }
-
-    function eksekusiRollVt() {
-      // Jika ada klip yang di-antrekan di activeCueIndex, ganti ke klip tersebut dan putar
-      if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
-        activePlayingIndex = activeCueIndex;
-        activeCueIndex = -1;
-        muatKlipKePlayer(activePlayingIndex, true, true);
-        renderPlaylistUI();
-        return;
-      }
-
-      activeCueIndex = -1;
-      const clip = vtPlaylist[activePlayingIndex];
-      if (!clip) return;
-      vtPlaybackState.status = 'playing';
-
-      document.getElementById('vtStandbyOverlay').classList.add('hidden');
-
-      const html5El = document.getElementById('audioVtHtml5');
-      const ytWrap = document.getElementById('audioVtYtWrap');
-      const gdriveEl = document.getElementById('audioVtGdrive');
-
-      if (clip.sourceType === 'youtube') {
-        html5El.classList.add('hidden');
-        gdriveEl.classList.add('hidden');
-        ytWrap.classList.remove('hidden');
-
-        if (isYtReady && audioYtPlayer && typeof audioYtPlayer.playVideo === 'function') {
-          matikanSubtitleYouTube(audioYtPlayer);
-          const curVidData = typeof audioYtPlayer.getVideoData === 'function' ? audioYtPlayer.getVideoData() : null;
-          if (curVidData && curVidData.video_id !== clip.youtubeId) {
-            audioYtPlayer.loadVideoById({ videoId: clip.youtubeId, startSeconds: vtPlaybackState.currentTime || 0 });
-          } else {
-            audioYtPlayer.playVideo();
-          }
-        } else if (!audioYtPlayer && window.YT && window.YT.Player) {
-          initAudioYtPlayer();
-        }
-      } else if (clip.sourceType === 'html5') {
-        ytWrap.classList.add('hidden');
-        gdriveEl.classList.add('hidden');
-        html5El.classList.remove('hidden');
-        html5El.play().catch(()=>{});
-      } else if (clip.sourceType === 'gdrive') {
-        html5El.classList.add('hidden');
-        ytWrap.classList.add('hidden');
-        gdriveEl.classList.remove('hidden');
-        if (clip.url && gdriveEl.src !== clip.url) gdriveEl.src = clip.url;
-      }
-
-      updatePlayerStatusVisuals();
-      broadcastVtPlaybackState();
-      renderPlaylistUI();
-    }
-
-    function eksekusiPause() {
-      const clip = vtPlaylist[activePlayingIndex];
-      vtPlaybackState.status = 'paused';
-
-      const html5El = document.getElementById('audioVtHtml5');
-      if (clip.sourceType === 'youtube' && isYtReady && audioYtPlayer && typeof audioYtPlayer.pauseVideo === 'function') {
-        audioYtPlayer.pauseVideo();
-      } else if (clip.sourceType === 'html5') {
-        html5El.pause();
-      }
-
-      document.getElementById('vtStandbyOverlay').classList.remove('hidden');
-      document.getElementById('overlayClipStatus').innerText = 'PAUSED';
-
-      updatePlayerStatusVisuals();
-      broadcastVtPlaybackState();
-      renderPlaylistUI();
-    }
-
-    function seekVideo(detik) {
-      detik = parseFloat(detik);
-      vtPlaybackState.currentTime = detik;
-      const clip = vtPlaylist[activePlayingIndex];
-      const html5El = document.getElementById('audioVtHtml5');
-
-      if (clip.sourceType === 'youtube' && isYtReady && audioYtPlayer && typeof audioYtPlayer.seekTo === 'function') {
-        audioYtPlayer.seekTo(detik, true);
-      } else if (clip.sourceType === 'html5') {
-        html5El.currentTime = detik;
-      }
-
-      document.getElementById('lblCurrentTime').innerText = formatDurasi(detik);
-      broadcastVtPlaybackState();
-    }
-
-    function tanganiKlipSelesai() {
-      if (loopMode === 'loop_single') {
-        if (endAction === 'auto_roll') {
-          seekVideo(0);
-          eksekusiRollVt();
-        } else {
-          eksekusiCue();
-        }
-        return;
-      }
-
-      // Jika ada klip yang sengaja di-CUE oleh operator saat video berjalan, prioritaskan klip tersebut!
-      if (activeCueIndex !== -1) {
-        activePlayingIndex = activeCueIndex;
-        activeCueIndex = -1;
-        if (endAction === 'auto_roll') {
-          muatKlipKePlayer(activePlayingIndex, true);
-        } else {
-          muatKlipKePlayer(activePlayingIndex, false);
-          eksekusiCue();
-        }
-        renderPlaylistUI();
-        return;
-      }
-
-      const isLastClip = activePlayingIndex >= vtPlaylist.length - 1;
-
-      if (isLastClip) {
-        if (loopMode === 'loop_all') {
-          activePlayingIndex = 0;
-          if (endAction === 'auto_roll') {
-            muatKlipKePlayer(0, true);
-          } else {
-            muatKlipKePlayer(0, false);
-            eksekusiCue();
-          }
-        } else {
-          eksekusiCue();
-        }
-      } else {
-        activePlayingIndex++;
-        if (endAction === 'auto_roll') {
-          muatKlipKePlayer(activePlayingIndex, true);
-        } else {
-          muatKlipKePlayer(activePlayingIndex, false);
-          eksekusiCue();
-        }
-      }
-      renderPlaylistUI();
-    }
-
-    function startPlaybackTimer() {
-      if (playbackInterval) clearInterval(playbackInterval);
-      playbackInterval = setInterval(() => {
-        if (vtPlaybackState.status !== 'playing') return;
-
-        const clip = vtPlaylist[activePlayingIndex];
-        let cur = 0;
-        let dur = clip.durationSec || 120;
-
-        if (clip.sourceType === 'youtube' && isYtReady && audioYtPlayer && typeof audioYtPlayer.getCurrentTime === 'function') {
-          cur = audioYtPlayer.getCurrentTime() || 0;
-          const ytdur = audioYtPlayer.getDuration() || 0;
-          if (ytdur > 0) dur = ytdur;
-        } else if (clip.sourceType === 'html5') {
-          const html5El = document.getElementById('audioVtHtml5');
-          cur = html5El.currentTime || 0;
-          if (html5El.duration) dur = html5El.duration;
-        } else {
-          cur = (vtPlaybackState.currentTime || 0) + 1;
-        }
-
-        vtPlaybackState.currentTime = cur;
-        vtPlaybackState.totalDuration = dur;
-
-        document.getElementById('lblCurrentTime').innerText = formatDurasi(cur);
-        document.getElementById('lblRemainingTime').innerText = `-${formatDurasi(Math.max(0, dur - cur))}`;
-        document.getElementById('vtScrubber').value = cur;
-        document.getElementById('vtScrubber').max = dur;
-
-        if (Math.floor(cur) % 2 === 0) {
-          broadcastVtPlaybackState();
-        }
-
-        if (clip.sourceType === 'html5' && cur >= dur - 0.5) {
-          tanganiKlipSelesai();
-        }
-      }, 500);
-    }
-
-    function updatePlayerStatusVisuals() {
-      const dot = document.getElementById('vtStatusDot');
-      const btnRoll = document.getElementById('btnRoll');
-
-      if (vtPlaybackState.status === 'playing') {
-        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-        btnRoll.className = "deck-btn col-span-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-brand font-black text-sm tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/40 ring-2 ring-emerald-400";
-      } else if (vtPlaybackState.status === 'paused') {
-        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
-        btnRoll.className = "deck-btn col-span-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-brand font-black text-sm tracking-wider flex items-center justify-center gap-1.5 shadow border border-emerald-400";
-      } else {
-        dot.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
-        btnRoll.className = "deck-btn col-span-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-brand font-black text-sm tracking-wider flex items-center justify-center gap-1.5 shadow border border-emerald-400";
-      }
-    }
-
-    function broadcastVtPlaybackState() {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-      vtPlaybackState.updatedAt = Date.now();
-      activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set(vtPlaybackState);
-    }
-
-    async function toggleMicrophoneHardware() {
-      const dot = document.getElementById('micHardwareDot');
-      const badge = document.getElementById('micHardwareStatus');
-      const lbl = document.getElementById('lblBtnMicHw');
-
-      if (isMicHardwareActive) {
-        if (micStream) {
-          micStream.getTracks().forEach(t => t.stop());
-          micStream = null;
-        }
-        isMicHardwareActive = false;
-        dot.className = "w-2.5 h-2.5 rounded-full bg-slate-600";
-        badge.className = "font-mono text-[9px] text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800";
-        badge.innerText = "TERPUTUS";
-        lbl.innerText = "Sambungkan Mic";
-        return;
-      }
-
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error("Peramban tidak mendukung akses mikrofon.");
-        }
-
-        micStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          },
-          video: false
-        });
-
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-          await audioCtx.resume();
-        }
-
-        micSourceNode = audioCtx.createMediaStreamSource(micStream);
-        micGainNode = audioCtx.createGain();
-        micAnalyserNode = audioCtx.createAnalyser();
-        micAnalyserNode.fftSize = 64;
-
-        micSourceNode.connect(micGainNode);
-        micGainNode.connect(micAnalyserNode);
-
-        if (!isMuteLocalFeedback) {
-          micGainNode.connect(audioCtx.destination);
-        }
-
-        isMicHardwareActive = true;
-        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-        badge.className = "font-mono text-[9px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800";
-        badge.innerText = `AKTIF (${targetMicChannel.toUpperCase()})`;
-        lbl.innerText = "Putuskan Mic";
-
-      } catch (err) {
-        console.warn("[Audio-VT] Gagal membuka mic fisik:", err);
-      }
-    }
-
-    function ubahTargetKanalMic(chKey) {
-      targetMicChannel = chKey;
-      const badge = document.getElementById('micHardwareStatus');
-      if (isMicHardwareActive) {
-        badge.innerText = `AKTIF (${targetMicChannel.toUpperCase()})`;
-      }
-    }
-
-    function toggleLocalFeedback(isMuteChecked) {
-      isMuteLocalFeedback = isMuteChecked;
-      if (micGainNode && audioCtx) {
-        try {
-          if (isMuteLocalFeedback) {
-            micGainNode.disconnect(audioCtx.destination);
-          } else {
-            micGainNode.connect(audioCtx.destination);
-          }
-        } catch (e) {}
-      }
-    }
-
-    function ubahVolumeKanal(chKey, val) {
-      const num = parseInt(val);
-      mixerState[chKey].gain = num;
-
-      const dbVal = num === 0 ? '-∞' : (num >= 80 ? `+${Math.round((num-80)/5)}` : `-${Math.round((80-num)/4)}`);
-      const lblEl = document.getElementById(`lblGain${capitalizeFirst(chKey)}`);
-      if (lblEl) lblEl.innerText = `${dbVal} dB`;
-
-      if (chKey === 'ch4') {
-        const volRatio = mixerState.ch4.isMuted ? 0 : num / 100;
-        const html5El = document.getElementById('audioVtHtml5');
-        html5El.volume = volRatio;
-        if (isYtReady && audioYtPlayer && typeof audioYtPlayer.setVolume === 'function') {
-          audioYtPlayer.setVolume(mixerState.ch4.isMuted ? 0 : num);
-        }
-      }
-
-      if ((chKey === targetMicChannel) && micGainNode) {
-        micGainNode.gain.value = mixerState[chKey].isMuted ? 0 : (num / 80);
-      }
-    }
-
-    function toggleMuteKanal(chKey) {
-      mixerState[chKey].isMuted = !mixerState[chKey].isMuted;
-      const btn = document.getElementById(`btnMute${capitalizeFirst(chKey)}`);
-
-      if (mixerState[chKey].isMuted) {
-        btn.className = "deck-btn w-full py-1.5 rounded-lg bg-red-600 text-white font-mono text-[10px] font-black border border-red-400 animate-pulse shadow-sm";
-        btn.innerText = "MUTED";
-      } else {
-        btn.className = "deck-btn w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 shadow-sm";
-        btn.innerText = "MUTE";
-      }
-
-      ubahVolumeKanal(chKey, mixerState[chKey].gain);
-    }
-
-    function startVuMeterAnimationLoop() {
-      const dataArray = new Uint8Array(32);
-
-      setInterval(() => {
-        let micLevel = 0;
-        if (isMicHardwareActive && micAnalyserNode && !mixerState[targetMicChannel].isMuted) {
-          micAnalyserNode.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < 16; i++) sum += dataArray[i];
-          micLevel = (sum / 16) / 255;
-        }
-
-        ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'master'].forEach(chKey => {
-          const container = document.getElementById(`vuMeter${capitalizeFirst(chKey)}`);
-          if (!container) return;
-          const bars = container.children;
-          const isMuted = mixerState[chKey].isMuted;
-          let level = 0;
-
-          if (!isMuted) {
-            if (chKey === targetMicChannel && isMicHardwareActive) {
-              level = micLevel * (mixerState[chKey].gain / 100);
-            } else if (chKey === 'ch4') {
-              level = vtPlaybackState.status === 'playing' ? (0.3 + Math.random() * 0.5) * (mixerState.ch4.gain / 100) : 0;
-            } else if (chKey === 'master') {
-              const activeCount = (vtPlaybackState.status === 'playing' ? 0.5 : 0) + (micLevel > 0.1 ? 0.5 : 0);
-              level = Math.min(1.0, activeCount * (mixerState.master.gain / 100));
-            } else {
-              level = (Math.random() * 0.2) * (mixerState[chKey].gain / 100);
-            }
-          }
-
-          const activeCount = Math.round(level * 8);
-
-          for (let i = 0; i < 8; i++) {
-            const bar = bars[i];
-            if (i < activeCount) {
-              if (i >= 6) bar.className = "w-full h-3 rounded-sm bg-red-500 vu-seg vu-bar-active";
-              else if (i >= 4) bar.className = "w-full h-3 rounded-sm bg-amber-400 vu-seg vu-bar-active";
-              else bar.className = "w-full h-3 rounded-sm bg-emerald-500 vu-seg vu-bar-active";
-            } else {
-              bar.className = "w-full h-3 rounded-sm bg-slate-800 vu-seg";
-            }
-          }
-        });
-      }, 80);
-    }
-
-    function mainkanSfxBeep(freq = 440, durasiSec = 0.3) {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + durasiSec);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start();
-        osc.stop(audioCtx.currentTime + durasiSec);
-      } catch (e) {
-        console.warn("[SFX] AudioContext beep error:", e);
-      }
-    }
-
-    function deteksiLinkOtomatis(raw) {
-      const val = (raw || '').trim();
-      const indicator = document.getElementById('quickTypeIndicator');
-      const previewLabel = document.getElementById('quickAddPreviewLabel');
-
-      if (!val) {
-        indicator.classList.add('hidden');
-        previewLabel.innerText = "Tempel link YouTube, Drive, atau MP4";
-        previewLabel.className = "text-slate-400 truncate max-w-xs text-[10px]";
-        return;
-      }
-
-      indicator.classList.remove('hidden');
-
-      if (val.includes('youtube.com') || val.includes('youtu.be') || /^[a-zA-Z0-9_-]{11}$/.test(val)) {
-        const ytId = ekstrakYouTubeId(val);
-        indicator.innerText = "YOUTUBE";
-        indicator.className = "absolute right-2.5 top-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800";
-        previewLabel.innerText = ytId ? `Terdeteksi YouTube ID: ${ytId}` : "Tautan YouTube";
-        previewLabel.className = "text-red-400 font-bold truncate max-w-xs text-[10px]";
-      } else if (val.includes('drive.google.com')) {
-        indicator.innerText = "G-DRIVE";
-        indicator.className = "absolute right-2.5 top-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800";
-        previewLabel.innerText = "Terdeteksi Berkas Google Drive";
-        previewLabel.className = "text-blue-400 font-bold truncate max-w-xs text-[10px]";
-      } else {
-        indicator.innerText = "HTML5";
-        indicator.className = "absolute right-2.5 top-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800";
-        previewLabel.innerText = "Terdeteksi Direct Media File";
-        previewLabel.className = "text-emerald-400 font-bold truncate max-w-xs text-[10px]";
-      }
-    }
-
-    function eksekusiTambahCepat() {
-      const urlInput = document.getElementById('quickInputUrl');
-      const titleInput = document.getElementById('quickInputTitle');
-      const durInput = document.getElementById('quickInputDuration');
-
+    function eksekusiQuickAdd() {
+      const titleInput = document.getElementById('quickAddTitle');
+      const urlInput = document.getElementById('quickAddUrl');
+
+      const title = titleInput.value.trim() || 'Klip Siaran Baru';
       const rawUrl = urlInput.value.trim();
+
       if (!rawUrl) {
-        showNotice("Tautan Kosong", "Tempelkan tautan video YouTube, Google Drive, atau MP4 terlebih dahulu.", false);
+        showNotice("Peringatan", "Tempel tautan URL video YouTube / Google Drive terlebih dahulu!", false);
         return;
       }
 
-      let parsedType = 'html5';
-      let parsedYtId = '';
-      let parsedUrl = rawUrl;
-      let durSec = parseInt(durInput.value) || 120;
+      let sourceType = 'youtube';
+      let cleanYtId = '';
 
-      if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be') || /^[a-zA-Z0-9_-]{11}$/.test(rawUrl)) {
-        parsedType = 'youtube';
-        parsedYtId = ekstrakYouTubeId(rawUrl);
-        if (!parsedYtId) {
-          showNotice("Tautan Tidak Valid", "ID Video YouTube 11-karakter tidak dapat dikenali.", false);
-          return;
-        }
-        parsedUrl = `https://www.youtube.com/watch?v=${parsedYtId}`;
-      } else if (rawUrl.includes('drive.google.com')) {
-        parsedType = 'gdrive';
-        const fileId = ekstrakGoogleDriveId(rawUrl);
-        if (fileId) {
-          parsedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-        }
-      }
-
-      let title = titleInput.value.trim();
-      if (!title) {
-        if (parsedType === 'youtube') title = `YouTube Clip (${parsedYtId})`;
-        else if (parsedType === 'gdrive') title = `Google Drive Media (#${vtPlaylist.length + 1})`;
-        else title = `Video Media (#${vtPlaylist.length + 1})`;
+      if (rawUrl.includes('drive.google.com')) {
+        sourceType = 'gdrive';
+      } else if (rawUrl.endsWith('.mp4')) {
+        sourceType = 'mp4';
+      } else {
+        sourceType = 'youtube';
+        cleanYtId = extractCleanYtId(rawUrl);
       }
 
       const newClip = {
-        id: `vt_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        id: `vt_${Date.now()}`,
         title: title,
-        sourceType: parsedType,
-        youtubeId: parsedYtId,
-        url: parsedUrl,
-        durationSec: durSec
+        sourceType: sourceType,
+        youtubeId: cleanYtId,
+        url: rawUrl,
+        durationSec: 120
       };
 
       vtPlaylist.push(newClip);
       simpanPlaylistKeStorage();
 
-      urlInput.value = '';
       titleInput.value = '';
-      deteksiLinkOtomatis('');
-      showNotice("Klip Ditambahkan", `"${title}" berhasil dimasukkan ke urutan #${vtPlaylist.length}.`, true);
+      urlInput.value = '';
+      renderPlaylistUI();
+      showNotice("Klip Ditambahkan", `Klip "${title}" telah masuk ke antrean playlist.`, true);
     }
 
-    function eksporPlaylistJson() {
+    function hapusKlipDariPlaylist(e, idx) {
+      e.stopPropagation();
+      if (vtPlaylist.length <= 1) {
+        showNotice("Peringatan", "Minimal harus tersisa 1 klip di dalam daftar playlist.", false);
+        return;
+      }
+
+      const removed = vtPlaylist[idx];
+      vtPlaylist.splice(idx, 1);
+
+      if (activePlayingIndex >= vtPlaylist.length) {
+        activePlayingIndex = vtPlaylist.length - 1;
+      }
+      if (activeCueIndex === idx) {
+        activeCueIndex = -1;
+      }
+
+      simpanPlaylistKeStorage();
+      renderPlaylistUI();
+      showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus dari antrean.`, true);
+    }
+
+    function resetPlaylistKeDefault() {
+      vtPlaylist = [
+        {
+          id: 'vt_default_skawan',
+          title: 'SKAWAN TV Broadcast',
+          sourceType: 'youtube',
+          youtubeId: 'Jnp3esoHb9k',
+          url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
+          durationSec: 120
+        }
+      ];
+      activePlayingIndex = 0;
+      activeCueIndex = -1;
+      simpanPlaylistKeStorage();
+      muatKlipKePlayer(0, true);
+      renderPlaylistUI();
+      showNotice("Playlist Direset", "Playlist telah dikembalikan ke klip standar SKAWAN TV.", true);
+    }
+
+    function simpanPlaylistKeStorage() {
+      localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(vtPlaylist);
+      }
+    }
+
+    // ==============================================
+    // FITUR IMPORT & EXPORT PLAYLIST KE FILE JSON
+    // ==============================================
+    function eksporPlaylistKeJson() {
       if (!vtPlaylist || vtPlaylist.length === 0) {
-        showNotice("Playlist Kosong", "Tidak ada klip video yang dapat diekspor.", false);
+        showNotice("Playlist Kosong", "Tidak ada klip untuk diekspor!", false);
         return;
       }
 
       const exportData = {
-        system: "SKAWAN_TV_PLAYLIST",
-        version: "1.0",
+        app: "SKAWAN_TV_STUDIO",
+        version: "4.0",
         roomToken: currentRoomToken,
         exportedAt: new Date().toISOString(),
         totalClips: vtPlaylist.length,
         playlist: vtPlaylist
       };
 
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-      const downloadAnchor = document.createElement('a');
-      
-      const now = new Date();
-      const dateStr = now.toISOString().slice(0,10).replace(/-/g, '');
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-      const filename = `skawan_playlist_${currentRoomToken}_${dateStr}_${timeStr}.json`;
+      const jsonStr = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
 
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", filename);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SKAWAN_VT_Playlist_${currentRoomToken}_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-      showNotice("Playlist Diekspor", `Berkas "${filename}" (${vtPlaylist.length} klip) berhasil diunduh.`, true);
+      showNotice("Ekspor Berhasil", `Berkas playlist JSON berhasil diunduh (${vtPlaylist.length} klip).`, true);
     }
 
-    function bukaModalImport() {
-      parsedImportPlaylist = null;
-      document.getElementById('importFilePreviewBox').classList.add('hidden');
-      document.getElementById('btnEksekusiImport').disabled = true;
-      document.getElementById('fileInputJson').value = '';
-      document.getElementById('modalImportJson').classList.remove('hidden');
-    }
-
-    function tutupModalImport() {
-      document.getElementById('modalImportJson').classList.add('hidden');
-      parsedImportPlaylist = null;
-    }
-
-    function tanganiDragOver(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      document.getElementById('importDropZone').classList.add('dropzone-hover');
-    }
-
-    function tanganiDragLeave(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      document.getElementById('importDropZone').classList.remove('dropzone-hover');
-    }
-
-    function tanganiDropFile(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      document.getElementById('importDropZone').classList.remove('dropzone-hover');
-
-      const files = e.dataTransfer.files;
-      if (files && files.length > 0) {
-        bacaFileJsonImport(files[0]);
-      }
-    }
-
-    function tanganiFileDipilih(e) {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        bacaFileJsonImport(files[0]);
-      }
-    }
-
-    function bacaFileJsonImport(file) {
-      if (!file.name.toLowerCase().endsWith('.json') && file.type !== 'application/json') {
-        showNotice("Format Salah", "Harap pilih berkas dengan format .json yang valid.", false);
-        return;
-      }
+    function tanganiImporFileJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
-          const content = JSON.parse(e.target.result);
-          
-          let clips = [];
-          if (Array.isArray(content)) {
-            clips = content;
-          } else if (content && Array.isArray(content.playlist)) {
-            clips = content.playlist;
-          } else {
-            throw new Error("Struktur JSON tidak memuat daftar array playlist yang valid.");
+          const parsed = JSON.parse(e.target.result);
+          let importedClips = [];
+
+          if (Array.isArray(parsed)) {
+            importedClips = parsed;
+          } else if (parsed && Array.isArray(parsed.playlist)) {
+            importedClips = parsed.playlist;
           }
 
-          if (clips.length === 0) {
-            showNotice("Playlist Kosong", "Berkas JSON tidak memuat satupun klip video.", false);
-            return;
+          if (importedClips.length === 0) {
+            throw new Error("Berkas JSON tidak memuat susunan klip playlist yang valid.");
           }
 
-          parsedImportPlaylist = clips.map((c, idx) => {
-            const rawType = (c.sourceType || 'youtube').toLowerCase();
-            const rawUrl = c.url || (c.youtubeId ? `https://www.youtube.com/watch?v=${c.youtubeId}` : '');
-            let ytId = c.youtubeId || '';
-            if (rawType === 'youtube' && !ytId) {
-              ytId = ekstrakYouTubeId(rawUrl);
-            }
-            return {
-              id: c.id || `vt_imp_${Date.now()}_${idx}`,
-              title: c.title || `Klip Impor #${idx + 1}`,
-              sourceType: rawType,
-              youtubeId: ytId,
-              url: rawUrl,
-              durationSec: parseInt(c.durationSec) || 120
-            };
-          });
+          vtPlaylist = importedClips.map((c, i) => ({
+            id: c.id || `vt_imp_${Date.now()}_${i}`,
+            title: c.title || `Klip ${i + 1}`,
+            sourceType: c.sourceType || (c.url && c.url.includes('drive.google.com') ? 'gdrive' : 'youtube'),
+            youtubeId: c.youtubeId || (c.url ? extractCleanYtId(c.url) : 'Jnp3esoHb9k'),
+            url: c.url || `https://www.youtube.com/watch?v=${c.youtubeId || 'Jnp3esoHb9k'}`,
+            durationSec: parseInt(c.durationSec) || 120
+          }));
 
-          document.getElementById('importFileName').innerText = file.name;
-          document.getElementById('importClipCount').innerText = `${parsedImportPlaylist.length} Klip Ditemukan`;
-          document.getElementById('importFilePreviewBox').classList.remove('hidden');
-          document.getElementById('btnEksekusiImport').disabled = false;
+          activePlayingIndex = 0;
+          activeCueIndex = -1;
 
+          simpanPlaylistKeStorage();
+          muatKlipKePlayer(0, true);
+          renderPlaylistUI();
+
+          showNotice("Impor Berhasil", `Berhasil memuat ${vtPlaylist.length} klip ke dalam playlist studio.`, true);
         } catch (err) {
-          showNotice("Galat Berkas JSON", "Gagal membaca berkas: " + err.message, false);
-          parsedImportPlaylist = null;
-          document.getElementById('btnEksekusiImport').disabled = true;
+          showNotice("Gagal Impor JSON", err.message, false);
         }
       };
       reader.readAsText(file);
+      event.target.value = '';
     }
 
-    function terapkanImportJson() {
-      if (!parsedImportPlaylist || parsedImportPlaylist.length === 0) {
-        showNotice("Peringatan", "Pilih berkas JSON terlebih dahulu.", false);
+    // Modal Lengkap Tambah Klip
+    function bukaModalTambahKlip() {
+      document.getElementById('modalInputClipTitle').value = '';
+      document.getElementById('modalInputClipUrl').value = '';
+      document.getElementById('modalInputClipDuration').value = '120';
+      document.getElementById('modalTambahKlip').classList.remove('hidden');
+    }
+
+    function tutupModalTambahKlip() {
+      document.getElementById('modalTambahKlip').classList.add('hidden');
+    }
+
+    function sesuaikanPlaceholderModalUrl(type) {
+      const lbl = document.getElementById('lblModalUrlInput');
+      const input = document.getElementById('modalInputClipUrl');
+
+      if (type === 'gdrive') {
+        lbl.innerText = "Tautan Berbagi Google Drive:";
+        input.placeholder = "https://drive.google.com/file/d/1A2B3C.../preview";
+      } else if (type === 'mp4') {
+        lbl.innerText = "Tautan Langsung Berkas .mp4:";
+        input.placeholder = "https://domain.com/video/klip-acara.mp4";
+      } else {
+        lbl.innerText = "URL YouTube / 11-Digit Video ID:";
+        input.placeholder = "https://www.youtube.com/watch?v=Jnp3esoHb9k";
+      }
+    }
+
+    function eksekusiModalTambahKlip() {
+      const title = document.getElementById('modalInputClipTitle').value.trim() || 'Klip Siaran';
+      const type = document.getElementById('modalSelectSourceType').value;
+      const url = document.getElementById('modalInputClipUrl').value.trim();
+      const dur = parseInt(document.getElementById('modalInputClipDuration').value) || 120;
+
+      if (!url) {
+        showNotice("Peringatan", "Harap isi URL atau ID video!", false);
         return;
       }
 
-      const mergeRadios = document.getElementsByName('importMergeMode');
-      let mode = 'replace';
-      for (const r of mergeRadios) {
-        if (r.checked) { mode = r.value; break; }
-      }
+      const cleanYt = type === 'youtube' ? extractCleanYtId(url) : '';
 
-      if (mode === 'replace') {
-        vtPlaylist = [ ...parsedImportPlaylist ];
-        activePlayingIndex = 0;
-        activeCueIndex = -1;
-      } else {
-        vtPlaylist = [ ...vtPlaylist, ...parsedImportPlaylist ];
-      }
-
-      tutupModalImport();
-      simpanPlaylistKeStorage();
-      muatKlipKePlayer(activePlayingIndex, false);
-
-      showNotice("Import Berhasil", `${parsedImportPlaylist.length} klip telah berhasil dimuat ke antrean playlist.`, true);
-    }
-
-    function tetapkanSebagaiDefaultStandby(index) {
-      const clip = vtPlaylist[index];
-      if (!clip || !clip.youtubeId) return;
-
-      currentActiveStandbyYtId = clip.youtubeId;
-      const activeDb = getDatabase();
-
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/meta/defaultStandbyYtId`).set(clip.youtubeId).then(() => {
-          renderPlaylistUI();
-        }).catch(err => {
-          console.warn(err);
-        });
-      } else {
-        renderPlaylistUI();
-      }
-    }
-
-    function geserUrutanKlip(index, delta) {
-      const targetIndex = index + delta;
-      if (targetIndex < 0 || targetIndex >= vtPlaylist.length) return;
-
-      const temp = vtPlaylist[index];
-      vtPlaylist[index] = vtPlaylist[targetIndex];
-      vtPlaylist[targetIndex] = temp;
-
-      if (activePlayingIndex === index) {
-        activePlayingIndex = targetIndex;
-      } else if (activePlayingIndex === targetIndex) {
-        activePlayingIndex = index;
-      }
-
-      if (activeCueIndex === index) {
-        activeCueIndex = targetIndex;
-      } else if (activeCueIndex === targetIndex) {
-        activeCueIndex = index;
-      }
-
-      simpanPlaylistKeStorage();
-    }
-
-    function hapusKlipPlaylist(index) {
-      if (vtPlaylist.length <= 1) return;
-      vtPlaylist.splice(index, 1);
-      
-      if (activePlayingIndex >= vtPlaylist.length) {
-        activePlayingIndex = vtPlaylist.length - 1;
-      }
-      if (activeCueIndex === index) {
-        activeCueIndex = -1;
-      } else if (activeCueIndex > index) {
-        activeCueIndex--;
-      }
-
-      muatKlipKePlayer(activePlayingIndex, false);
-      simpanPlaylistKeStorage();
-    }
-
-    function resetPlaylistDefault() {
-      vtPlaylist = [ { ...DEFAULT_SKASA_CLIP } ];
-      activePlayingIndex = 0;
-      activeCueIndex = -1;
-      currentActiveStandbyYtId = DEFAULT_SKASA_CLIP.youtubeId;
-      muatKlipKePlayer(0, false);
-      simpanPlaylistKeStorage();
-
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/meta/defaultStandbyYtId`).set(DEFAULT_SKASA_CLIP.youtubeId);
-      }
-      showNotice("Playlist Direset", "Playlist telah dikembalikan ke 1 video bawaan SKAWAN TV.", true);
-    }
-
-    function ubahLoopMode(mode) {
-      loopMode = mode;
-    }
-
-    function ubahEndAction(action) {
-      endAction = action;
-    }
-
-    function bukaModalTambahVt() {
-      document.getElementById('inputVtTitle').value = '';
-      document.getElementById('inputVtUrl').value = '';
-      document.getElementById('modalTambahVt').classList.remove('hidden');
-    }
-
-    function tutupModalTambahVt() {
-      document.getElementById('modalTambahVt').classList.add('hidden');
-    }
-
-    function sesuaikanPlaceholderLink(type) {
-      const input = document.getElementById('inputVtUrl');
-      if (type === 'youtube') input.placeholder = "https://www.youtube.com/watch?v=... atau ID video";
-      else if (type === 'gdrive') input.placeholder = "https://drive.google.com/file/d/.../view?usp=sharing";
-      else input.placeholder = "https://example.com/video.mp4";
-    }
-
-    function eksekusiTambahVt() {
-      const title = document.getElementById('inputVtTitle').value.trim() || 'Video Liputan Baru';
-      const type = document.getElementById('selectVtSourceType').value;
-      const rawUrl = document.getElementById('inputVtUrl').value.trim();
-      const durSec = parseInt(document.getElementById('inputVtDuration').value) || 120;
-      const pos = document.getElementById('selectInsertPosition').value;
-
-      if (!rawUrl) {
-        showNotice("Tautan Kosong", "Masukkan tautan video terlebih dahulu.", false);
-        return;
-      }
-
-      let parsedYtId = '';
-      let parsedUrl = rawUrl;
-
-      if (type === 'youtube') {
-        parsedYtId = ekstrakYouTubeId(rawUrl);
-        if (!parsedYtId) {
-          showNotice("Tautan Salah", "ID Video YouTube tidak dapat dikenali.", false);
-          return;
-        }
-        parsedUrl = `https://www.youtube.com/watch?v=${parsedYtId}`;
-      } else if (type === 'gdrive') {
-        const fileId = ekstrakGoogleDriveId(rawUrl);
-        if (fileId) {
-          parsedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-        }
-      }
-
-      const newClip = {
-        id: `vt_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+      vtPlaylist.push({
+        id: `vt_${Date.now()}`,
         title: title,
         sourceType: type,
-        youtubeId: parsedYtId,
-        url: parsedUrl,
-        durationSec: durSec
-      };
+        youtubeId: cleanYt,
+        url: url,
+        durationSec: dur
+      });
 
-      if (pos === 'first') {
-        vtPlaylist.unshift(newClip);
-        activePlayingIndex++;
-        if (activeCueIndex !== -1) activeCueIndex++;
-      } else if (pos === 'next') {
-        vtPlaylist.splice(activePlayingIndex + 1, 0, newClip);
+      simpanPlaylistKeStorage();
+      tutupModalTambahKlip();
+      renderPlaylistUI();
+      showNotice("Klip Tersimpan", `Klip "${title}" berhasil ditambahkan ke antrean.`, true);
+    }
+
+    // ==============================================
+    // MONITOR RETURN PGM SIARAN (Intip Siaran Penonton)
+    // ==============================================
+    function updatePgmReturnMonitor() {
+      const activeSrc = liveState.programSource || 'cam_1';
+      const pgmLabel = activeSrc.toUpperCase().replace('_', ' ');
+
+      const badgePgm = document.getElementById('badgeActivePgmSource');
+      const fallbackLbl = document.getElementById('pgmReturnFallbackLabel');
+      const camVideo = document.getElementById('pgmReturnCamVideo');
+      const fallbackBox = document.getElementById('pgmReturnFallback');
+
+      if (badgePgm) badgePgm.innerText = pgmLabel;
+      if (fallbackLbl) fallbackLbl.innerText = pgmLabel;
+
+      if (activeSrc === 'vt') {
+        if (camVideo) {
+          camVideo.classList.remove('opacity-100');
+          camVideo.classList.add('opacity-0', 'pointer-events-none');
+        }
+        if (fallbackBox) {
+          fallbackBox.classList.remove('hidden');
+          fallbackLbl.innerText = "VT PLAYOUT (ON-AIR)";
+        }
       } else {
-        vtPlaylist.push(newClip);
+        const stream = getCameraStream(activeSrc);
+        if (stream && camVideo) {
+          if (camVideo.srcObject !== stream) camVideo.srcObject = stream;
+          camVideo.classList.remove('opacity-0', 'pointer-events-none');
+          camVideo.classList.add('opacity-100');
+          if (fallbackBox) fallbackBox.classList.add('hidden');
+          camVideo.play().catch(() => {});
+        } else {
+          if (camVideo) {
+            camVideo.classList.remove('opacity-100');
+            camVideo.classList.add('opacity-0', 'pointer-events-none');
+          }
+          if (fallbackBox) {
+            fallbackBox.classList.remove('hidden');
+            fallbackLbl.innerText = pgmLabel;
+          }
+        }
+      }
+    }
+
+    // ==============================================
+    // AUDIO MIXER & HARDWARE MIC (WEB AUDIO API)
+    // ==============================================
+    function initAudioMixerUi() {
+      Object.keys(audioMixerState).forEach(ch => {
+        const data = audioMixerState[ch];
+        const slider = document.getElementById(`fader-${ch}`);
+        const lbl = document.getElementById(`lbl-val-${ch}`);
+        if (slider) slider.value = data.fader;
+        if (lbl) lbl.innerText = `${data.fader}%`;
+      });
+      updateAudioFaderVolume();
+    }
+
+    function updateChannelFader(ch, val) {
+      if (!audioMixerState[ch]) return;
+      audioMixerState[ch].fader = parseInt(val) || 0;
+      document.getElementById(`lbl-val-${ch}`).innerText = `${val}%`;
+
+      // Jika yang diubah adalah CH 4 (VT IN) atau MASTER, sesuaikan volume video yang sedang berputar
+      if (ch === 'ch4' || ch === 'master') {
+        updateAudioFaderVolume();
       }
 
-      tutupModalTambahVt();
-      simpanPlaylistKeStorage();
-      showNotice("Klip Ditambahkan", `"${title}" berhasil dimasukkan ke playlist.`, true);
+      // Jika mic fisik aktif dan kanal yang diubah sesuai rute
+      if (isHardwareMicActive && micGainNode && ch === document.getElementById('selectMicChannelRoute').value) {
+        const effectiveVol = audioMixerState[ch].isMuted ? 0 : (audioMixerState[ch].fader / 100);
+        micGainNode.gain.setTargetAtTime(effectiveVol, audioCtx.currentTime, 0.05);
+      }
     }
 
-    function ekstrakYouTubeId(url) {
-      if (!url) return '';
-      const str = String(url).trim();
-      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = str.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : '';
+    function toggleChannelMute(ch) {
+      if (!audioMixerState[ch]) return;
+      audioMixerState[ch].isMuted = !audioMixerState[ch].isMuted;
+      const btn = document.getElementById(`btn-mute-${ch}`);
+
+      if (audioMixerState[ch].isMuted) {
+        btn.className = "deck-btn w-full py-1.5 rounded-lg border border-red-500 bg-red-600 text-white font-mono text-[10px] font-bold shadow-md animate-pulse";
+        btn.innerText = "MUTED";
+      } else {
+        btn.className = "deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold";
+        btn.innerText = ch === 'master' ? 'MUTE ALL' : 'MUTE';
+      }
+
+      updateAudioFaderVolume();
     }
 
-    function ekstrakGoogleDriveId(url) {
-      if (!url) return '';
-      const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) return match[1];
-      const matchId = url.match(/id=([a-zA-Z0-9_-]+)/);
-      return matchId ? matchId[1] : '';
+    function updateAudioFaderVolume() {
+      const isMasterMuted = audioMixerState.master.isMuted;
+      const masterFactor = isMasterMuted ? 0 : (audioMixerState.master.fader / 100);
+
+      const isVtMuted = audioMixerState.ch4.isMuted;
+      const vtFactor = isVtMuted ? 0 : (audioMixerState.ch4.fader / 100);
+
+      const finalVolume = Math.round(masterFactor * vtFactor * 100);
+
+      if (isYtReady && audioYtPlayer && typeof audioYtPlayer.setVolume === 'function') {
+        audioYtPlayer.setVolume(finalVolume);
+        if (finalVolume === 0) {
+          audioYtPlayer.mute();
+        } else {
+          audioYtPlayer.unMute();
+        }
+      }
+
+      const html5Vid = document.getElementById('audioVtHtml5Video');
+      if (html5Vid) {
+        html5Vid.volume = finalVolume / 100;
+        html5Vid.muted = (finalVolume === 0);
+      }
     }
 
-    function formatDurasi(sec) {
-      sec = Math.round(sec);
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    // Mikrofon Laptop Fisik via Web Audio API
+    async function toggleHardwareMicInput() {
+      const btn = document.getElementById('btnHardwareMic');
+      const lbl = document.getElementById('lblHardwareMic');
+      const icon = document.getElementById('iconHardwareMic');
+
+      if (!isHardwareMicActive) {
+        try {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+          }
+
+          micMediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            },
+            video: false
+          });
+
+          micSourceNode = audioCtx.createMediaStreamSource(micMediaStream);
+          micGainNode = audioCtx.createGain();
+
+          const assignedCh = document.getElementById('selectMicChannelRoute').value;
+          const initialVol = audioMixerState[assignedCh].isMuted ? 0 : (audioMixerState[assignedCh].fader / 100);
+          micGainNode.gain.setValueAtTime(initialVol, audioCtx.currentTime);
+
+          // Sambungkan ke mixer destination audio context
+          micSourceNode.connect(micGainNode);
+          micGainNode.connect(audioCtx.destination);
+
+          isHardwareMicActive = true;
+          btn.className = "deck-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/30";
+          lbl.innerText = "Mic Terhubung (LIVE)";
+          icon.innerText = "🔴";
+
+          showNotice("Mikrofon Aktif", `Mikrofon laptop berhasil dihubungkan ke ${assignedCh.toUpperCase()} studio.`, true);
+        } catch (err) {
+          showNotice("Akses Mikrofon Gagal", "Tidak dapat membuka mikrofon laptop: " + err.message, false);
+        }
+      } else {
+        if (micMediaStream) {
+          micMediaStream.getTracks().forEach(t => t.stop());
+          micMediaStream = null;
+        }
+        if (micSourceNode) {
+          micSourceNode.disconnect();
+          micSourceNode = null;
+        }
+
+        isHardwareMicActive = false;
+        btn.className = "deck-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-bold flex items-center gap-1.5";
+        lbl.innerText = "Sambungkan Mic Laptop";
+        icon.innerText = "🎙️";
+        showNotice("Mikrofon Dilepas", "Input mikrofon laptop telah diputuskan.", true);
+      }
     }
 
-    function capitalizeFirst(string) {
-      return string.charAt(0).toUpperCase() + string.slice(1);
+    // Generator Soundbite Studio (100% Bebas URL Eksternal via Web Audio API)
+    function mainkanSfxBeep(freq = 1000, duration = 0.4) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
     }
 
+    function mainkanSfxChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const freqs = [523.25, 659.25, 783.99, 1046.50]; // C - E - G - High C
+        freqs.forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const startTime = ctx.currentTime + (idx * 0.12);
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, startTime);
+
+          gain.gain.setValueAtTime(0.25, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(startTime);
+          osc.stop(startTime + 0.6);
+        });
+      } catch (e) {}
+    }
+
+    // ==============================================
+    // TICKERS, VU METER & MODAL KELUAR
+    // ==============================================
+    function startStudioTimecodeTicker() {
+      if (vtTickerInterval) clearInterval(vtTickerInterval);
+
+      vtTickerInterval = setInterval(() => {
+        let curTime = 0;
+        let totalD = vtPlaybackState.totalDuration || 120;
+
+        if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer && typeof audioYtPlayer.getCurrentTime === 'function') {
+          curTime = audioYtPlayer.getCurrentTime() || 0;
+          const d = audioYtPlayer.getDuration() || totalD;
+          if (d > 0) totalD = d;
+        } else if (vtPlaybackState.sourceType === 'mp4') {
+          const vid = document.getElementById('audioVtHtml5Video');
+          if (vid) {
+            curTime = vid.currentTime || 0;
+            if (vid.duration > 0) totalD = vid.duration;
+          }
+        }
+
+        vtPlaybackState.currentTime = curTime;
+        vtPlaybackState.totalDuration = totalD;
+
+        document.getElementById('lblTimecodeCurrent').innerText = formatTimecode(curTime);
+        document.getElementById('lblTimecodeTotal').innerText = formatTimecode(totalD);
+
+        const slider = document.getElementById('sliderVtProgress');
+        slider.max = Math.floor(totalD);
+        slider.value = Math.floor(curTime);
+
+        const pct = Math.min(100, Math.max(0, Math.round((curTime / totalD) * 100)));
+        document.getElementById('lblVtPercent').innerText = `${pct}%`;
+      }, 500);
+    }
+
+    function startVuMeterSimulator() {
+      if (vuMeterInterval) clearInterval(vuMeterInterval);
+
+      vuMeterInterval = setInterval(() => {
+        const channels = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'master'];
+        const isMasterMuted = audioMixerState.master.isMuted;
+        const masterFader = isMasterMuted ? 0 : audioMixerState.master.fader;
+
+        channels.forEach(ch => {
+          const bar = document.getElementById(`vu-bar-${ch}`);
+          if (!bar) return;
+
+          const data = audioMixerState[ch];
+          if (data.isMuted || data.fader === 0) {
+            bar.style.height = '0%';
+            return;
+          }
+
+          // Variasi dinamis natural VU Meter
+          let basePct = (data.fader / 100) * 85;
+          if (ch === 'ch4' && vtPlaybackState.status !== 'playing') {
+            basePct = 0;
+          }
+          if (ch === 'master') {
+            basePct = (masterFader / 100) * 85;
+          }
+
+          const jitter = (Math.random() * 18) - 9;
+          const finalHeight = Math.max(0, Math.min(100, basePct + jitter));
+          bar.style.height = `${finalHeight}%`;
+        });
+      }, 100);
+    }
+
+    // Modal Konfirmasi Keluar / Ganti Peran Audio-VT
     function bukaModalKeluar(type) {
       pendingExitType = type;
       const modal = document.getElementById('exitConfirmModal');
@@ -2240,15 +1809,15 @@
       const btn = document.getElementById('btnConfirmExitAction');
 
       if (type === 'ganti') {
-        title.innerText = "Ganti Peran Audio Operator?";
-        message.innerHTML = "Slot posisi <strong>Audio & VT Operator</strong> akan dilepaskan di studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.";
+        title.innerText = "Ganti Peran Kru?";
+        message.innerHTML = "Slot posisi <strong>Audio &amp; VT Operator</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.";
         btn.innerText = "Ya, Ganti Peran";
-        btn.className = "w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-sm";
+        btn.className = "deck-btn w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold text-xs transition shadow-sm";
       } else {
         title.innerText = "Keluar dari Sesi Siaran?";
-        message.innerHTML = "Slot posisi <strong>Audio & VT Operator</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.";
+        message.innerHTML = "Slot posisi <strong>Audio &amp; VT Operator</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.";
         btn.innerText = "Ya, Keluar Sesi";
-        btn.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm";
+        btn.className = "deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-brand font-bold text-xs transition shadow-sm";
       }
 
       modal.classList.remove('hidden');
@@ -2261,10 +1830,6 @@
     function tanganiSesiDiakhiriGuru() {
       if (currentRoomToken === 'SKASA') return;
 
-      if (micStream) {
-        micStream.getTracks().forEach(t => t.stop());
-        micStream = null;
-      }
       if (streamerInstance) {
         streamerInstance.destroy();
         streamerInstance = null;
@@ -2275,17 +1840,19 @@
       sessionStorage.removeItem('skawan_role');
       sessionStorage.removeItem('skawan_role_title');
 
-      window.location.href = `login.html?room=${currentRoomToken}`;
+      showNotice("Sesi Diakhiri", "Sesi siaran telah diselesaikan oleh Guru. Mengalihkan ke pemilihan peran...", false);
+      setTimeout(() => {
+        window.location.href = `login.html?room=${currentRoomToken}`;
+      }, 1500);
     }
 
     function eksekusiKeluarSesi() {
-      if (micStream) {
-        micStream.getTracks().forEach(t => t.stop());
-        micStream = null;
-      }
       if (streamerInstance) {
         streamerInstance.destroy();
         streamerInstance = null;
+      }
+      if (micMediaStream) {
+        micMediaStream.getTracks().forEach(t => t.stop());
       }
 
       const activeDb = getDatabase();
