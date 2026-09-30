@@ -802,6 +802,7 @@
     let audioYtPlayer = null;
     let isYtReady = false;
     let playbackInterval = null;
+    let isInitialStartup = true; // Mencegah penimpaan database Firebase saat baru dimuat / refresh
 
     // WebRTC PGM Return & Hardware Mic Web Audio API
     let streamerInstance = null;
@@ -893,7 +894,9 @@
               if (typeof audioYtPlayer.setVolume === 'function') {
                 audioYtPlayer.setVolume(mixerState.ch4.isMuted ? 0 : mixerState.ch4.gain);
               }
-              muatKlipKePlayer(activePlayingIndex, false);
+              // Muat status lokal tanpa menyiarkan penimpaan ke Firebase saat startup
+              const isPlaying = (vtPlaybackState.status === 'playing');
+              muatKlipKePlayer(activePlayingIndex, isPlaying, false);
             },
             onStateChange: (e) => {
               if (e.data === YT.PlayerState.PLAYING) {
@@ -1008,6 +1011,44 @@
     function initAudioVtSystem(token) {
       const activeDb = getDatabase();
       if (activeDb) {
+        // 1. Ambil status siaran terkini dari Firebase terlebih dahulu agar tidak menimpa siaran saat refresh
+        activeDb.ref(`rooms/${token}/vt_state`).once('value', snap => {
+          if (snap.exists()) {
+            const remoteVt = snap.val();
+            if (remoteVt && remoteVt.status) {
+              // Cocokkan klip yang sedang tayang di playlist lokal
+              let foundIndex = -1;
+              if (remoteVt.clipId) {
+                foundIndex = vtPlaylist.findIndex(c => c.id === remoteVt.clipId);
+              }
+              if (foundIndex === -1 && remoteVt.youtubeId) {
+                foundIndex = vtPlaylist.findIndex(c => c.youtubeId === remoteVt.youtubeId);
+              }
+              if (foundIndex === -1 && remoteVt.url) {
+                foundIndex = vtPlaylist.findIndex(c => c.url === remoteVt.url);
+              }
+
+              if (foundIndex !== -1) {
+                activePlayingIndex = foundIndex;
+              }
+
+              vtPlaybackState = { ...vtPlaybackState, ...remoteVt };
+
+              // Hitung estimasi kemajuan waktu jika video sedang berputar (playing)
+              if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
+                const elapsedSec = (Date.now() - remoteVt.updatedAt) / 1000;
+                const dur = remoteVt.totalDuration || (vtPlaylist[activePlayingIndex]?.durationSec || 120);
+                vtPlaybackState.currentTime = Math.min(dur, (remoteVt.currentTime || 0) + elapsedSec);
+              }
+
+              // Sinkronkan player lokal tanpa memotong siaran penonton
+              const isPlaying = (vtPlaybackState.status === 'playing');
+              muatKlipKePlayer(activePlayingIndex, isPlaying, false);
+            }
+          }
+          isInitialStartup = false;
+        });
+
         activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
           if (!snap.exists()) return;
           const meta = snap.val();
@@ -1259,12 +1300,12 @@
       } else {
         activePlayingIndex = nextIndex;
         activeCueIndex = -1;
-        muatKlipKePlayer(nextIndex, false);
+        muatKlipKePlayer(nextIndex, false, true);
         renderPlaylistUI();
       }
     }
 
-    function muatKlipKePlayer(index, autoPlay = false) {
+    function muatKlipKePlayer(index, autoPlay = false, shouldBroadcast = true) {
       const clip = vtPlaylist[index];
       if (!clip) return;
 
@@ -1272,17 +1313,19 @@
       const ytWrap = document.getElementById('audioVtYtWrap');
       const gdriveEl = document.getElementById('audioVtGdrive');
 
+      const currentSec = vtPlaybackState.currentTime || 0;
+      const totalSec = clip.durationSec || 120;
+
       document.getElementById('overlayClipTitle').innerText = clip.title;
       document.getElementById('lblClipTitlePlaying').innerText = clip.title;
       document.getElementById('badgeActiveSourceType').innerText = clip.sourceType.toUpperCase();
-      document.getElementById('vtScrubber').max = clip.durationSec || 120;
-      document.getElementById('vtScrubber').value = 0;
-      document.getElementById('lblRemainingTime').innerText = `-${formatDurasi(clip.durationSec || 120)}`;
-      document.getElementById('lblCurrentTime').innerText = '00:00';
+      document.getElementById('vtScrubber').max = totalSec;
+      document.getElementById('vtScrubber').value = currentSec;
+      document.getElementById('lblRemainingTime').innerText = `-${formatDurasi(Math.max(0, totalSec - currentSec))}`;
+      document.getElementById('lblCurrentTime').innerText = formatDurasi(currentSec);
 
-      vtPlaybackState.status = autoPlay ? 'playing' : 'stopped';
-      vtPlaybackState.currentTime = 0;
-      vtPlaybackState.totalDuration = clip.durationSec || 120;
+      vtPlaybackState.status = autoPlay ? 'playing' : (vtPlaybackState.status || 'stopped');
+      vtPlaybackState.totalDuration = totalSec;
       vtPlaybackState.clipId = clip.id;
       vtPlaybackState.title = clip.title;
       vtPlaybackState.sourceType = clip.sourceType;
@@ -1304,10 +1347,11 @@
 
         if (isYtReady && audioYtPlayer && typeof audioYtPlayer.loadVideoById === 'function') {
           matikanSubtitleYouTube(audioYtPlayer);
+          const startAt = vtPlaybackState.currentTime || 0;
           if (autoPlay) {
-            audioYtPlayer.loadVideoById({ videoId: clip.youtubeId, startSeconds: 0 });
+            audioYtPlayer.loadVideoById({ videoId: clip.youtubeId, startSeconds: startAt });
           } else {
-            audioYtPlayer.cueVideoById({ videoId: clip.youtubeId, startSeconds: 0 });
+            audioYtPlayer.cueVideoById({ videoId: clip.youtubeId, startSeconds: startAt });
           }
         } else if (!audioYtPlayer && window.YT && window.YT.Player) {
           initAudioYtPlayer();
@@ -1322,12 +1366,16 @@
         gdriveEl.classList.add('hidden');
         html5El.classList.remove('hidden');
         html5El.src = clip.url;
-        html5El.currentTime = 0;
+        html5El.currentTime = vtPlaybackState.currentTime || 0;
         if (autoPlay) html5El.play().catch(()=>{}); else html5El.pause();
       }
 
       updatePlayerStatusVisuals();
-      broadcastVtPlaybackState();
+
+      // Hanya broadcast jika diminta dan bukan saat inisialisasi awal / refresh
+      if (shouldBroadcast && !isInitialStartup) {
+        broadcastVtPlaybackState();
+      }
     }
 
     function eksekusiCue() {
@@ -1335,7 +1383,7 @@
       if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
         activePlayingIndex = activeCueIndex;
         activeCueIndex = -1;
-        muatKlipKePlayer(activePlayingIndex, false);
+        muatKlipKePlayer(activePlayingIndex, false, true);
         renderPlaylistUI();
         return;
       }
@@ -1368,7 +1416,7 @@
       if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
         activePlayingIndex = activeCueIndex;
         activeCueIndex = -1;
-        muatKlipKePlayer(activePlayingIndex, true);
+        muatKlipKePlayer(activePlayingIndex, true, true);
         renderPlaylistUI();
         return;
       }
