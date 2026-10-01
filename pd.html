@@ -702,7 +702,11 @@
                 isPgmYtReady = true;
                 e.target.mute();
                 matikanSubtitleYouTube(e.target);
-                e.target.playVideo();
+                if (latestVtState.status === 'playing') {
+                  e.target.playVideo();
+                } else {
+                  e.target.pauseVideo();
+                }
                 syncVtDisplay();
               },
               onStateChange: (e) => {
@@ -732,7 +736,11 @@
                 isPvwYtReady = true;
                 e.target.mute();
                 matikanSubtitleYouTube(e.target);
-                e.target.playVideo();
+                if (latestVtState.status === 'playing') {
+                  e.target.playVideo();
+                } else {
+                  e.target.pauseVideo();
+                }
                 syncVtDisplay();
               },
               onStateChange: (e) => {
@@ -1109,44 +1117,54 @@
         if (pgmYtWrap) { pgmYtWrap.style.opacity = '1'; pgmYtWrap.style.zIndex = '10'; }
         if (pvwYtWrap) { pvwYtWrap.style.opacity = '1'; pvwYtWrap.style.zIndex = '10'; }
 
-        // A. PGM Player
+        // A. PGM Player (Lockstep Play/Pause/Seek)
         if (isPgmYtReady && pdPgmYt && typeof pdPgmYt.playVideo === 'function') {
           pdPgmYt.mute();
           matikanSubtitleYouTube(pdPgmYt);
           if (currentPgmYtId !== ytId) {
             currentPgmYtId = ytId;
             pdPgmYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
-            pdPgmYt.playVideo();
-          } else {
-            if (isPgmVt) {
+            if (isPlaying && isPgmVt) {
               pdPgmYt.playVideo();
-              const c = pdPgmYt.getCurrentTime() || 0;
-              if (Math.abs(c - curTime) > 2.5) {
-                pdPgmYt.seekTo(curTime, true);
-              }
             } else {
+              pdPgmYt.pauseVideo();
+            }
+          } else {
+            const c = pdPgmYt.getCurrentTime() || 0;
+            if (Math.abs(c - curTime) > 2.5) {
+              pdPgmYt.seekTo(curTime, true);
+            }
+
+            if (isPlaying && isPgmVt) {
               pdPgmYt.playVideo();
+            } else {
+              pdPgmYt.pauseVideo();
             }
           }
         }
 
-        // B. PVW Player
+        // B. PVW Player (Lockstep Play/Pause/Seek)
         if (isPvwYtReady && pdPvwYt && typeof pdPvwYt.playVideo === 'function') {
           pdPvwYt.mute();
           matikanSubtitleYouTube(pdPvwYt);
           if (currentPvwYtId !== ytId) {
             currentPvwYtId = ytId;
             pdPvwYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
-            pdPvwYt.playVideo();
-          } else {
-            if (isPvwVt) {
+            if (isPlaying && isPvwVt) {
               pdPvwYt.playVideo();
-              const c = pdPvwYt.getCurrentTime() || 0;
-              if (Math.abs(c - curTime) > 2.5) {
-                pdPvwYt.seekTo(curTime, true);
-              }
             } else {
+              pdPvwYt.pauseVideo();
+            }
+          } else {
+            const c = pdPvwYt.getCurrentTime() || 0;
+            if (Math.abs(c - curTime) > 2.5) {
+              pdPvwYt.seekTo(curTime, true);
+            }
+
+            if (isPlaying && isPvwVt) {
               pdPvwYt.playVideo();
+            } else {
+              pdPvwYt.pauseVideo();
             }
           }
         }
