@@ -77,10 +77,8 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    /* Optimalisasi Ketajaman Gambar Resolusi Tinggi (Clean Broadcast Display) */
+    /* Resolusi Halus & Jernih Siaran Digital (Tanpa Garis / Clean Broadcast) */
     video, iframe, #pgmVtYtWrap iframe {
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
       transform: translateZ(0);
       backface-visibility: hidden;
       -webkit-font-smoothing: antialiased;
@@ -307,8 +305,8 @@
 
       <!-- 5. KONTROL OVERLAY (UNMUTE & FULLSCREEN) -->
       <div class="absolute bottom-8 right-4 z-40 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
-        <!-- Tombol Refresh PGM (In-App Soft Reset Tanpa Reload Halaman) -->
-        <button id="btnRefreshPgm" onclick="refreshPgmFeed()" class="bg-black/70 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition flex items-center gap-1.5 shadow-lg active:scale-95" title="Segarkan Feed Siaran PGM Langsung">
+        <!-- Tombol Refresh PGM (Sinkronisasi Seketika dengan Switcher, Audio-VT, dan CG) -->
+        <button id="btnRefreshPgm" onclick="refreshPgmFeed()" class="bg-black/70 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition flex items-center gap-1.5 shadow-lg active:scale-95" title="Sinkronkan Ulang dengan Switcher, Audio-VT, dan CG">
           <span id="iconRefreshPgm">🔄</span>
           <span id="lblRefreshPgm" class="hidden sm:inline text-[11px]">Refresh</span>
         </button>
@@ -370,7 +368,6 @@
     let streamerInstance = null;
     const remoteCamStreams = new Map();
     let lastRenderedPgmSource = null;
-    let isCurrentlySyncingVt = false;
 
     // Cache state grafis CG terkini
     let currentCgState = {
@@ -835,13 +832,12 @@
             }
           } else {
             if (isPlaying) {
-              // Jalankan playVideo hanya jika player dalam kondisi tidak berputar untuk menghindari stutter
               const playerState = typeof livePgmYt.getPlayerState === 'function' ? livePgmYt.getPlayerState() : -1;
               if (playerState !== 1) { // 1 = PLAYING
                 livePgmYt.playVideo();
               }
               const cur = livePgmYt.getCurrentTime() || 0;
-              // Toleransi selisih waktu dinaikkan ke 3.5 detik untuk menghindari loop seek konstan
+              // Toleransi selisih waktu 3.5 detik untuk menghindari loop seek konstan
               if (Math.abs(cur - (latestVtState.currentTime || 0)) > 3.5) {
                 livePgmYt.seekTo(latestVtState.currentTime, true);
               }
@@ -901,17 +897,15 @@
 
       // 2. Bug Logo (Mendukung Gambar/GIF Transparan Kustom atau Logo Baru Monogram WebP)
       if (cg.logoActive) {
-        if (logoBox) logoBox.classList.remove('hidden');
+        logoBox.classList.remove('hidden');
 
         if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
-          // A. Operator CG mengunggah gambar / GIF kustom khusus
           if (logoCustomImg) {
             logoCustomImg.src = cg.logoUrl;
             logoCustomImg.classList.remove('hidden');
           }
           if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
         } else {
-          // B. Tampilkan Logo Ikon Monogram Baru SKAWAN TV (Transparan, Tanpa Kotak Kertas Putih)
           if (logoCustomImg) {
             logoCustomImg.src = '';
             logoCustomImg.classList.add('hidden');
@@ -919,7 +913,7 @@
           if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
         }
       } else {
-        if (logoBox) logoBox.classList.add('hidden');
+        logoBox.classList.add('hidden');
       }
 
       // 3. Running Text (Ticker Bar)
@@ -973,8 +967,8 @@
       }
     }
 
-    // Fungsi Segarkan / Reset PGM Cepat (Tanpa Reload Halaman Browser)
-    function refreshPgmFeed() {
+    // Fungsi Segarkan PGM Terpadu (Sinkronisasi Seketika dengan Switcher, Audio-VT, dan CG)
+    async function refreshPgmFeed() {
       const btn = document.getElementById('btnRefreshPgm');
       const icon = document.getElementById('iconRefreshPgm');
       const lbl = document.getElementById('lblRefreshPgm');
@@ -983,68 +977,117 @@
       if (lbl) lbl.innerText = 'Menyegarkan...';
       if (btn) btn.classList.add('opacity-75');
 
-      console.log(`[Index PGM] Melakukan soft-refresh siaran PGM untuk ruangan: ${currentRoomToken}`);
+      console.log(`[Index PGM] Melakukan sinkronisasi penuh PGM dengan Switcher, Audio-VT, dan CG untuk ruangan: ${currentRoomToken}`);
 
-      // 1. Reset elemen video kamera lokal
-      const camVideo = document.getElementById('pgmCamVideo');
-      if (camVideo) {
-        camVideo.pause();
-        camVideo.srcObject = null;
-      }
+      const activeDb = getDatabase();
 
-      // 2. Kosongkan penanda state terakhir agar renderPgmDisplay mengeksekusi pemasangan ulang stream
-      lastRenderedPgmSource = null;
-
-      // 3. Putuskan dan hubungkan ulang WebRTC Streamer khusus viewer ini
-      if (typeof SkawanStreamer !== 'undefined') {
-        if (streamerInstance) {
-          streamerInstance.destroy();
-          streamerInstance = null;
-        }
-        remoteCamStreams.clear();
-
-        const viewerRoleUnique = `viewer_${Math.random().toString(36).substring(2, 7)}`;
-        streamerInstance = new SkawanStreamer({
-          roomToken: currentRoomToken,
-          roleKey: viewerRoleUnique,
-          onRemoteStream: (camKey, stream) => {
-            console.log(`[PGM Viewer - ${currentRoomToken}] Feed kamera disegarkan: ${camKey}`);
-            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
-            remoteCamStreams.set(normKey, stream);
-            remoteCamStreams.set(camKey, stream);
-            if (liveState.programSource === normKey || liveState.programSource === camKey) {
-              renderPgmDisplay(true);
-            }
-          },
-          onStatusChange: (status, info) => {
-            console.log(`[PGM Viewer - ${currentRoomToken}] WebRTC Status: ${status} - ${info}`);
+      try {
+        if (activeDb) {
+          // 1. Tarik status Switcher (live_state: programSource, previewSource)
+          const liveSnap = await activeDb.ref(`rooms/${currentRoomToken}/live_state`).once('value');
+          if (liveSnap.exists()) {
+            const remoteLive = liveSnap.val();
+            liveState.programSource = remoteLive.programSource || liveState.programSource;
+            liveState.previewSource = remoteLive.previewSource || liveState.previewSource;
           }
-        });
-      }
 
-      // 4. Sinkronkan ulang tampilan PGM
-      renderPgmDisplay(true);
+          // 2. Tarik status Audio-VT (vt_state: video ID, status, waktu putar tersinkron)
+          const vtSnap = await activeDb.ref(`rooms/${currentRoomToken}/vt_state`).once('value');
+          if (vtSnap.exists()) {
+            const remoteVt = vtSnap.val();
+            let accurateCurrentTime = remoteVt.currentTime || 0;
 
-      // 5. Jika sumber siaran sedang VT (YouTube), sinkronkan kembali waktu dan status putar
-      if (liveState.programSource === 'vt') {
-        syncVtPlayback();
-        if (isYtReady && livePgmYt && typeof livePgmYt.seekTo === 'function') {
-          try {
-            if (latestVtState.status === 'playing') {
-              livePgmYt.seekTo(latestVtState.currentTime || 0, true);
-              livePgmYt.playVideo();
-            } else {
-              livePgmYt.pauseVideo();
+            // Hitung selisih detik yang telah berjalan sejak data terakhir ditulis
+            if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
+              const elapsedSec = Math.max(0, (Date.now() - remoteVt.updatedAt) / 1000);
+              const totalD = remoteVt.totalDuration || 120;
+              accurateCurrentTime = (remoteVt.currentTime + elapsedSec) % totalD;
             }
-          } catch (e) {}
-        }
-      }
 
-      setTimeout(() => {
-        if (icon) icon.classList.remove('animate-spin');
-        if (lbl) lbl.innerText = 'Refresh';
-        if (btn) btn.classList.remove('opacity-75');
-      }, 700);
+            latestVtState = {
+              ...latestVtState,
+              ...remoteVt,
+              currentTime: accurateCurrentTime
+            };
+          }
+
+          // 3. Tarik status CG Operator (cg_state: lower third, bug logo, ticker, live badge)
+          const cgSnap = await activeDb.ref(`rooms/${currentRoomToken}/cg_state`).once('value');
+          if (cgSnap.exists()) {
+            const remoteCg = cgSnap.val();
+            currentCgState = remoteCg || {};
+            applyCgOverlay(currentCgState);
+          }
+
+          // 4. Tarik status Ruangan (meta: status standby / live)
+          const metaSnap = await activeDb.ref(`rooms/${currentRoomToken}/meta`).once('value');
+          if (metaSnap.exists()) {
+            const meta = metaSnap.val();
+            currentRoomStatus = currentRoomToken === 'SKASA' ? 'live' : (meta.status || 'waiting');
+            updateRoomStatusUI(currentRoomStatus);
+          }
+        }
+
+        // 5. Reset koneksi WebRTC jika sumber adalah kamera agar feed kamera segar kembali
+        const camVideo = document.getElementById('pgmCamVideo');
+        if (camVideo) {
+          camVideo.pause();
+          camVideo.srcObject = null;
+        }
+        lastRenderedPgmSource = null;
+
+        if (typeof SkawanStreamer !== 'undefined') {
+          if (streamerInstance) {
+            streamerInstance.destroy();
+            streamerInstance = null;
+          }
+          remoteCamStreams.clear();
+
+          const viewerRoleUnique = `viewer_${Math.random().toString(36).substring(2, 7)}`;
+          streamerInstance = new SkawanStreamer({
+            roomToken: currentRoomToken,
+            roleKey: viewerRoleUnique,
+            onRemoteStream: (camKey, stream) => {
+              console.log(`[PGM Viewer - ${currentRoomToken}] Feed kamera disegarkan: ${camKey}`);
+              const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+              remoteCamStreams.set(normKey, stream);
+              remoteCamStreams.set(camKey, stream);
+              if (liveState.programSource === normKey || liveState.programSource === camKey) {
+                renderPgmDisplay(true);
+              }
+            },
+            onStatusChange: (status, info) => {
+              console.log(`[PGM Viewer - ${currentRoomToken}] WebRTC Status: ${status} - ${info}`);
+            }
+          });
+        }
+
+        // 6. Terapkan tampilan PGM segar
+        renderPgmDisplay(true);
+
+        // 7. Jika sumber aktif adalah VT, sinkronkan pemutar YouTube / HTML5
+        if (liveState.programSource === 'vt') {
+          syncVtPlayback();
+          if (isYtReady && livePgmYt && typeof livePgmYt.seekTo === 'function') {
+            try {
+              if (latestVtState.status === 'playing') {
+                livePgmYt.seekTo(latestVtState.currentTime || 0, true);
+                livePgmYt.playVideo();
+              } else {
+                livePgmYt.pauseVideo();
+              }
+            } catch (e) {}
+          }
+        }
+      } catch (err) {
+        console.warn("[Index PGM] Galat saat menyegarkan feed PGM:", err);
+      } finally {
+        setTimeout(() => {
+          if (icon) icon.classList.remove('animate-spin');
+          if (lbl) lbl.innerText = 'Refresh';
+          if (btn) btn.classList.remove('opacity-75');
+        }, 700);
+      }
     }
 
     // Manajemen Pemantauan Saluran Ringan (Hanya memantau metadata, membebaskan browser dari unduhan sinyal WebRTC)
