@@ -197,21 +197,12 @@
           <div class="absolute inset-0 z-20 pointer-events-auto bg-transparent cursor-default"></div>
         </div>
 
-        <!-- Indikator Staging Bumper & Tombol Lewati -->
+        <!-- Indikator Staging Bumper (7 Detik) -->
         <div class="absolute top-4 left-4 z-40 flex items-center gap-2 bg-black/75 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-lg">
           <span class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping"></span>
           <span class="font-brand font-black text-xs text-orange-400 tracking-wider uppercase">SKAWAN IDENT OPENING</span>
           <span class="text-[10px] font-mono text-slate-300 ml-1 border-l border-white/20 pl-2" id="lblBumperCountdown">7s</span>
         </div>
-
-        <!-- Tombol Lewati Bumper Langsung ke Siaran Studio -->
-        <button
-          onclick="selesaikanBumperDanBeralihKePgm()"
-          class="absolute bottom-4 right-4 z-40 bg-orange-600/90 hover:bg-orange-500 text-white font-brand font-bold text-xs px-3.5 py-2 rounded-xl backdrop-blur-md border border-white/30 shadow-2xl transition active:scale-95 flex items-center gap-1.5"
-        >
-          <span>Langsung ke Studio</span>
-          <span>⏩</span>
-        </button>
 
         <!-- Garis Progress Countdown Bumper (7 Detik) -->
         <div class="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-900 overflow-hidden z-40">
@@ -539,6 +530,16 @@
 
     // ========================================================
     // LOGIKA PERALIHAN PGM (CONTINUOUS VT & WEBRTC KAMERA)
+    // ========================================================
+    function updateMonitors() {
+      const activeSrc = liveState.programSource || 'cam_1';
+      const pgmLabel = activeSrc.toUpperCase().replace('_', ' ');
+
+      const lblActiveSrc = document.getElementById('lblActivePgmSource');
+      const fallbackDesc = document.getElementById('pgmFallbackDesc');
+      const screenLabel = document.getElementById('pgmScreenLabel');
+
+      if (lblActiveSrc) lblActiveSrc.innerText = pgmLabel;
       if (screenLabel) screenLabel.innerText = pgmLabel;
 
       const pgmVideo = document.getElementById('pgmCamVideo');
@@ -968,21 +969,15 @@
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      activeDb.ref('rooms').on('child_added', snap => {
-        const token = snap.key;
-        if (!token) return;
-        activeDb.ref(`rooms/${token}/meta`).on('value', mSnap => {
-          activeRoomsMap.set(token, mSnap.val() || {});
-          renderChannelsGrid();
+      activeDb.ref('rooms').on('value', snapshot => {
+        if (!snapshot.exists()) return;
+        const rooms = snapshot.val() || {};
+        Object.keys(rooms).forEach(token => {
+          if (rooms[token] && rooms[token].meta) {
+            activeRoomsMap.set(token, rooms[token].meta);
+          }
         });
-      });
-
-      activeDb.ref('rooms').on('child_removed', snap => {
-        const token = snap.key;
-        if (token && token !== 'SKASA') {
-          activeRoomsMap.delete(token);
-          renderChannelsGrid();
-        }
+        renderChannelsGrid();
       });
     }
 
