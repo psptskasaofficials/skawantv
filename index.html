@@ -76,7 +76,7 @@
 
   <style>
     /* Akselerasi GPU Bersih 60 FPS untuk Siaran Televisi */
-    video, iframe, #pgmVtWrapper, #pgmCamVideo {
+    video, iframe, #pgmVtWrapper, #pgmCamVideo, #pgmBumperWrapper {
       transform: translateZ(0);
       backface-visibility: hidden;
       -webkit-font-smoothing: antialiased;
@@ -178,6 +178,41 @@
 
     <!-- LAYAR UTAMA PROGRAM (PGM BROADCAST SCREEN 16:9 - MIRRORING SWITCHER) -->
     <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative border-2 border-red-600/90 shadow-2xl shadow-red-950/40 flex items-center justify-center group select-none">
+
+      <!-- 0. LAYER BUMPER PEMBUKA AWAL (PRE-ROLL BROADCAST STAGING) -->
+      <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-30 transition-opacity duration-700 opacity-100 flex items-center justify-center">
+        <!-- Iframe Video Bumper YouTube (Edge-Cropped 125% & Chromeless) -->
+        <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
+          <iframe
+            id="pgmBumperIframe"
+            class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"
+            src=""
+            allow="autoplay; encrypted-media; picture-in-picture"
+            tabindex="-1"
+          ></iframe>
+          <div class="absolute inset-0 z-20 pointer-events-auto bg-transparent cursor-default"></div>
+        </div>
+
+        <!-- Indikator Staging Bumper & Tombol Lewati -->
+        <div class="absolute top-4 left-4 z-40 flex items-center gap-2 bg-black/75 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-lg">
+          <span class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping"></span>
+          <span class="font-brand font-black text-xs text-orange-400 tracking-wider uppercase">SKAWAN IDENT OPENING</span>
+        </div>
+
+        <!-- Tombol Lewati Bumper Langsung ke Siaran Studio -->
+        <button
+          onclick="selesaikanBumperDanBeralihKePgm()"
+          class="absolute bottom-4 right-4 z-40 bg-orange-600/90 hover:bg-orange-500 text-white font-brand font-bold text-xs px-3.5 py-2 rounded-xl backdrop-blur-md border border-white/30 shadow-2xl transition active:scale-95 flex items-center gap-1.5"
+        >
+          <span>Langsung ke Studio</span>
+          <span>⏩</span>
+        </button>
+
+        <!-- Garis Progress Countdown Bumper -->
+        <div class="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-900 overflow-hidden z-40">
+          <div id="bumperProgressBar" class="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-300 w-0"></div>
+        </div>
+      </div>
 
       <!-- 1. FEED KAMERA WEBRTC (Cam 1, Cam 2, Cam 3) - SAMA PERSIS SWITCHER -->
       <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
@@ -335,6 +370,13 @@
     let lastVtUpdatedAt = 0;
     let lastVtStatus = '';
 
+    // Variabel & Timer Bumper Awal Staging
+    const DEFAULT_BUMPER_YT_ID = 'Jnp3esoHb9k'; // Bumper ident opening resmi SKAWAN TV
+    let isBumperActive = true;
+    let bumperTimer = null;
+    let bumperProgressInterval = null;
+    const BUMPER_DURATION_MS = 4500; // Durasi tayang bumper (4.5 detik)
+
     // Cache State Terkini
     let liveState = {
       programSource: 'cam_1',
@@ -415,8 +457,8 @@
     }
 
     // Kirim Perintah ke Iframe YouTube via postMessage
-    function sendCommandToYtIframe(func, args = []) {
-      const ytIframe = document.getElementById('pgmYtIframe');
+    function sendCommandToYtIframe(func, args = [], targetIframeId = 'pgmYtIframe') {
+      const ytIframe = document.getElementById(targetIframeId);
       if (ytIframe && ytIframe.contentWindow) {
         ytIframe.contentWindow.postMessage(JSON.stringify({
           event: 'command',
@@ -427,7 +469,61 @@
     }
 
     // ========================================================
-    // LOGIKA PERALIHAN PGM (SAMA PERSIS MEJA SWITCHER & PD)   -->
+    // ALUR BUMPER PEMBUKA AWAL (BROADCAST STAGING)           -->
+    // ========================================================
+    function startInitialBumperStaging() {
+      const bumperIframe = document.getElementById('pgmBumperIframe');
+      const progressBar = document.getElementById('bumperProgressBar');
+      const bumperWrap = document.getElementById('pgmBumperWrapper');
+
+      if (!bumperWrap || !bumperIframe) return;
+
+      const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+      bumperIframe.src = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0${originParam}`;
+
+      const startTime = Date.now();
+      if (progressBar) {
+        progressBar.style.width = '0%';
+        bumperProgressInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const pct = Math.min(100, (elapsed / BUMPER_DURATION_MS) * 100);
+          progressBar.style.width = `${pct}%`;
+          if (elapsed >= BUMPER_DURATION_MS) {
+            clearInterval(bumperProgressInterval);
+          }
+        }, 100);
+      }
+
+      bumperTimer = setTimeout(() => {
+        selesaikanBumperDanBeralihKePgm();
+      }, BUMPER_DURATION_MS);
+    }
+
+    function selesaikanBumperDanBeralihKePgm() {
+      if (!isBumperActive) return;
+      isBumperActive = false;
+
+      if (bumperTimer) { clearTimeout(bumperTimer); bumperTimer = null; }
+      if (bumperProgressInterval) { clearInterval(bumperProgressInterval); bumperProgressInterval = null; }
+
+      const bumperWrap = document.getElementById('pgmBumperWrapper');
+      if (bumperWrap) {
+        bumperWrap.classList.remove('opacity-100');
+        bumperWrap.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+          bumperWrap.style.display = 'none';
+          // Hentikan video bumper agar tidak memakan bandwidth
+          const bumperIframe = document.getElementById('pgmBumperIframe');
+          if (bumperIframe) bumperIframe.src = 'about:blank';
+        }, 800);
+      }
+
+      // Perbarui monitor PGM studio utama seketika
+      updateMonitors();
+    }
+
+    // ========================================================
+    // LOGIKA PERALIHAN PGM (CONTINUOUS VT & WEBRTC KAMERA)    -->
     // ========================================================
     function updateMonitors() {
       const activeSrc = liveState.programSource || 'cam_1';
@@ -444,8 +540,11 @@
       const pgmFallback = document.getElementById('pgmFallbackBox');
       const pgmVtWrap = document.getElementById('pgmVtWrapper');
 
+      // Selalu siapkan dan sinkronkan VT di latar belakang agar timecode & buffer tetap mengalir
+      syncVtDisplay(false);
+
       if (activeSrc === 'vt') {
-        // Mode VT Playout
+        // Mode VT Playout ON-AIR
         if (pgmVideo) {
           pgmVideo.classList.remove('opacity-100');
           pgmVideo.classList.add('opacity-0', 'pointer-events-none');
@@ -457,16 +556,23 @@
           pgmVtWrap.style.zIndex = '15';
         }
 
-        syncVtDisplay(false); // Mode normal tanpa paksa seek
+        // Buka audio VT jika unmuted
+        if (isAudioUnmuted) {
+          sendCommandToYtIframe('unMute');
+          sendCommandToYtIframe('setVolume', [100]);
+        }
+
         setSyncIndicator(true, 'VT Playout On-Air');
       } else {
         // Mode Kamera Studio (Cam 1 / Cam 2 / Cam 3)
+        // VT TETAP BERPUTAR KONTINU DI LATAR BELAKANG, HANYA AUDIO VT YANG DIREDAM (MUTED IN BACKGROUND)
         if (pgmVtWrap) {
           pgmVtWrap.classList.remove('opacity-100');
           pgmVtWrap.classList.add('opacity-0', 'pointer-events-none');
           pgmVtWrap.style.zIndex = '0';
         }
-        sendCommandToYtIframe('pauseVideo');
+        // Redam audio VT saat di kamera tanpa menghentikan putaran video
+        sendCommandToYtIframe('mute');
 
         const stream = getCameraStream(activeSrc);
         if (stream && pgmVideo) {
@@ -498,7 +604,7 @@
     }
 
     // ========================================================
-    // SINKRONISASI VT MEDIA - BEBAS JITTER & BEBAS RELOAD LOOP
+    // SINKRONISASI VT MEDIA - CONTINUOUS ROLL (FREE-RUN)      -->
     // ========================================================
     function syncVtDisplay(forceResync = false) {
       const isPgmVt = liveState.programSource === 'vt';
@@ -510,7 +616,7 @@
       const isPlaying = latestVtState.status === 'playing';
       let targetTime = latestVtState.currentTime || 0;
 
-      // Hitung detik berjalan jika status playing di studio
+      // Hitung detik berjalan kontinu jika status playing di studio
       if (isPlaying && latestVtState.updatedAt) {
         const elapsed = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
         const totalD = latestVtState.totalDuration || 120;
@@ -531,20 +637,20 @@
           lastVtStatus = latestVtState.status || 'playing';
 
           const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-          const autoPlayParam = (isPlaying && isPgmVt) ? '1' : '0';
-          const muteParam = isAudioUnmuted ? '0' : '1';
+          const autoPlayParam = isPlaying ? '1' : '0';
+          const muteParam = (isAudioUnmuted && isPgmVt) ? '0' : '1';
           
           // Parameter Ad-Suppression & Clean Chromeless (fs=0, controls=0, disablekb=1)
           ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=${muteParam}&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&start=${Math.floor(targetTime)}${originParam}`;
 
           ytIframe.onload = () => {
-            if (isAudioUnmuted) {
+            if (isAudioUnmuted && isPgmVt) {
               setTimeout(() => {
                 sendCommandToYtIframe('unMute');
                 sendCommandToYtIframe('setVolume', [100]);
               }, 400);
             }
-            if (!isPlaying || !isPgmVt) {
+            if (!isPlaying) {
               setTimeout(() => sendCommandToYtIframe('pauseVideo'), 400);
             } else {
               setTimeout(() => sendCommandToYtIframe('playVideo'), 400);
@@ -553,27 +659,25 @@
           return;
         }
 
-        // 2. KASUS B: Klip SAMA - KONTROL HALUS TANPA MEMUAT ULANG IFRAME!
-        // A. Perubahan status Play / Pause
+        // 2. KASUS B: Klip SAMA - KONTROL HALUS KONTINU TANPA RELOAD!
         if (lastVtStatus !== latestVtState.status) {
           lastVtStatus = latestVtState.status;
-          if (isPlaying && isPgmVt) {
+          if (isPlaying) {
             sendCommandToYtIframe('playVideo');
           } else {
             sendCommandToYtIframe('pauseVideo');
           }
         }
 
-        // B. Eksekusi Seek HANYA jika operator di Audio-VT menekan tombol aksi (updatedAt berubah nyata) atau forceResync
+        // Eksekusi Seek HANYA jika operator di Audio-VT menekan tombol aksi (updatedAt berubah nyata) atau forceResync
         const hasOperatorAction = latestVtState.updatedAt && (latestVtState.updatedAt !== lastVtUpdatedAt);
         if (hasOperatorAction || forceResync) {
           lastVtUpdatedAt = latestVtState.updatedAt || Date.now();
           sendCommandToYtIframe('seekTo', [targetTime, true]);
-          if (isPlaying && isPgmVt) {
+          if (isPlaying) {
             sendCommandToYtIframe('playVideo');
           }
         }
-        // JIKA TIDAK ADA AKSI OPERATOR: Biarkan pemutar YouTube mengalir alami 60 FPS tanpa interupsi seek!
 
       } else if (latestVtState.sourceType === 'mp4' && latestVtState.url) {
         if (ytIframe) sendCommandToYtIframe('pauseVideo');
@@ -582,8 +686,8 @@
         if (html5Vid) {
           html5Vid.classList.remove('opacity-0', 'pointer-events-none');
           if (html5Vid.src !== latestVtState.url) html5Vid.src = latestVtState.url;
-          html5Vid.muted = !isAudioUnmuted;
-          if (isPlaying && isPgmVt) {
+          html5Vid.muted = (!isAudioUnmuted || !isPgmVt);
+          if (isPlaying) {
             html5Vid.play().catch(() => {});
           } else {
             html5Vid.pause();
@@ -713,7 +817,7 @@
         }
       });
 
-      // 2. Pasang Listener Terisolasi per Sub-Node (Mencegah Trigger Berulang dari Heartbeat WebRTC & Timer)
+      // 2. Pasang Listener Terisolasi per Sub-Node
       liveStateRef = activeDb.ref(`rooms/${currentRoomToken}/live_state`);
       liveStateRef.on('value', snapshot => {
         if (!snapshot.exists()) return;
@@ -731,9 +835,7 @@
       vtStateRef.on('value', snapshot => {
         if (!snapshot.exists()) return;
         latestVtState = { ...latestVtState, ...snapshot.val() };
-        if (liveState.programSource === 'vt') {
-          syncVtDisplay(false); // Cek secara halus tanpa reload
-        }
+        syncVtDisplay(false); // Cek secara halus tanpa reload
       });
 
       cgStateRef = activeDb.ref(`rooms/${currentRoomToken}/cg_state`);
@@ -778,9 +880,11 @@
       if (isAudioUnmuted) {
         if (icon) icon.innerText = '🔊';
         if (lbl) lbl.innerText = 'Bisu Suara';
-        if (html5Vid) html5Vid.muted = false;
-        sendCommandToYtIframe('unMute');
-        sendCommandToYtIframe('setVolume', [100]);
+        if (html5Vid && liveState.programSource === 'vt') html5Vid.muted = false;
+        if (liveState.programSource === 'vt') {
+          sendCommandToYtIframe('unMute');
+          sendCommandToYtIframe('setVolume', [100]);
+        }
       } else {
         if (icon) icon.innerText = '🔇';
         if (lbl) lbl.innerText = 'Buka Suara';
@@ -829,9 +933,7 @@
 
         applyCgGraphics(cachedCgState);
         updateMonitors();
-        if (liveState.programSource === 'vt') {
-          syncVtDisplay(true); // Paksa sinkronisasi satu kali saja saat ditekan
-        }
+        syncVtDisplay(true); // Paksa sinkronisasi satu kali saja saat ditekan
 
         setTimeout(() => setSyncIndicator(true, 'Sinkron'), 300);
       } catch (e) {
@@ -950,6 +1052,7 @@
       const targetRoom = (roomParam || savedRoom || 'SKASA').toUpperCase();
 
       startWibLiveClock();
+      startInitialBumperStaging(); // Jalankan bumper pembuka awal sejak detik ke-0
       connectChannel(targetRoom);
       listenChannelsDirectory();
 
