@@ -451,8 +451,8 @@
       }
     }
 
-    // Pengendali Direct Iframe YouTube Playout (Zero-Freeze & Instant Autoplay)
-    function playDirectYouTube(ytId, startSeconds = 0) {
+    // Pengendali Direct Iframe YouTube Playout (Lockstep Engine & Zero Black Screen)
+    function playDirectYouTube(ytId, startSeconds = 0, isPlaying = true) {
       const cleanId = extractCleanYtId(ytId);
       const ytIframe = document.getElementById('pgmYtIframe');
       const html5Vid = document.getElementById('pgmHtml5Video');
@@ -464,24 +464,40 @@
 
       setInstantPosterBackdrop(cleanId);
 
-      // Jika klip berubah atau iframe belum terisi
+      // Jika klip berbeda atau iframe belum terinisialisasi
       if (currentActiveYtId !== cleanId || !ytIframe.src) {
         currentActiveYtId = cleanId;
         const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-        const targetSrc = `https://www.youtube-nocookie.com/embed/${cleanId}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${cleanId}&playsinline=1&enablejsapi=1&start=${Math.floor(startSeconds)}${originParam}`;
+        const autoPlayParam = isPlaying ? '1' : '0';
+        const targetSrc = `https://www.youtube-nocookie.com/embed/${cleanId}?autoplay=${autoPlayParam}&mute=1&controls=0&rel=0&loop=1&playlist=${cleanId}&playsinline=1&enablejsapi=1&start=${Math.floor(startSeconds)}${originParam}`;
 
         ytIframe.src = targetSrc;
 
-        // Hilangkan backdrop gambar setelah frame pertama dimuat
         ytIframe.onload = () => {
           setTimeout(() => {
             const vtLayer = document.getElementById('pgmVtLayer');
             if (vtLayer) vtLayer.style.backgroundImage = 'none';
           }, 600);
+
+          if (!isPlaying) {
+            setTimeout(() => sendCommandToYtIframe('pauseVideo'), 300);
+          } else {
+            setTimeout(() => sendCommandToYtIframe('playVideo'), 300);
+          }
         };
+      } else {
+        // Klip sama: atur play/pause dan posisi seek secara lockstep
+        if (isPlaying) {
+          sendCommandToYtIframe('playVideo');
+        } else {
+          sendCommandToYtIframe('pauseVideo');
+        }
+        if (startSeconds >= 0) {
+          sendCommandToYtIframe('seekTo', [startSeconds, true]);
+        }
       }
 
-      setSyncIndicator(true, 'VT Playing');
+      setSyncIndicator(true, isPlaying ? 'VT Playing' : 'VT Paused');
     }
 
     // Kirim Perintah ke Iframe YouTube via postMessage
@@ -497,7 +513,7 @@
     }
 
     // Putar Video HTML5 MP4 Langsung
-    function playDirectHtml5(url) {
+    function playDirectHtml5(url, isPlaying = true) {
       const ytIframe = document.getElementById('pgmYtIframe');
       const html5Vid = document.getElementById('pgmHtml5Video');
       const gdriveEl = document.getElementById('pgmGdriveIframe');
@@ -507,16 +523,20 @@
       if (html5Vid) {
         html5Vid.classList.remove('hidden');
         if (html5Vid.src !== url) html5Vid.src = url;
-        html5Vid.play().catch(() => {});
+        if (isPlaying) {
+          html5Vid.play().catch(() => {});
+        } else {
+          html5Vid.pause();
+        }
       }
-      setSyncIndicator(true, 'MP4 Playing');
+      setSyncIndicator(true, isPlaying ? 'MP4 Playing' : 'MP4 Paused');
     }
 
     // ========================================================
-    // LOGIKA PERALIHAN PGM (KAMERA vs VT)                     -->
+    // LOGIKA PERALIHAN PGM (KAMERA vs VT) DARI SWITCHER       -->
     // ========================================================
     function applyPgmSource(sourceKey) {
-      activePgmSource = sourceKey || 'vt';
+      activePgmSource = sourceKey || cachedLiveState.programSource || 'cam_1';
       const labelPgm = document.getElementById('lblActivePgmSource');
       if (labelPgm) labelPgm.innerText = activePgmSource.toUpperCase().replace('_', ' ');
 
@@ -534,9 +554,11 @@
         if (camConnectingBox) camConnectingBox.classList.add('hidden');
         if (vtLayer) vtLayer.classList.remove('hidden');
 
-        // Kalkulasi waktu presisi jika klip sedang berjalan
+        // Hitung waktu detik yang tepat jika sedang berputar
         let startSec = cachedVtState.currentTime || 0;
-        if (cachedVtState.status === 'playing' && cachedVtState.updatedAt) {
+        const isPlaying = cachedVtState.status === 'playing';
+
+        if (isPlaying && cachedVtState.updatedAt) {
           const elapsed = Math.max(0, (Date.now() - cachedVtState.updatedAt) / 1000);
           const totalD = cachedVtState.totalDuration || 120;
           startSec = (cachedVtState.currentTime + elapsed) % totalD;
@@ -546,12 +568,12 @@
         const isYouTube = cachedVtState.sourceType === 'youtube' || !cachedVtState.sourceType || Boolean(cleanYt);
 
         if (isYouTube) {
-          playDirectYouTube(cleanYt, startSec);
+          playDirectYouTube(cleanYt, startSec, isPlaying);
         } else if (cachedVtState.sourceType === 'mp4' && cachedVtState.url) {
-          playDirectHtml5(cachedVtState.url);
+          playDirectHtml5(cachedVtState.url, isPlaying);
         }
       } else {
-        // Mode Kamera WebRTC HP
+        // Mode Kamera Studio WebRTC
         if (vtLayer) vtLayer.classList.add('hidden');
         sendCommandToYtIframe('pauseVideo');
 
@@ -725,13 +747,13 @@
           if (roomData.cg_state) cachedCgState = { ...cachedCgState, ...roomData.cg_state };
 
           applyCgGraphics(cachedCgState);
-          applyPgmSource(cachedLiveState.programSource || 'vt');
+          applyPgmSource(cachedLiveState.programSource || 'cam_1');
         } else {
-          applyPgmSource('vt');
+          applyPgmSource('cam_1');
         }
       });
 
-      // Dengarkan perubahan real-time dari seluruh meja studio
+      // Dengarkan perubahan real-time dari seluruh meja studio secara konsisten
       currentRoomListenerRef = activeDb.ref(`rooms/${currentRoomToken}`);
       currentRoomListenerRef.on('value', snapshot => {
         if (!snapshot.exists()) return;
@@ -750,17 +772,34 @@
         if (data.live_state) {
           const prevSrc = cachedLiveState.programSource;
           cachedLiveState = data.live_state;
-          if (prevSrc !== cachedLiveState.programSource) {
-            applyPgmSource(cachedLiveState.programSource || 'vt');
+          if (prevSrc !== cachedLiveState.programSource || activePgmSource !== cachedLiveState.programSource) {
+            applyPgmSource(cachedLiveState.programSource);
           }
         }
 
         if (data.vt_state) {
+          const prevVt = { ...cachedVtState };
           cachedVtState = { ...cachedVtState, ...data.vt_state };
+
           if (activePgmSource === 'vt') {
             const cleanId = extractCleanYtId(cachedVtState.ytId || cachedVtState.youtubeId || cachedVtState.url);
+            const isPlaying = cachedVtState.status === 'playing';
+
             if (currentActiveYtId !== cleanId) {
               applyPgmSource('vt');
+            } else {
+              // Klip sama: kendalikan Play/Pause/Seek secara lockstep
+              if (prevVt.status !== cachedVtState.status) {
+                if (isPlaying) {
+                  sendCommandToYtIframe('playVideo');
+                } else {
+                  sendCommandToYtIframe('pauseVideo');
+                }
+              }
+
+              if (Math.abs((prevVt.currentTime || 0) - (cachedVtState.currentTime || 0)) > 2) {
+                sendCommandToYtIframe('seekTo', [cachedVtState.currentTime || 0, true]);
+              }
             }
           }
         }
@@ -781,6 +820,7 @@
             remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
 
+            // Jika kamera ini sedang aktif di PGM, langsung tampilkan
             if (activePgmSource === normKey || activePgmSource === camKey) {
               applyPgmSource(activePgmSource);
             }
