@@ -106,6 +106,11 @@
       border: 0;
       pointer-events: none;
     }
+    video, iframe, #pgmVtWrapper, #pvwVtWrapper {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white pb-6">
@@ -597,7 +602,11 @@
                 isPgmYtReady = true;
                 e.target.mute();
                 matikanSubtitleYouTube(e.target);
-                e.target.playVideo();
+                if (latestVtState.status === 'playing') {
+                  e.target.playVideo();
+                } else {
+                  e.target.pauseVideo();
+                }
                 syncVtDisplay();
               },
               onStateChange: (e) => {
@@ -627,7 +636,11 @@
                 isPvwYtReady = true;
                 e.target.mute();
                 matikanSubtitleYouTube(e.target);
-                e.target.playVideo();
+                if (latestVtState.status === 'playing') {
+                  e.target.playVideo();
+                } else {
+                  e.target.pauseVideo();
+                }
                 syncVtDisplay();
               },
               onStateChange: (e) => {
@@ -699,6 +712,22 @@
       const activeDb = getDatabase();
 
       if (activeDb) {
+        // Ambil data awal dan pastikan Switcher mengonfirmasi statusnya ke Firebase
+        activeDb.ref(`rooms/${token}/live_state`).once('value', snap => {
+          if (snap.exists()) {
+            const remoteLive = snap.val();
+            liveState.programSource = remoteLive.programSource || liveState.programSource;
+            liveState.previewSource = remoteLive.previewSource || liveState.previewSource;
+            liveState.tally = remoteLive.tally || liveState.tally;
+          } else {
+            // Jika node live_state belum ada, deklarasikan state bawaan Switcher
+            calculateTallyState();
+            broadcastLiveState();
+          }
+          updateBusButtons();
+          updateMonitors();
+        });
+
         activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
           if (!snap.exists()) return;
           const meta = snap.val();
@@ -986,8 +1015,8 @@
         mvSub.innerText = latestVtState.title;
       }
 
-      const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-      const isPlaying = latestVtState.status === 'playing';
+      const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url || latestVtState.ytId);
+      const isPlaying = (latestVtState.status === 'playing');
       const curTime = latestVtState.currentTime || 0;
       const totalDur = latestVtState.totalDuration || 120;
 
@@ -1021,44 +1050,54 @@
         if (pgmYtWrap) { pgmYtWrap.style.opacity = '1'; pgmYtWrap.style.zIndex = '10'; }
         if (pvwYtWrap) { pvwYtWrap.style.opacity = '1'; pvwYtWrap.style.zIndex = '10'; }
 
-        // A. PGM Player
+        // A. PGM Player (Lockstep Play/Pause/Seek)
         if (isPgmYtReady && switcherPgmYt && typeof switcherPgmYt.playVideo === 'function') {
           switcherPgmYt.mute();
           matikanSubtitleYouTube(switcherPgmYt);
           if (currentPgmYtId !== ytId) {
             currentPgmYtId = ytId;
             switcherPgmYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
-            switcherPgmYt.playVideo();
-          } else {
-            if (isPgmVt) {
+            if (isPlaying && isPgmVt) {
               switcherPgmYt.playVideo();
-              const c = switcherPgmYt.getCurrentTime() || 0;
-              if (Math.abs(c - curTime) > 2.5) {
-                switcherPgmYt.seekTo(curTime, true);
-              }
             } else {
+              switcherPgmYt.pauseVideo();
+            }
+          } else {
+            const c = switcherPgmYt.getCurrentTime() || 0;
+            if (Math.abs(c - curTime) > 2.5) {
+              switcherPgmYt.seekTo(curTime, true);
+            }
+
+            if (isPlaying && isPgmVt) {
               switcherPgmYt.playVideo();
+            } else {
+              switcherPgmYt.pauseVideo();
             }
           }
         }
 
-        // B. PVW Player
+        // B. PVW Player (Lockstep Play/Pause/Seek)
         if (isPvwYtReady && switcherPvwYt && typeof switcherPvwYt.playVideo === 'function') {
           switcherPvwYt.mute();
           matikanSubtitleYouTube(switcherPvwYt);
           if (currentPvwYtId !== ytId) {
             currentPvwYtId = ytId;
             switcherPvwYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
-            switcherPvwYt.playVideo();
-          } else {
-            if (isPvwVt) {
+            if (isPlaying && isPvwVt) {
               switcherPvwYt.playVideo();
-              const c = switcherPvwYt.getCurrentTime() || 0;
-              if (Math.abs(c - curTime) > 2.5) {
-                switcherPvwYt.seekTo(curTime, true);
-              }
             } else {
+              switcherPvwYt.pauseVideo();
+            }
+          } else {
+            const c = switcherPvwYt.getCurrentTime() || 0;
+            if (Math.abs(c - curTime) > 2.5) {
+              switcherPvwYt.seekTo(curTime, true);
+            }
+
+            if (isPlaying && isPvwVt) {
               switcherPvwYt.playVideo();
+            } else {
+              switcherPvwYt.pauseVideo();
             }
           }
         }
