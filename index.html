@@ -187,16 +187,16 @@
         <!-- Native MP4 Video -->
         <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
 
-        <!-- Direct YouTube Playout Iframe dengan Chromeless Shield & Anti-Jitter -->
+        <!-- Direct YouTube Playout Iframe dengan Full Edge-Cropping (125%) & Glass Shield Anti-Tombol -->
         <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <iframe
             id="pgmYtIframe"
-            class="w-full h-full border-0 pointer-events-none transform scale-105 sm:scale-108 origin-center transition-transform duration-300"
+            class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center transition-transform duration-300"
             src=""
             allow="autoplay; encrypted-media; picture-in-picture"
             tabindex="-1"
           ></iframe>
-          <!-- Glass Shield: Melindungi dari interaksi mouse penonton agar tombol kontrol/hover YT tidak muncul -->
+          <!-- Glass Shield: Melindungi dari interaksi kursor penonton agar tombol kontrol/hover YT 100% tidak pernah muncul -->
           <div class="absolute inset-0 z-20 pointer-events-auto bg-transparent cursor-default"></div>
         </div>
 
@@ -322,20 +322,20 @@
   </footer>
 
   <!-- ======================================================== -->
-  <!-- SKRIP LOGIKA TERPADU PERSIS MEJA SWITCHER                -->
+  <!-- SKRIP LOGIKA TERPADU BEBAS JITTER & BEBAS REFRESH LOOP   -->
   <!-- ======================================================== -->
   <script>
-    // State Inti Aplikasi - Disamakan Persis dengan Switcher (Default: CAM 1)
+    // State Inti Aplikasi - Default Disamakan Persis dengan Switcher (CAM 1)
     let currentRoomToken = 'SKASA';
-    let currentRoomStatus = 'live';
     let streamerInstance = null;
     const remoteCamStreams = new Map();
 
     let isAudioUnmuted = false;
     let currentActiveYtId = '';
-    let lastSyncedSeekTime = -1;
+    let lastVtUpdatedAt = 0;
+    let lastVtStatus = '';
 
-    // Cache State Terkini - Default: CAM 1 (Bukan VT)
+    // Cache State Terkini
     let liveState = {
       programSource: 'cam_1',
       previewSource: 'cam_2',
@@ -350,7 +350,8 @@
       ytId: 'Jnp3esoHb9k', 
       url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
       sourceType: 'youtube',
-      title: 'SKAWAN TV Broadcast'
+      title: 'SKAWAN TV Broadcast',
+      updatedAt: 0
     };
 
     let cachedCgState = {
@@ -456,7 +457,7 @@
           pgmVtWrap.style.zIndex = '15';
         }
 
-        syncVtDisplay();
+        syncVtDisplay(false); // Mode normal tanpa paksa seek
         setSyncIndicator(true, 'VT Playout On-Air');
       } else {
         // Mode Kamera Studio (Cam 1 / Cam 2 / Cam 3)
@@ -497,9 +498,9 @@
     }
 
     // ========================================================
-    // SINKRONISASI VT MEDIA (YOUTUBE / HTML5 / GDRIVE)        -->
+    // SINKRONISASI VT MEDIA - BEBAS JITTER & BEBAS RELOAD LOOP
     // ========================================================
-    function syncVtDisplay() {
+    function syncVtDisplay(forceResync = false) {
       const isPgmVt = liveState.programSource === 'vt';
       const ytIframe = document.getElementById('pgmYtIframe');
       const html5Vid = document.getElementById('pgmHtml5Video');
@@ -523,16 +524,18 @@
         }
         if (gdriveEl) gdriveEl.classList.add('opacity-0', 'pointer-events-none');
 
-        // Muat URL iframe YouTube jika klip benar-benar berganti atau belum ada
-        if (currentActiveYtId !== ytId || !ytIframe.src) {
+        // 1. KASUS A: Klip benar-benar baru ATAU iframe belum pernah dimuat
+        if (currentActiveYtId !== ytId || !ytIframe.src || ytIframe.src === 'about:blank') {
           currentActiveYtId = ytId;
-          lastSyncedSeekTime = targetTime;
+          lastVtUpdatedAt = latestVtState.updatedAt || Date.now();
+          lastVtStatus = latestVtState.status || 'playing';
+
           const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
           const autoPlayParam = (isPlaying && isPgmVt) ? '1' : '0';
           const muteParam = isAudioUnmuted ? '0' : '1';
           
-          // Parameter Ad-Suppression & Chromeless Display
-          ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=${muteParam}&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&start=${Math.floor(targetTime)}${originParam}`;
+          // Parameter Ad-Suppression & Clean Chromeless (fs=0, controls=0, disablekb=1)
+          ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=${muteParam}&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&start=${Math.floor(targetTime)}${originParam}`;
 
           ytIframe.onload = () => {
             if (isAudioUnmuted) {
@@ -547,26 +550,31 @@
               setTimeout(() => sendCommandToYtIframe('playVideo'), 400);
             }
           };
-        } else {
-          // Klip sama: Kontrol Play/Pause secara lockstep tanpa reload iframe
+          return;
+        }
+
+        // 2. KASUS B: Klip SAMA - KONTROL HALUS TANPA MEMUAT ULANG IFRAME!
+        // A. Perubahan status Play / Pause
+        if (lastVtStatus !== latestVtState.status) {
+          lastVtStatus = latestVtState.status;
           if (isPlaying && isPgmVt) {
             sendCommandToYtIframe('playVideo');
           } else {
             sendCommandToYtIframe('pauseVideo');
           }
+        }
 
-          // ANTI-JITTER: Hanya lakukan seek jika selisih waktu lebih dari 3.5 detik (mencegah video patah-patah)
-          if (lastSyncedSeekTime >= 0) {
-            const drift = Math.abs(targetTime - lastSyncedSeekTime);
-            if (drift > 3.5) {
-              sendCommandToYtIframe('seekTo', [targetTime, true]);
-              lastSyncedSeekTime = targetTime;
-            }
-          } else {
-            sendCommandToYtIframe('seekTo', [targetTime, true]);
-            lastSyncedSeekTime = targetTime;
+        // B. Eksekusi Seek HANYA jika operator di Audio-VT menekan tombol aksi (updatedAt berubah nyata) atau forceResync
+        const hasOperatorAction = latestVtState.updatedAt && (latestVtState.updatedAt !== lastVtUpdatedAt);
+        if (hasOperatorAction || forceResync) {
+          lastVtUpdatedAt = latestVtState.updatedAt || Date.now();
+          sendCommandToYtIframe('seekTo', [targetTime, true]);
+          if (isPlaying && isPgmVt) {
+            sendCommandToYtIframe('playVideo');
           }
         }
+        // JIKA TIDAK ADA AKSI OPERATOR: Biarkan pemutar YouTube mengalir alami 60 FPS tanpa interupsi seek!
+
       } else if (latestVtState.sourceType === 'mp4' && latestVtState.url) {
         if (ytIframe) sendCommandToYtIframe('pauseVideo');
         if (gdriveEl) gdriveEl.classList.add('opacity-0', 'pointer-events-none');
@@ -649,9 +657,17 @@
     }
 
     // ========================================================
-    // KONEKSI SALURAN & SINKRONISASI REAL-TIME               -->
+    // KONEKSI SALURAN & SINKRONISASI SUB-NODE TERPISAH        -->
     // ========================================================
-    let currentRoomListenerRef = null;
+    let liveStateRef = null;
+    let vtStateRef = null;
+    let cgStateRef = null;
+
+    function detachChannelListeners() {
+      if (liveStateRef) { liveStateRef.off(); liveStateRef = null; }
+      if (vtStateRef) { vtStateRef.off(); vtStateRef = null; }
+      if (cgStateRef) { cgStateRef.off(); cgStateRef = null; }
+    }
 
     function connectChannel(token) {
       const activeDb = getDatabase();
@@ -674,12 +690,9 @@
 
       if (!activeDb) return;
 
-      if (currentRoomListenerRef) {
-        currentRoomListenerRef.off();
-        currentRoomListenerRef = null;
-      }
+      detachChannelListeners();
 
-      // 1. Tarik Snapshot Awal
+      // 1. Tarik Snapshot Awal Sekali Saja
       activeDb.ref(`rooms/${currentRoomToken}`).once('value', snapshot => {
         if (snapshot.exists()) {
           const roomData = snapshot.val();
@@ -689,6 +702,8 @@
           }
           if (roomData.vt_state) {
             latestVtState = { ...latestVtState, ...roomData.vt_state };
+            lastVtUpdatedAt = roomData.vt_state.updatedAt || Date.now();
+            lastVtStatus = roomData.vt_state.status || 'playing';
           }
           if (roomData.cg_state) {
             cachedCgState = { ...cachedCgState, ...roomData.cg_state };
@@ -698,32 +713,33 @@
         }
       });
 
-      // 2. Dengarkan Perubahan Real-time dari Switcher, PD, CG, dan Audio-VT
-      currentRoomListenerRef = activeDb.ref(`rooms/${currentRoomToken}`);
-      currentRoomListenerRef.on('value', snapshot => {
+      // 2. Pasang Listener Terisolasi per Sub-Node (Mencegah Trigger Berulang dari Heartbeat WebRTC & Timer)
+      liveStateRef = activeDb.ref(`rooms/${currentRoomToken}/live_state`);
+      liveStateRef.on('value', snapshot => {
         if (!snapshot.exists()) return;
-        const data = snapshot.val();
+        const live = snapshot.val();
+        const prevSrc = liveState.programSource;
+        liveState.programSource = live.programSource || liveState.programSource;
+        liveState.previewSource = live.previewSource || liveState.previewSource;
 
-        if (data.live_state) {
-          const prevSrc = liveState.programSource;
-          liveState.programSource = data.live_state.programSource || liveState.programSource;
-          liveState.previewSource = data.live_state.previewSource || liveState.previewSource;
-
-          if (prevSrc !== liveState.programSource) {
-            updateMonitors();
-          }
+        if (prevSrc !== liveState.programSource) {
+          updateMonitors();
         }
+      });
 
-        if (data.vt_state) {
-          latestVtState = { ...latestVtState, ...data.vt_state };
-          if (liveState.programSource === 'vt') {
-            syncVtDisplay();
-          }
+      vtStateRef = activeDb.ref(`rooms/${currentRoomToken}/vt_state`);
+      vtStateRef.on('value', snapshot => {
+        if (!snapshot.exists()) return;
+        latestVtState = { ...latestVtState, ...snapshot.val() };
+        if (liveState.programSource === 'vt') {
+          syncVtDisplay(false); // Cek secara halus tanpa reload
         }
+      });
 
-        if (data.cg_state) {
-          applyCgGraphics(data.cg_state);
-        }
+      cgStateRef = activeDb.ref(`rooms/${currentRoomToken}/cg_state`);
+      cgStateRef.on('value', snapshot => {
+        if (!snapshot.exists()) return;
+        applyCgGraphics(snapshot.val());
       });
 
       // 3. Hubungkan WebRTC Streamer untuk Menerima Feed Kamera Studio
@@ -737,7 +753,6 @@
             remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
 
-            // Jika kamera ini sedang aktif di Program Bus Switcher, tampilkan seketika!
             if (liveState.programSource === normKey || liveState.programSource === camKey) {
               updateMonitors();
             }
@@ -783,7 +798,7 @@
       }
     }
 
-    // Tombol Refresh PGM Pintar (Menyelaraskan dengan Meja Switcher Seketika)
+    // Tombol Refresh PGM Pintar (Menyelaraskan dengan Meja Studio Seketika)
     async function refreshPgmFeed() {
       const btn = document.getElementById('btnRefreshPgm');
       const icon = document.getElementById('iconRefreshPgm');
@@ -813,8 +828,10 @@
         }
 
         applyCgGraphics(cachedCgState);
-        currentActiveYtId = ''; // Paksa muat ulang frame YouTube segar jika sedang mode VT
         updateMonitors();
+        if (liveState.programSource === 'vt') {
+          syncVtDisplay(true); // Paksa sinkronisasi satu kali saja saat ditekan
+        }
 
         setTimeout(() => setSyncIndicator(true, 'Sinkron'), 300);
       } catch (e) {
@@ -937,6 +954,7 @@
       listenChannelsDirectory();
 
       window.addEventListener('beforeunload', () => {
+        detachChannelListeners();
         if (streamerInstance) {
           streamerInstance.destroy();
           streamerInstance = null;
