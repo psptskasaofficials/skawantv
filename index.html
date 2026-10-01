@@ -81,6 +81,10 @@
       backface-visibility: hidden;
       -webkit-font-smoothing: antialiased;
     }
+    /* Transisi Dissolve Halus Standar Broadcast */
+    .broadcast-dissolve {
+      transition: opacity 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
     @keyframes ticker-anim {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
@@ -179,8 +183,8 @@
     <!-- LAYAR UTAMA PROGRAM (PGM BROADCAST SCREEN 16:9 - MIRRORING SWITCHER) -->
     <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative border-2 border-red-600/90 shadow-2xl shadow-red-950/40 flex items-center justify-center group select-none">
 
-      <!-- 0. LAYER BUMPER PEMBUKA AWAL (PRE-ROLL BROADCAST STAGING) -->
-      <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-30 transition-opacity duration-700 opacity-100 flex items-center justify-center">
+      <!-- 0. LAYER BUMPER PEMBUKA AWAL (PRE-ROLL BROADCAST STAGING - 7 DETIK DISSOLVE) -->
+      <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-30 broadcast-dissolve opacity-100 flex items-center justify-center pointer-events-auto">
         <!-- Iframe Video Bumper YouTube (Edge-Cropped 125% & Chromeless) -->
         <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <iframe
@@ -197,6 +201,7 @@
         <div class="absolute top-4 left-4 z-40 flex items-center gap-2 bg-black/75 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-lg">
           <span class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping"></span>
           <span class="font-brand font-black text-xs text-orange-400 tracking-wider uppercase">SKAWAN IDENT OPENING</span>
+          <span class="text-[10px] font-mono text-slate-300 ml-1 border-l border-white/20 pl-2" id="lblBumperCountdown">7s</span>
         </div>
 
         <!-- Tombol Lewati Bumper Langsung ke Siaran Studio -->
@@ -208,9 +213,9 @@
           <span>⏩</span>
         </button>
 
-        <!-- Garis Progress Countdown Bumper -->
+        <!-- Garis Progress Countdown Bumper (7 Detik) -->
         <div class="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-900 overflow-hidden z-40">
-          <div id="bumperProgressBar" class="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-300 w-0"></div>
+          <div id="bumperProgressBar" class="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-red-500 transition-all duration-100 ease-linear w-0"></div>
         </div>
       </div>
 
@@ -370,12 +375,12 @@
     let lastVtUpdatedAt = 0;
     let lastVtStatus = '';
 
-    // Variabel & Timer Bumper Awal Staging
+    // Variabel & Timer Bumper Awal Staging (7 Detik Dissolve)
     const DEFAULT_BUMPER_YT_ID = 'Jnp3esoHb9k'; // Bumper ident opening resmi SKAWAN TV
     let isBumperActive = true;
     let bumperTimer = null;
     let bumperProgressInterval = null;
-    const BUMPER_DURATION_MS = 4500; // Durasi tayang bumper (4.5 detik)
+    const BUMPER_DURATION_MS = 7000; // Durasi tayang bumper diatur 7 detik penuh
 
     // Cache State Terkini
     let liveState = {
@@ -469,12 +474,13 @@
     }
 
     // ========================================================
-    // ALUR BUMPER PEMBUKA AWAL (BROADCAST STAGING)           -->
+    // ALUR BUMPER PEMBUKA AWAL (BROADCAST STAGING - 7s DISSOLVE)
     // ========================================================
     function startInitialBumperStaging() {
       const bumperIframe = document.getElementById('pgmBumperIframe');
       const progressBar = document.getElementById('bumperProgressBar');
       const bumperWrap = document.getElementById('pgmBumperWrapper');
+      const countdownLbl = document.getElementById('lblBumperCountdown');
 
       if (!bumperWrap || !bumperIframe) return;
 
@@ -488,10 +494,17 @@
           const elapsed = Date.now() - startTime;
           const pct = Math.min(100, (elapsed / BUMPER_DURATION_MS) * 100);
           progressBar.style.width = `${pct}%`;
+
+          // Hitung mundur sisa detik di badge
+          if (countdownLbl) {
+            const remainSec = Math.max(0, Math.ceil((BUMPER_DURATION_MS - elapsed) / 1000));
+            countdownLbl.innerText = `${remainSec}s`;
+          }
+
           if (elapsed >= BUMPER_DURATION_MS) {
             clearInterval(bumperProgressInterval);
           }
-        }, 100);
+        }, 80);
       }
 
       bumperTimer = setTimeout(() => {
@@ -506,34 +519,26 @@
       if (bumperTimer) { clearTimeout(bumperTimer); bumperTimer = null; }
       if (bumperProgressInterval) { clearInterval(bumperProgressInterval); bumperProgressInterval = null; }
 
+      // Perbarui monitor PGM studio di bawah layer bumper sebelum proses dissolve
+      updateMonitors();
+
       const bumperWrap = document.getElementById('pgmBumperWrapper');
       if (bumperWrap) {
+        // Eksekusi Dissolve (Fade-out halus 1200ms)
         bumperWrap.classList.remove('opacity-100');
         bumperWrap.classList.add('opacity-0', 'pointer-events-none');
+        
         setTimeout(() => {
           bumperWrap.style.display = 'none';
-          // Hentikan video bumper agar tidak memakan bandwidth
+          // Lepas iframe bumper agar membebaskan bandwidth & memori
           const bumperIframe = document.getElementById('pgmBumperIframe');
           if (bumperIframe) bumperIframe.src = 'about:blank';
-        }, 800);
+        }, 1250);
       }
-
-      // Perbarui monitor PGM studio utama seketika
-      updateMonitors();
     }
 
     // ========================================================
-    // LOGIKA PERALIHAN PGM (CONTINUOUS VT & WEBRTC KAMERA)    -->
-    // ========================================================
-    function updateMonitors() {
-      const activeSrc = liveState.programSource || 'cam_1';
-      const pgmLabel = activeSrc.toUpperCase().replace('_', ' ');
-
-      const labelPgm = document.getElementById('lblActivePgmSource');
-      const screenLabel = document.getElementById('pgmScreenLabel');
-      const fallbackDesc = document.getElementById('pgmFallbackDesc');
-
-      if (labelPgm) labelPgm.innerText = pgmLabel;
+    // LOGIKA PERALIHAN PGM (CONTINUOUS VT & WEBRTC KAMERA)
       if (screenLabel) screenLabel.innerText = pgmLabel;
 
       const pgmVideo = document.getElementById('pgmCamVideo');
