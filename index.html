@@ -187,15 +187,17 @@
         <!-- Native MP4 Video -->
         <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
 
-        <!-- Direct YouTube Playout Iframe -->
-        <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none">
+        <!-- Direct YouTube Playout Iframe dengan Chromeless Shield & Anti-Jitter -->
+        <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <iframe
             id="pgmYtIframe"
-            class="w-full h-full border-0 pointer-events-none"
+            class="w-full h-full border-0 pointer-events-none transform scale-105 sm:scale-108 origin-center transition-transform duration-300"
             src=""
             allow="autoplay; encrypted-media; picture-in-picture"
             tabindex="-1"
           ></iframe>
+          <!-- Glass Shield: Melindungi dari interaksi mouse penonton agar tombol kontrol/hover YT tidak muncul -->
+          <div class="absolute inset-0 z-20 pointer-events-auto bg-transparent cursor-default"></div>
         </div>
 
         <!-- Fallback Google Drive Video -->
@@ -331,6 +333,7 @@
 
     let isAudioUnmuted = false;
     let currentActiveYtId = '';
+    let lastSyncedSeekTime = -1;
 
     // Cache State Terkini - Default: CAM 1 (Bukan VT)
     let liveState = {
@@ -504,13 +507,13 @@
 
       const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.ytId || latestVtState.url);
       const isPlaying = latestVtState.status === 'playing';
-      let curTime = latestVtState.currentTime || 0;
+      let targetTime = latestVtState.currentTime || 0;
 
-      // Hitung detik berjalan jika status playing
+      // Hitung detik berjalan jika status playing di studio
       if (isPlaying && latestVtState.updatedAt) {
         const elapsed = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
         const totalD = latestVtState.totalDuration || 120;
-        curTime = (curTime + elapsed) % totalD;
+        targetTime = (targetTime + elapsed) % totalD;
       }
 
       if (latestVtState.sourceType === 'youtube' || !latestVtState.sourceType) {
@@ -520,36 +523,48 @@
         }
         if (gdriveEl) gdriveEl.classList.add('opacity-0', 'pointer-events-none');
 
-        // Muat URL iframe YouTube jika klip berganti
+        // Muat URL iframe YouTube jika klip benar-benar berganti atau belum ada
         if (currentActiveYtId !== ytId || !ytIframe.src) {
           currentActiveYtId = ytId;
+          lastSyncedSeekTime = targetTime;
           const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
           const autoPlayParam = (isPlaying && isPgmVt) ? '1' : '0';
           const muteParam = isAudioUnmuted ? '0' : '1';
-          ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=${muteParam}&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&start=${Math.floor(curTime)}${originParam}`;
+          
+          // Parameter Ad-Suppression & Chromeless Display
+          ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=${muteParam}&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&start=${Math.floor(targetTime)}${originParam}`;
 
           ytIframe.onload = () => {
             if (isAudioUnmuted) {
               setTimeout(() => {
                 sendCommandToYtIframe('unMute');
                 sendCommandToYtIframe('setVolume', [100]);
-              }, 300);
+              }, 400);
             }
             if (!isPlaying || !isPgmVt) {
-              setTimeout(() => sendCommandToYtIframe('pauseVideo'), 300);
+              setTimeout(() => sendCommandToYtIframe('pauseVideo'), 400);
             } else {
-              setTimeout(() => sendCommandToYtIframe('playVideo'), 300);
+              setTimeout(() => sendCommandToYtIframe('playVideo'), 400);
             }
           };
         } else {
-          // Klip sama: atur Play/Pause/Seek secara lockstep
+          // Klip sama: Kontrol Play/Pause secara lockstep tanpa reload iframe
           if (isPlaying && isPgmVt) {
             sendCommandToYtIframe('playVideo');
           } else {
             sendCommandToYtIframe('pauseVideo');
           }
-          if (curTime >= 0) {
-            sendCommandToYtIframe('seekTo', [curTime, true]);
+
+          // ANTI-JITTER: Hanya lakukan seek jika selisih waktu lebih dari 3.5 detik (mencegah video patah-patah)
+          if (lastSyncedSeekTime >= 0) {
+            const drift = Math.abs(targetTime - lastSyncedSeekTime);
+            if (drift > 3.5) {
+              sendCommandToYtIframe('seekTo', [targetTime, true]);
+              lastSyncedSeekTime = targetTime;
+            }
+          } else {
+            sendCommandToYtIframe('seekTo', [targetTime, true]);
+            lastSyncedSeekTime = targetTime;
           }
         }
       } else if (latestVtState.sourceType === 'mp4' && latestVtState.url) {
