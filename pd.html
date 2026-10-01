@@ -1084,8 +1084,14 @@
 
       const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
       const isPlaying = latestVtState.status === 'playing';
-      const curTime = latestVtState.currentTime || 0;
+      let curTime = latestVtState.currentTime || 0;
       const totalDur = latestVtState.totalDuration || 120;
+
+      // Hitung pergeseran waktu berjalan (free-run elapsed time) jika status playing
+      if (isPlaying && latestVtState.updatedAt) {
+        const elapsed = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
+        curTime = (curTime + elapsed) % totalDur;
+      }
 
       // 1. Sinkronisasi Multiview VT Card (Enteng & Anti-Freeze)
       if (mvPoster && ytId) {
@@ -1107,15 +1113,15 @@
         }
       }
 
-      // 2. Sinkronisasi Layar Siaran PGM & PVW Sutradara
+      // 2. Sinkronisasi Layar Siaran PGM & PVW Sutradara (Continuous Playout: Tidak dipause saat di kamera)
       if (latestVtState.sourceType === 'youtube' && ytId) {
         if (pgmHtml5) pgmHtml5.style.opacity = '0';
         if (pvwHtml5) pvwHtml5.style.opacity = '0';
         if (pgmGdrive) pgmGdrive.style.opacity = '0';
         if (pvwGdrive) pvwGdrive.style.opacity = '0';
 
-        if (pgmYtWrap) { pgmYtWrap.style.opacity = '1'; pgmYtWrap.style.zIndex = '10'; }
-        if (pvwYtWrap) { pvwYtWrap.style.opacity = '1'; pvwYtWrap.style.zIndex = '10'; }
+        if (pgmYtWrap) { pgmYtWrap.style.opacity = isPgmVt ? '1' : '0'; pgmYtWrap.style.zIndex = isPgmVt ? '10' : '0'; }
+        if (pvwYtWrap) { pvwYtWrap.style.opacity = isPvwVt ? '1' : '0'; pvwYtWrap.style.zIndex = isPvwVt ? '10' : '0'; }
 
         // A. PGM Player (Lockstep Play/Pause/Seek)
         if (isPgmYtReady && pdPgmYt && typeof pdPgmYt.playVideo === 'function') {
@@ -1124,18 +1130,18 @@
           if (currentPgmYtId !== ytId) {
             currentPgmYtId = ytId;
             pdPgmYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
-            if (isPlaying && isPgmVt) {
+            if (isPlaying) {
               pdPgmYt.playVideo();
             } else {
               pdPgmYt.pauseVideo();
             }
           } else {
             const c = pdPgmYt.getCurrentTime() || 0;
-            if (Math.abs(c - curTime) > 2.5) {
+            if (Math.abs(c - curTime) > 3.0) {
               pdPgmYt.seekTo(curTime, true);
             }
 
-            if (isPlaying && isPgmVt) {
+            if (isPlaying) {
               pdPgmYt.playVideo();
             } else {
               pdPgmYt.pauseVideo();
@@ -1150,18 +1156,18 @@
           if (currentPvwYtId !== ytId) {
             currentPvwYtId = ytId;
             pdPvwYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
-            if (isPlaying && isPvwVt) {
+            if (isPlaying) {
               pdPvwYt.playVideo();
             } else {
               pdPvwYt.pauseVideo();
             }
           } else {
             const c = pdPvwYt.getCurrentTime() || 0;
-            if (Math.abs(c - curTime) > 2.5) {
+            if (Math.abs(c - curTime) > 3.0) {
               pdPvwYt.seekTo(curTime, true);
             }
 
-            if (isPlaying && isPvwVt) {
+            if (isPlaying) {
               pdPvwYt.playVideo();
             } else {
               pdPvwYt.pauseVideo();
@@ -1174,8 +1180,8 @@
         if (pgmYtWrap) pgmYtWrap.style.opacity = '0';
         if (pvwYtWrap) pvwYtWrap.style.opacity = '0';
 
-        if (pgmGdrive) { pgmGdrive.style.opacity = '1'; pgmGdrive.style.zIndex = '10'; }
-        if (pvwGdrive) { pvwGdrive.style.opacity = '1'; pvwGdrive.style.zIndex = '10'; }
+        if (pgmGdrive) { pgmGdrive.style.opacity = isPgmVt ? '1' : '0'; pgmGdrive.style.zIndex = isPgmVt ? '10' : '0'; }
+        if (pvwGdrive) { pvwGdrive.style.opacity = isPvwVt ? '1' : '0'; pvwGdrive.style.zIndex = isPvwVt ? '10' : '0'; }
 
         if (latestVtState.url) {
           if (pgmGdrive && pgmGdrive.src !== latestVtState.url) pgmGdrive.src = latestVtState.url;
@@ -1188,8 +1194,8 @@
         if (pgmGdrive) pgmGdrive.style.opacity = '0';
         if (pvwGdrive) pvwGdrive.style.opacity = '0';
 
-        if (pgmHtml5) { pgmHtml5.style.opacity = '1'; pgmHtml5.style.zIndex = '10'; }
-        if (pvwHtml5) { pvwHtml5.style.opacity = '1'; pvwHtml5.style.zIndex = '10'; }
+        if (pgmHtml5) { pgmHtml5.style.opacity = isPgmVt ? '1' : '0'; pgmHtml5.style.zIndex = isPgmVt ? '10' : '0'; }
+        if (pvwHtml5) { pvwHtml5.style.opacity = isPvwVt ? '1' : '0'; pvwHtml5.style.zIndex = isPvwVt ? '10' : '0'; }
 
         if (latestVtState.url) {
           if (pgmHtml5 && pgmHtml5.src !== latestVtState.url) pgmHtml5.src = latestVtState.url;
@@ -1197,8 +1203,8 @@
         }
 
         if (isPlaying) {
-          if (isPgmVt && pgmHtml5) pgmHtml5.play().catch(()=>{});
-          if (isPvwVt && pvwHtml5) pvwHtml5.play().catch(()=>{});
+          if (pgmHtml5) pgmHtml5.play().catch(()=>{});
+          if (pvwHtml5) pvwHtml5.play().catch(()=>{});
         } else {
           if (pgmHtml5) pgmHtml5.pause();
           if (pvwHtml5) pvwHtml5.pause();
