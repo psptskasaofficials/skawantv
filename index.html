@@ -449,8 +449,14 @@
           if (isExpectedPlaying) {
             if (playerState === 1) { // 1 = PLAYING
               const cur = livePgmYt.getCurrentTime() || 0;
-              const diff = Math.abs(cur - (latestVtState.currentTime || 0));
-              if (diff <= 4.5) {
+              let expectedTime = latestVtState.currentTime || 0;
+              if (latestVtState.updatedAt) {
+                const elapsedSec = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
+                const totalD = latestVtState.totalDuration || 120;
+                expectedTime = (expectedTime + elapsedSec) % totalD;
+              }
+              const diff = Math.abs(cur - expectedTime);
+              if (diff <= 5.5) {
                 setSyncIndicator(true, 'VT Playing Synchronized');
               } else {
                 setSyncIndicator(false, `Selisih Waktu VT ${diff.toFixed(1)}s`);
@@ -555,7 +561,7 @@
       if (isYtReady && livePgmYt) return;
       if (typeof YT === 'undefined' || !YT.Player) return;
 
-      const targetYtId = extractCleanYtId(latestVtState.youtubeId || dynamicStandbyYtId);
+      const targetYtId = extractCleanYtId(latestVtState.ytId || latestVtState.youtubeId || dynamicStandbyYtId);
 
       try {
         livePgmYt = new YT.Player('pgmVtYtEl', {
@@ -575,6 +581,8 @@
             cc_lang_pref: 'none',
             iv_load_policy: 3,
             suggestedQuality: 'hd1080',
+            loop: 1,
+            playlist: targetYtId, // Wajib agar YouTube melakukan looping tanpa berhenti di akhir
             origin: window.location.origin || 'http://localhost'
           },
           events: {
@@ -723,6 +731,7 @@
         currentTime: 0, 
         url: `https://www.youtube.com/watch?v=${dynamicStandbyYtId}`, 
         youtubeId: dynamicStandbyYtId, 
+        ytId: dynamicStandbyYtId,
         sourceType: 'youtube' 
       };
 
@@ -763,7 +772,14 @@
               const totalD = remoteVt.totalDuration || 120;
               accurateCurrentTime = (remoteVt.currentTime + elapsedSec) % totalD;
             }
-            latestVtState = { ...latestVtState, ...remoteVt, currentTime: accurateCurrentTime };
+            const cleanId = extractCleanYtId(remoteVt.ytId || remoteVt.youtubeId || remoteVt.url || dynamicStandbyYtId);
+            latestVtState = { 
+              ...latestVtState, 
+              ...remoteVt, 
+              ytId: cleanId, 
+              youtubeId: cleanId, 
+              currentTime: accurateCurrentTime 
+            };
           }
 
           if (cgSnap.exists()) {
@@ -819,7 +835,14 @@
             const totalD = remoteVt.totalDuration || 120;
             accurateCurrentTime = (remoteVt.currentTime + elapsedSec) % totalD;
           }
-          latestVtState = { ...latestVtState, ...remoteVt, currentTime: accurateCurrentTime };
+          const cleanId = extractCleanYtId(remoteVt.ytId || remoteVt.youtubeId || remoteVt.url || dynamicStandbyYtId);
+          latestVtState = { 
+            ...latestVtState, 
+            ...remoteVt, 
+            ytId: cleanId, 
+            youtubeId: cleanId, 
+            currentTime: accurateCurrentTime 
+          };
           syncVtPlayback();
         });
 
@@ -963,7 +986,7 @@
       const ytWrap = document.getElementById('pgmVtYtWrap');
       const gdriveEl = document.getElementById('pgmVtGdrive');
 
-      const rawYt = latestVtState.youtubeId || (latestVtState.sourceType === 'youtube' ? latestVtState.url : '') || dynamicStandbyYtId;
+      const rawYt = latestVtState.ytId || latestVtState.youtubeId || (latestVtState.sourceType === 'youtube' ? latestVtState.url : '') || dynamicStandbyYtId;
       const ytId = extractCleanYtId(rawYt);
       const isPlaying = latestVtState.status === 'playing';
 
@@ -996,8 +1019,14 @@
                 livePgmYt.playVideo();
               }
               const cur = livePgmYt.getCurrentTime() || 0;
-              if (Math.abs(cur - (latestVtState.currentTime || 0)) > 3.5) {
-                livePgmYt.seekTo(latestVtState.currentTime, true);
+              let expectedTime = latestVtState.currentTime || 0;
+              if (latestVtState.updatedAt) {
+                const elapsedSec = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
+                const totalD = latestVtState.totalDuration || 120;
+                expectedTime = (expectedTime + elapsedSec) % totalD;
+              }
+              if (Math.abs(cur - expectedTime) > 4.5) {
+                livePgmYt.seekTo(expectedTime, true);
               }
             } else {
               livePgmYt.pauseVideo();
