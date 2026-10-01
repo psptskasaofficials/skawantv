@@ -1017,8 +1017,14 @@
 
       const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url || latestVtState.ytId);
       const isPlaying = (latestVtState.status === 'playing');
-      const curTime = latestVtState.currentTime || 0;
+      let curTime = latestVtState.currentTime || 0;
       const totalDur = latestVtState.totalDuration || 120;
+
+      // Hitung pergeseran waktu berjalan (free-run elapsed time) jika status playing
+      if (isPlaying && latestVtState.updatedAt) {
+        const elapsed = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
+        curTime = (curTime + elapsed) % totalDur;
+      }
 
       // 1. Sinkronisasi Multiview VT Card (Enteng, Ringan, 100% Bebas Freeze)
       if (mvPoster && ytId) {
@@ -1040,35 +1046,35 @@
         }
       }
 
-      // 2. Sinkronisasi Layar Siaran PGM & PVW
+      // 2. Sinkronisasi Layar Siaran PGM & PVW (Continuous Playout: Video Tetap Berjalan di Latar Belakang)
       if (latestVtState.sourceType === 'youtube' && ytId) {
         if (pgmHtml5) pgmHtml5.style.opacity = '0';
         if (pvwHtml5) pvwHtml5.style.opacity = '0';
         if (pgmGdrive) pgmGdrive.style.opacity = '0';
         if (pvwGdrive) pvwGdrive.style.opacity = '0';
 
-        if (pgmYtWrap) { pgmYtWrap.style.opacity = '1'; pgmYtWrap.style.zIndex = '10'; }
-        if (pvwYtWrap) { pvwYtWrap.style.opacity = '1'; pvwYtWrap.style.zIndex = '10'; }
+        if (pgmYtWrap) { pgmYtWrap.style.opacity = isPgmVt ? '1' : '0'; pgmYtWrap.style.zIndex = isPgmVt ? '10' : '0'; }
+        if (pvwYtWrap) { pvwYtWrap.style.opacity = isPvwVt ? '1' : '0'; pvwYtWrap.style.zIndex = isPvwVt ? '10' : '0'; }
 
-        // A. PGM Player (Lockstep Play/Pause/Seek)
+        // A. PGM Player (Continuous Play: Jangan di-pause saat di kamera agar timecode tetap sinkron)
         if (isPgmYtReady && switcherPgmYt && typeof switcherPgmYt.playVideo === 'function') {
           switcherPgmYt.mute();
           matikanSubtitleYouTube(switcherPgmYt);
           if (currentPgmYtId !== ytId) {
             currentPgmYtId = ytId;
             switcherPgmYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
-            if (isPlaying && isPgmVt) {
+            if (isPlaying) {
               switcherPgmYt.playVideo();
             } else {
               switcherPgmYt.pauseVideo();
             }
           } else {
             const c = switcherPgmYt.getCurrentTime() || 0;
-            if (Math.abs(c - curTime) > 2.5) {
+            if (Math.abs(c - curTime) > 3.0) {
               switcherPgmYt.seekTo(curTime, true);
             }
 
-            if (isPlaying && isPgmVt) {
+            if (isPlaying) {
               switcherPgmYt.playVideo();
             } else {
               switcherPgmYt.pauseVideo();
@@ -1076,25 +1082,25 @@
           }
         }
 
-        // B. PVW Player (Lockstep Play/Pause/Seek)
+        // B. PVW Player
         if (isPvwYtReady && switcherPvwYt && typeof switcherPvwYt.playVideo === 'function') {
           switcherPvwYt.mute();
           matikanSubtitleYouTube(switcherPvwYt);
           if (currentPvwYtId !== ytId) {
             currentPvwYtId = ytId;
             switcherPvwYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
-            if (isPlaying && isPvwVt) {
+            if (isPlaying) {
               switcherPvwYt.playVideo();
             } else {
               switcherPvwYt.pauseVideo();
             }
           } else {
             const c = switcherPvwYt.getCurrentTime() || 0;
-            if (Math.abs(c - curTime) > 2.5) {
+            if (Math.abs(c - curTime) > 3.0) {
               switcherPvwYt.seekTo(curTime, true);
             }
 
-            if (isPlaying && isPvwVt) {
+            if (isPlaying) {
               switcherPvwYt.playVideo();
             } else {
               switcherPvwYt.pauseVideo();
@@ -1107,8 +1113,8 @@
         if (pgmYtWrap) pgmYtWrap.style.opacity = '0';
         if (pvwYtWrap) pvwYtWrap.style.opacity = '0';
 
-        if (pgmGdrive) { pgmGdrive.style.opacity = '1'; pgmGdrive.style.zIndex = '10'; }
-        if (pvwGdrive) { pvwGdrive.style.opacity = '1'; pvwGdrive.style.zIndex = '10'; }
+        if (pgmGdrive) { pgmGdrive.style.opacity = isPgmVt ? '1' : '0'; pgmGdrive.style.zIndex = isPgmVt ? '10' : '0'; }
+        if (pvwGdrive) { pvwGdrive.style.opacity = isPvwVt ? '1' : '0'; pvwGdrive.style.zIndex = isPvwVt ? '10' : '0'; }
 
         if (latestVtState.url) {
           if (pgmGdrive && pgmGdrive.src !== latestVtState.url) pgmGdrive.src = latestVtState.url;
@@ -1121,8 +1127,8 @@
         if (pgmGdrive) pgmGdrive.style.opacity = '0';
         if (pvwGdrive) pvwGdrive.style.opacity = '0';
 
-        if (pgmHtml5) { pgmHtml5.style.opacity = '1'; pgmHtml5.style.zIndex = '10'; }
-        if (pvwHtml5) { pvwHtml5.style.opacity = '1'; pvwHtml5.style.zIndex = '10'; }
+        if (pgmHtml5) { pgmHtml5.style.opacity = isPgmVt ? '1' : '0'; pgmHtml5.style.zIndex = isPgmVt ? '10' : '0'; }
+        if (pvwHtml5) { pvwHtml5.style.opacity = isPvwVt ? '1' : '0'; pvwHtml5.style.zIndex = isPvwVt ? '10' : '0'; }
 
         if (latestVtState.url) {
           if (pgmHtml5 && pgmHtml5.src !== latestVtState.url) pgmHtml5.src = latestVtState.url;
@@ -1130,8 +1136,8 @@
         }
 
         if (isPlaying) {
-          if (isPgmVt && pgmHtml5) pgmHtml5.play().catch(()=>{});
-          if (isPvwVt && pvwHtml5) pvwHtml5.play().catch(()=>{});
+          if (pgmHtml5) pgmHtml5.play().catch(()=>{});
+          if (pvwHtml5) pvwHtml5.play().catch(()=>{});
         } else {
           if (pgmHtml5) pgmHtml5.pause();
           if (pvwHtml5) pvwHtml5.pause();
