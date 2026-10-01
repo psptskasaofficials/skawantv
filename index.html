@@ -198,7 +198,7 @@
       </div>
 
       <!-- 2. PEMUTAR VT / MEDIA INSERTS (YouTube, Google Drive, HTML5 MP4) -->
-      <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10">
+      <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black bg-center bg-cover flex items-center justify-center z-10 transition-all duration-300">
         <video id="pgmVtHtml5" class="w-full h-full object-contain hidden" playsinline></video>
         
         <div id="pgmVtYtWrap" class="w-full h-full pointer-events-none">
@@ -398,6 +398,7 @@
     let currentYtId = '';
     let isAudioUnmuted = false;
     let syncCheckTimer = null;
+    let initialSeekPerformed = false;
 
     // Database Getter
     function getDatabase() {
@@ -438,7 +439,11 @@
       const activeSrc = liveState.programSource || 'vt';
 
       if (activeSrc === 'vt') {
-        if (latestVtState.sourceType === 'youtube') {
+        const rawYt = latestVtState.ytId || latestVtState.youtubeId || (latestVtState.url && latestVtState.url.includes('youtu') ? latestVtState.url : '') || dynamicStandbyYtId;
+        const ytId = extractCleanYtId(rawYt);
+        const isYouTube = latestVtState.sourceType === 'youtube' || !latestVtState.sourceType || Boolean(ytId);
+
+        if (isYouTube) {
           if (!isYtReady || !livePgmYt) {
             setSyncIndicator(false, 'Memuat Pemutar YouTube...');
             return;
@@ -464,7 +469,7 @@
             } else if (playerState === 3) { // 3 = BUFFERING
               setSyncIndicator(true, 'VT Buffering');
             } else {
-              setSyncIndicator(false, 'VT Terhenti / Tidak Sinkron');
+              setSyncIndicator(false, 'VT Terhenti / Menghubungkan');
             }
           } else {
             // Jika status paused/standby
@@ -556,18 +561,28 @@
       });
     }
 
-    // Inisialisasi Kuat YouTube API Player (Auto-Play Muted, Tanpa Layar Hitam)
+    // Pasang Backdrop Thumbnail Instan agar Layar Tidak Pernah Hitam
+    function updateInstantPosterBackdrop(ytId) {
+      const vtWrapper = document.getElementById('pgmVtWrapper');
+      if (vtWrapper && ytId) {
+        vtWrapper.style.backgroundImage = `url('https://img.youtube.com/vi/${ytId}/hqdefault.jpg')`;
+      }
+    }
+
+    // Inisialisasi Kuat YouTube API Player (Tanpa Pembatalan Autoplay)
     function initPgmYouTubePlayer() {
       if (isYtReady && livePgmYt) return;
       if (typeof YT === 'undefined' || !YT.Player) return;
 
-      const targetYtId = extractCleanYtId(latestVtState.ytId || latestVtState.youtubeId || dynamicStandbyYtId);
+      const rawYt = latestVtState.ytId || latestVtState.youtubeId || (latestVtState.url && latestVtState.url.includes('youtu') ? latestVtState.url : '') || dynamicStandbyYtId;
+      const targetYtId = extractCleanYtId(rawYt);
+
+      updateInstantPosterBackdrop(targetYtId);
 
       try {
         livePgmYt = new YT.Player('pgmVtYtEl', {
           height: '100%',
           width: '100%',
-          host: 'https://www.youtube-nocookie.com',
           videoId: targetYtId,
           playerVars: {
             playsinline: 1,
@@ -583,7 +598,7 @@
             suggestedQuality: 'hd1080',
             loop: 1,
             playlist: targetYtId, // Wajib agar YouTube melakukan looping tanpa berhenti di akhir
-            origin: window.location.origin || 'http://localhost'
+            enablejsapi: 1
           },
           events: {
             onReady: (e) => {
@@ -591,8 +606,10 @@
               currentYtId = targetYtId;
 
               try {
-                if (typeof e.target.setPlaybackQuality === 'function') {
-                  e.target.setPlaybackQuality('hd1080');
+                e.target.mute();
+                if (isAudioUnmuted) {
+                  e.target.unMute();
+                  e.target.setVolume(100);
                 }
                 if (typeof e.target.unloadModule === 'function') {
                   e.target.unloadModule('captions');
@@ -600,35 +617,32 @@
                 }
               } catch (err) {}
 
-              if (isAudioUnmuted) {
-                e.target.unMute();
-                e.target.setVolume(100);
-              } else {
-                e.target.mute();
+              // Jalankan playVideo secara murni tanpa memicu seekTo yang membatalkan autoplay
+              if (latestVtState.status === 'playing') {
+                e.target.playVideo();
               }
 
-              // Putar seketika dan paksakan sinkronisasi PGM
               renderPgmDisplay(true);
               syncVtPlayback();
-              setTimeout(() => {
-                if (typeof e.target.playVideo === 'function' && latestVtState.status === 'playing') {
-                  e.target.playVideo();
-                }
-                checkPgmSyncStatus();
-              }, 150);
             },
             onStateChange: (e) => {
               if (e.data === YT.PlayerState.PLAYING) {
-                setSyncIndicator(true);
-                try {
-                  if (typeof e.target.setPlaybackQuality === 'function') {
-                    e.target.setPlaybackQuality('hd1080');
+                setSyncIndicator(true, 'VT Playing');
+
+                // Hilangkan poster backdrop saat frame video pertama sudah berhasil tampil
+                const vtWrapper = document.getElementById('pgmVtWrapper');
+                if (vtWrapper) vtWrapper.style.backgroundImage = 'none';
+
+                // Lakukan seek sinkronisasi waktu HANYA saat video sudah terkonfirmasi resmi berputar
+                if (!initialSeekPerformed && latestVtState.status === 'playing' && latestVtState.updatedAt) {
+                  initialSeekPerformed = true;
+                  const elapsedSec = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
+                  const totalD = latestVtState.totalDuration || 120;
+                  const expectedTime = ((latestVtState.currentTime || 0) + elapsedSec) % totalD;
+                  if (expectedTime > 3) {
+                    try { e.target.seekTo(expectedTime, true); } catch (err) {}
                   }
-                  if (typeof e.target.unloadModule === 'function') {
-                    e.target.unloadModule('captions');
-                    e.target.unloadModule('cc');
-                  }
-                } catch (err) {}
+                }
               } else if (e.data === YT.PlayerState.ENDED) {
                 e.target.seekTo(0, true);
                 e.target.playVideo();
@@ -657,7 +671,7 @@
       } else if (window.YT && window.YT.Player) {
         initPgmYouTubePlayer();
       }
-    }, 250);
+    }, 200);
 
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -724,6 +738,7 @@
       }
       remoteCamStreams.clear();
       lastRenderedPgmSource = null;
+      initialSeekPerformed = false;
 
       liveState = { programSource: 'vt', previewSource: 'cam_1', tally: { cam_1: 'green' } };
       latestVtState = { 
@@ -736,6 +751,7 @@
       };
 
       setSyncIndicator(false, 'Menghubungkan Saluran...');
+      updateInstantPosterBackdrop(dynamicStandbyYtId);
 
       if (activeDb) {
         activeChannelListeners.token = token;
@@ -754,7 +770,7 @@
             if (meta.programName) document.getElementById('standbyProgramTitle').innerText = meta.programName;
             if (meta.episode) document.getElementById('standbyEpisodeDesc').innerText = meta.episode;
             if (meta.defaultStandbyYtId) dynamicStandbyYtId = meta.defaultStandbyYtId;
-            currentRoomStatus = token === 'SKASA' ? 'live' : (meta.status || 'waiting');
+            currentRoomStatus = token === 'SKASA' ? 'live' : (meta.status || 'live');
             updateRoomStatusUI(currentRoomStatus);
           }
 
@@ -780,6 +796,7 @@
               youtubeId: cleanId, 
               currentTime: accurateCurrentTime 
             };
+            updateInstantPosterBackdrop(cleanId);
           }
 
           if (cgSnap.exists()) {
@@ -798,7 +815,7 @@
         activeChannelListeners.metaRef = activeDb.ref(`rooms/${token}/meta`);
         activeChannelListeners.metaRef.on('value', snap => {
           if (!snap.exists()) {
-            updateRoomStatusUI(token === 'SKASA' ? 'live' : 'waiting');
+            updateRoomStatusUI(token === 'SKASA' ? 'live' : 'live');
             return;
           }
           const meta = snap.val();
@@ -807,7 +824,7 @@
           if (meta.defaultStandbyYtId && meta.defaultStandbyYtId !== dynamicStandbyYtId) {
             dynamicStandbyYtId = meta.defaultStandbyYtId;
           }
-          currentRoomStatus = token === 'SKASA' ? 'live' : (meta.status || 'waiting');
+          currentRoomStatus = token === 'SKASA' ? 'live' : (meta.status || 'live');
           updateRoomStatusUI(currentRoomStatus);
         });
 
@@ -843,6 +860,7 @@
             youtubeId: cleanId, 
             currentTime: accurateCurrentTime 
           };
+          updateInstantPosterBackdrop(cleanId);
           syncVtPlayback();
         });
 
@@ -881,12 +899,21 @@
         });
       }
 
-      // Auto-kick playback 600ms setelah pembukaan halaman untuk memastikan video langsung berputar
+      // Auto-kick playback ganda setelah pembukaan halaman untuk memastikan video langsung berputar
       setTimeout(() => {
         renderPgmDisplay(true);
         syncVtPlayback();
         checkPgmSyncStatus();
-      }, 600);
+      }, 300);
+
+      setTimeout(() => {
+        if (isYtReady && livePgmYt && typeof livePgmYt.getPlayerState === 'function') {
+          const state = livePgmYt.getPlayerState();
+          if (state !== 1 && state !== 3 && latestVtState.status === 'playing') {
+            try { livePgmYt.playVideo(); } catch (e) {}
+          }
+        }
+      }, 1000);
     }
 
     function updateRoomStatusUI(status) {
@@ -986,11 +1013,14 @@
       const ytWrap = document.getElementById('pgmVtYtWrap');
       const gdriveEl = document.getElementById('pgmVtGdrive');
 
-      const rawYt = latestVtState.ytId || latestVtState.youtubeId || (latestVtState.sourceType === 'youtube' ? latestVtState.url : '') || dynamicStandbyYtId;
+      const rawYt = latestVtState.ytId || latestVtState.youtubeId || (latestVtState.url && latestVtState.url.includes('youtu') ? latestVtState.url : '') || dynamicStandbyYtId;
       const ytId = extractCleanYtId(rawYt);
       const isPlaying = latestVtState.status === 'playing';
 
-      if (latestVtState.sourceType === 'youtube' && ytId) {
+      // Smart check: Jika ada YouTube ID atau sourceType adalah youtube, prioritaskan YouTube
+      const isYouTube = latestVtState.sourceType === 'youtube' || !latestVtState.sourceType || Boolean(ytId);
+
+      if (isYouTube && ytId) {
         html5El.classList.add('hidden');
         gdriveEl.classList.add('hidden');
         ytWrap.classList.remove('hidden');
@@ -998,6 +1028,9 @@
         if (isYtReady && livePgmYt && typeof livePgmYt.loadVideoById === 'function') {
           if (currentYtId !== ytId) {
             currentYtId = ytId;
+            initialSeekPerformed = false;
+            updateInstantPosterBackdrop(ytId);
+
             if (isPlaying) {
               livePgmYt.loadVideoById({
                 videoId: ytId,
@@ -1018,15 +1051,18 @@
               if (playerState !== 1 && playerState !== 3) {
                 livePgmYt.playVideo();
               }
-              const cur = livePgmYt.getCurrentTime() || 0;
-              let expectedTime = latestVtState.currentTime || 0;
-              if (latestVtState.updatedAt) {
-                const elapsedSec = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
-                const totalD = latestVtState.totalDuration || 120;
-                expectedTime = (expectedTime + elapsedSec) % totalD;
-              }
-              if (Math.abs(cur - expectedTime) > 4.5) {
-                livePgmYt.seekTo(expectedTime, true);
+              // Hanya seek jika video memang sudah terkonfirmasi memutar (bukan saat buffering/unstarted)
+              if (playerState === 1) {
+                const cur = livePgmYt.getCurrentTime() || 0;
+                let expectedTime = latestVtState.currentTime || 0;
+                if (latestVtState.updatedAt) {
+                  const elapsedSec = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
+                  const totalD = latestVtState.totalDuration || 120;
+                  expectedTime = (expectedTime + elapsedSec) % totalD;
+                }
+                if (Math.abs(cur - expectedTime) > 5.0) {
+                  livePgmYt.seekTo(expectedTime, true);
+                }
               }
             } else {
               livePgmYt.pauseVideo();
