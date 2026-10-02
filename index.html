@@ -100,7 +100,7 @@
             <div class="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-4">
                 <h2 class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Direktori Saluran & Ruangan Aktif</h2>
                 <div id="rooms-directory-container" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <!-- Dinamis terisi dari Firebase -->
+                    <!-- Default Card SKASA (akan diperbarui dinamis oleh Firebase) -->
                     <div id="room-card-SKASA" class="bg-zinc-900 border border-zinc-800 hover:border-red-500/50 p-3 rounded-lg flex items-center justify-between transition-all cursor-pointer">
                         <div>
                             <p class="font-bold text-sm text-zinc-200">SKASA</p>
@@ -164,8 +164,17 @@
         SKAWAN TV &copy; 2026 &bull; Virtual Broadcast Studio Vokasi Indonesia
     </footer>
 
-    <!-- SCRIPT UTAMA KONTROL BUMPER & REALTIME SYNC -->
+    <!-- SCRIPT UTAMA KONTROL BUMPER & REALTIME SYNC FIREBASE -->
     <script>
+        // Konfigurasi Firebase (Sesuaikan dengan kredensial proyek Anda jika diperlukan)
+        const firebaseConfig = {
+            databaseURL: "https://skawan-tv-default-rtdb.firebaseio.com/"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
         // Jam Sistem Realtime
         setInterval(() => {
             const now = new Date();
@@ -194,13 +203,14 @@
                     overlayEl.style.opacity = '0';
                     setTimeout(() => {
                         overlayEl.remove();
-                    }, 1200); // Waktu sesuai durasi CSS dissolve
+                    }, 1200);
                 }
             }
         }, 50);
 
-        // Fungsi pemantau direktori ruangan dinamis (untuk semua ruangan/token)
-        function updateRoomStatusIndicators(roomsData) {
+        // Listener Real-Time Firebase untuk Direktori Semua Ruangan (On-Air / Standby)
+        db.ref('rooms').on('value', (snapshot) => {
+            const roomsData = snapshot.val();
             const container = document.getElementById('rooms-directory-container');
             if (!roomsData || !container) return;
 
@@ -225,19 +235,22 @@
                 }
 
                 const badge = roomCard.querySelector('.room-status-badge');
-                const isLive = roomInfo.live_state && roomInfo.live_state.isLive === true;
+                
+                // Periksa apakah ruangan tersebut berstatus on air (mendukung berbagai varian struktur properti live state)
+                const isLive = (roomInfo.live_state && roomInfo.live_state.isLive === true) || 
+                               (roomInfo.status === 'LIVE' || roomInfo.isLive === true);
 
                 if (badge) {
                     if (isLive) {
                         badge.className = "room-status-badge px-2 py-0.5 text-xs font-semibold bg-red-600 text-white rounded-full animate-pulse flex items-center gap-1 mt-1";
-                        badge.innerHTML = `<span class=\"w-1.5 h-1.5 rounded-full bg-white\"></span> ON AIR`;
+                        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white"></span> ON AIR`;
                     } else {
                         badge.className = "room-status-badge px-2 py-0.5 text-xs font-semibold bg-zinc-700 text-zinc-300 rounded-full flex items-center gap-1 mt-1";
-                        badge.innerHTML = `<span class=\"w-1.5 h-1.5 rounded-full bg-zinc-500\"></span> STANDBY`;
+                        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span> STANDBY`;
                     }
                 }
             });
-        }
+        });
     </script>
 </body>
 </html>
