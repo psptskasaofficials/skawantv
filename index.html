@@ -954,7 +954,7 @@
     }
 
     // ========================================================
-    // DAFTAR SALURAN AKTIF & PEMANTAUAN LIVE STATE REAL-TIME  -->
+    // DAFTAR SALURAN AKTIF & STATUS REAL-TIME (SELARAS ADMIN.HTML) -->
     // ========================================================
     const activeRoomsMap = new Map();
     const roomLiveStatesMap = new Map();
@@ -964,7 +964,7 @@
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      // Pantau daftar node rooms secara keseluruhan untuk mendeteksi penambahan ruangan baru
+      // Pantau daftar node rooms secara keseluruhan
       activeDb.ref('rooms').on('value', snapshot => {
         if (!snapshot.exists()) return;
         const rooms = snapshot.val() || {};
@@ -974,18 +974,20 @@
           if (roomData && roomData.meta) {
             activeRoomsMap.set(token, roomData.meta);
           } else if (!activeRoomsMap.has(token)) {
-            activeRoomsMap.set(token, { programName: `${token} Broadcast`, status: 'active' });
+            activeRoomsMap.set(token, { programName: `${token} Broadcast`, status: 'standby' });
           }
 
-          // Pasang listener spesifik ke sub-node live_state masing-ah ruang agar status isLive akurat
+          // [SELARAS ADMIN.HTML] Pasang listener spesifik ke sub-node meta/status
+          // Di admin.html, status disimpan sebagai meta.status ('live' atau 'standby')
           if (!activeRoomListeners.has(token)) {
-            const liveStateRef = activeDb.ref(`rooms/${token}/live_state`);
-            activeRoomListeners.set(token, liveStateRef);
+            const metaStatusRef = activeDb.ref(`rooms/${token}/meta/status`);
+            activeRoomListeners.set(token, metaStatusRef);
 
-            liveStateRef.on('value', liveSnap => {
-              const liveVal = liveSnap.val() || {};
-              // Evaluasi tegas: true jika isLive bernilai true
-              const isLive = liveVal.isLive === true;
+            metaStatusRef.on('value', statusSnap => {
+              const statusVal = statusSnap.val();
+              // Selaras dengan admin.html: isLive bernilai true jika meta.status === 'live'
+              // (SKASA atau ruangan lain yang berstatus 'live' akan terbaca benar)
+              const isLive = (token === 'SKASA') || (statusVal === 'live');
               roomLiveStatesMap.set(token, isLive);
               renderChannelsGrid();
             });
@@ -994,7 +996,7 @@
 
         // Pastikan SKASA selalu ada di daftar utama
         if (!activeRoomsMap.has('SKASA')) {
-          activeRoomsMap.set('SKASA', { programName: "SKASA TV Live Broadcast", episode: "Siaran Utama" });
+          activeRoomsMap.set('SKASA', { programName: "SKASA TV Live Broadcast", episode: "Siaran Utama", status: "live" });
         }
 
         renderChannelsGrid();
@@ -1020,7 +1022,7 @@
         const meta = activeRoomsMap.get(token) || {};
         const isSkasa = token === 'SKASA';
         
-        // Membaca status live secara presisi dari map real-time per ruangan
+        // Membaca status live secara presisi dari map yang sinkron dengan meta.status admin.html
         const isLive = roomLiveStatesMap.get(token) === true;
         const isSelected = token === currentRoomToken;
 
