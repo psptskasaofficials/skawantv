@@ -963,15 +963,15 @@
       activeRoomsMap.set('SKASA', {
         programName: "SKASA TV Live Broadcast",
         episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
-        status: "live"
+        status: "standby"
       });
-      roomLiveStatesMap.set('SKASA', false); // Default standby jika belum ada sinyal aktif
+      roomLiveStatesMap.set('SKASA', false); // Default standby murni
       renderChannelsGrid();
 
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      // Pantau data ruangan secara real-time dari Firebase
+      // Pantau data seluruh ruangan secara real-time dari Firebase tanpa bias hardcode
       activeDb.ref('rooms').on('value', snapshot => {
         if (!snapshot.exists()) return;
         const rooms = snapshot.val() || {};
@@ -982,10 +982,10 @@
             activeRoomsMap.set(token, roomData.meta);
           }
 
-          // [PERBAIKAN] Evaluasi ketat: Hanya true jika live_state.isLive bernilai true secara eksplisit
+          // Evaluasi murni berdasarkan properti live_state.isLive di Firebase
           let isLive = false;
-          if (roomData.live_state) {
-            isLive = roomData.live_state.isLive === true;
+          if (roomData.live_state && roomData.live_state.isLive === true) {
+            isLive = true;
           } else if (roomData.status === 'LIVE' || roomData.isLive === true) {
             isLive = true;
           }
@@ -1016,7 +1016,7 @@
         const meta = activeRoomsMap.get(token) || {};
         const isSkasa = token === 'SKASA';
         
-        // [PERBAIKAN] Murni membaca status dari map real-time Firebase tanpa paksaan hardcode
+        // Membaca status mandiri secara real-time dari Firebase untuk setiap token
         const isLive = roomLiveStatesMap.get(token) === true;
         const isSelected = token === currentRoomToken;
 
