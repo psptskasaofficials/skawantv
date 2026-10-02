@@ -954,24 +954,17 @@
     }
 
     // ========================================================
-    // DAFTAR SALURAN AKTIF & STATUS REAL-TIME ON AIR/STANDBY    -->
+    // DAFTAR SALURAN AKTIF & PEMANTAUAN LIVE STATE REAL-TIME  -->
     // ========================================================
     const activeRoomsMap = new Map();
     const roomLiveStatesMap = new Map();
+    const activeRoomListeners = new Map();
 
     function listenChannelsDirectory() {
-      activeRoomsMap.set('SKASA', {
-        programName: "SKASA TV Live Broadcast",
-        episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
-        status: "standby"
-      });
-      roomLiveStatesMap.set('SKASA', false); // Default standby murni
-      renderChannelsGrid();
-
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      // Pantau data seluruh ruangan secara real-time dari Firebase tanpa bias hardcode
+      // Pantau daftar node rooms secara keseluruhan untuk mendeteksi penambahan ruangan baru
       activeDb.ref('rooms').on('value', snapshot => {
         if (!snapshot.exists()) return;
         const rooms = snapshot.val() || {};
@@ -980,18 +973,29 @@
           const roomData = rooms[token];
           if (roomData && roomData.meta) {
             activeRoomsMap.set(token, roomData.meta);
+          } else if (!activeRoomsMap.has(token)) {
+            activeRoomsMap.set(token, { programName: `${token} Broadcast`, status: 'active' });
           }
 
-          // Evaluasi murni berdasarkan properti live_state.isLive di Firebase
-          let isLive = false;
-          if (roomData.live_state && roomData.live_state.isLive === true) {
-            isLive = true;
-          } else if (roomData.status === 'LIVE' || roomData.isLive === true) {
-            isLive = true;
+          // Pasang listener spesifik ke sub-node live_state masing-ah ruang agar status isLive akurat
+          if (!activeRoomListeners.has(token)) {
+            const liveStateRef = activeDb.ref(`rooms/${token}/live_state`);
+            activeRoomListeners.set(token, liveStateRef);
+
+            liveStateRef.on('value', liveSnap => {
+              const liveVal = liveSnap.val() || {};
+              // Evaluasi tegas: true jika isLive bernilai true
+              const isLive = liveVal.isLive === true;
+              roomLiveStatesMap.set(token, isLive);
+              renderChannelsGrid();
+            });
           }
-          
-          roomLiveStatesMap.set(token, isLive);
         });
+
+        // Pastikan SKASA selalu ada di daftar utama
+        if (!activeRoomsMap.has('SKASA')) {
+          activeRoomsMap.set('SKASA', { programName: "SKASA TV Live Broadcast", episode: "Siaran Utama" });
+        }
 
         renderChannelsGrid();
       });
@@ -1016,7 +1020,7 @@
         const meta = activeRoomsMap.get(token) || {};
         const isSkasa = token === 'SKASA';
         
-        // Membaca status mandiri secara real-time dari Firebase untuk setiap token
+        // Membaca status live secara presisi dari map real-time per ruangan
         const isLive = roomLiveStatesMap.get(token) === true;
         const isSelected = token === currentRoomToken;
 
