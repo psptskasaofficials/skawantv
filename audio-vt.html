@@ -346,7 +346,7 @@
 
           <!-- Daftar Klip -->
           <div class="space-y-1.5 max-h-[310px] sm:max-h-[350px] overflow-y-auto pr-1" id="playlistItemsContainer">
-            <!-- Render dinamis -->
+            <!-- Render dinamis dengan tombol hapus (✕) -->
           </div>
         </div>
 
@@ -499,7 +499,7 @@
         </div>
         <div>
           <label class="block font-bold text-slate-400 uppercase mb-1">Tipe Sumber Media:</label>
-          <select id="modalSelectSourceType" onchange="sesuaikanPlaceholderModalUrl(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none">
+          <select id="modalSelectSourceType" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none">
             <option value="youtube">YouTube (URL / 11-Digit Video ID)</option>
             <option value="gdrive">Google Drive Video</option>
             <option value="mp4">HTML5 Native MP4</option>
@@ -904,7 +904,6 @@
       if (lbl) lbl.innerText = loopMode.toUpperCase();
     }
 
-    // LOGIKA AUTO-ADVANCE BERANTAI OTOMATIS
     function tanganiKlipSelesai() {
       if (loopMode === 'single') {
         vtPlaybackState.currentTime = 0;
@@ -967,6 +966,7 @@
         const card = document.createElement('div');
         card.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${isPlayingNow ? 'bg-emerald-950/40 border-emerald-500' : 'bg-slate-950 border-slate-800'}`;
         card.onclick = () => pilihKlipPlaylist(idx);
+        
         card.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0">
             <span class="w-5 h-5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-mono text-[10px] font-bold text-slate-400 shrink-0">${idx + 1}</span>
@@ -975,10 +975,31 @@
               <span class="text-[10px] font-mono text-slate-400 block truncate">${formatTimecode(item.durationSec || 120)}</span>
             </div>
           </div>
-          <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${isPlayingNow ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">${isPlayingNow ? 'ROLLING' : item.sourceType.toUpperCase()}</span>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${isPlayingNow ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">${isPlayingNow ? 'ROLLING' : item.sourceType.toUpperCase()}</span>
+            <button onclick="hapusKlipDariPlaylist(event, ${idx})" class="deck-btn w-6 h-6 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-xs transition" title="Hapus klip ini">
+              ✕
+            </button>
+          </div>
         `;
         container.appendChild(card);
       });
+    }
+
+    function hapusKlipDariPlaylist(e, idx) {
+      e.stopPropagation();
+      if (vtPlaylist.length <= 1) {
+        showNotice("Peringatan", "Minimal harus tersisa 1 klip di dalam daftar playlist.", false);
+        return;
+      }
+      const removed = vtPlaylist[idx];
+      vtPlaylist.splice(idx, 1);
+      if (activePlayingIndex >= vtPlaylist.length) activePlayingIndex = vtPlaylist.length - 1;
+      if (activeCueIndex === idx) activeCueIndex = -1;
+
+      localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
+      renderPlaylistUI();
+      showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus dari antrean.`, true);
     }
 
     function eksekusiQuickAdd() {
