@@ -171,7 +171,7 @@
           <video id="pvwCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
           <div id="pvwVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 opacity-0 pointer-events-none">
-            <div id="pvwVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none">
+            <div id="pvwVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
               <div id="pvwVtYtEl" class="w-full h-full"></div>
             </div>
           </div>
@@ -203,7 +203,7 @@
           <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
           <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 opacity-0 pointer-events-none">
-            <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none">
+            <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
               <div id="pgmVtYtEl" class="w-full h-full"></div>
             </div>
           </div>
@@ -249,7 +249,7 @@
       <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="font-brand font-bold text-slate-200 uppercase tracking-wider">Multiview Live Feeds &amp; ShareScreen[cite: 2]</span>
+          <span class="font-brand font-bold text-slate-200 uppercase tracking-wider">Multiview Live Feeds &amp; ShareScreen</span>
         </div>
         <span class="font-mono text-[10px] text-slate-400">Klik kotak untuk menetapkan ke bus Preview</span>
       </div>
@@ -272,7 +272,7 @@
         </div>
         <div id="mv-card-sharescreen" onclick="pilihBusLangsung('pvw', 'sharescreen')" class="bg-slate-900 border-2 border-indigo-700/60 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-indigo-500 transition shadow">
           <video id="mv-video-sharescreen" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
-          <div class="flex items-center justify-between relative z-10"><span class="font-brand font-black text-xs text-indigo-300">SHARESCREEN</span><span id="mv-badge-sharescreen" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span></div>
+          <div class="flex items-center justify-between relative z-10"><span class="font-brand font-black text-xs text-indigo-300">SCREEN</span><span id="mv-badge-sharescreen" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span></div>
           <div class="text-center font-mono font-bold text-xs text-indigo-400 relative z-10" id="mv-label-sharescreen">DESKTOP</div>
         </div>
         <div id="mv-card-vt" onclick="pilihBusLangsung('pvw', 'vt')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
@@ -297,7 +297,7 @@
             </div>
           </div>
           <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-1.5">
-            <span class="text-[10px] font-mono font-bold text-emerald-400 uppercase">PREVIEW BUS (STANDBY)[cite: 2]</span>
+            <span class="text-[10px] font-mono font-bold text-emerald-400 uppercase">PREVIEW BUS (STANDBY)</span>
             <div class="grid grid-cols-5 gap-2">
               <button id="btn-pvw-cam_1" onclick="pilihBusLangsung('pvw', 'cam_1')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">CAM 1</button>
               <button id="btn-pvw-cam_2" onclick="pilihBusLangsung('pvw', 'cam_2')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">CAM 2</button>
@@ -323,11 +323,84 @@
     let latestVtState = { status: 'playing', currentTime: 0, totalDuration: 120, youtubeId: 'Jnp3esoHb9k', sourceType: 'youtube' };
     const remoteCamStreams = new Map();
     let streamerInstance = null;
+
     let switcherPgmYt = null;
     let switcherPvwYt = null;
+    let isPgmYtReady = false;
+    let isPvwYtReady = false;
+    let currentPgmYtId = '';
+    let currentPvwYtId = '';
 
     function getDatabase() {
       return window.db || (typeof firebase !== 'undefined' ? firebase.database() : null);
+    }
+
+    function extractCleanYtId(raw) {
+      if (!raw) return 'Jnp3esoHb9k';
+      const str = String(raw).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+      const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      return match ? match[1] : 'Jnp3esoHb9k';
+    }
+
+    function initSwitcherYtPlayers() {
+      if (typeof YT === 'undefined' || !YT.Player) return;
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+
+      const playerDefaults = {
+        playsinline: 1,
+        controls: 0,
+        rel: 0,
+        autoplay: 1,
+        mute: 1,
+        modestbranding: 1,
+        disablekb: 1,
+        iv_load_policy: 3
+      };
+
+      if (!switcherPgmYt && document.getElementById('pgmVtYtEl')) {
+        try {
+          switcherPgmYt = new YT.Player('pgmVtYtEl', {
+            height: '100%',
+            width: '100%',
+            host: 'https://www.youtube-nocookie.com',
+            videoId: vidId,
+            playerVars: { ...playerDefaults, loop: 1, playlist: vidId, origin: window.location.origin || 'http://localhost' },
+            events: {
+              onReady: (e) => {
+                isPgmYtReady = true;
+                e.target.mute();
+                syncSwitcherVt();
+              }
+            }
+          });
+        } catch (e) {}
+      }
+
+      if (!switcherPvwYt && document.getElementById('pvwVtYtEl')) {
+        try {
+          switcherPvwYt = new YT.Player('pvwVtYtEl', {
+            height: '100%',
+            width: '100%',
+            host: 'https://www.youtube-nocookie.com',
+            videoId: vidId,
+            playerVars: { ...playerDefaults, loop: 1, playlist: vidId, origin: window.location.origin || 'http://localhost' },
+            events: {
+              onReady: (e) => {
+                isPvwYtReady = true;
+                e.target.mute();
+                syncSwitcherVt();
+              }
+            }
+          });
+        } catch (e) {}
+      }
+    }
+
+    if (window.YT && window.YT.Player) {
+      initSwitcherYtPlayers();
+    } else {
+      window.onYouTubeIframeAPIReady = initSwitcherYtPlayers;
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -360,14 +433,6 @@
       db.ref(`rooms/${token}/cg_state`).on('value', snap => {
         if (!snap.exists()) return;
         applyCgOverlay(snap.val());
-      });
-
-      db.ref(`rooms/${token}/director_cues`).on('value', snap => {
-        if (!snap.exists()) return;
-        const cue = snap.val();
-        if (cue.targetRole === 'SWITCHER' || cue.targetRole === 'ALL') {
-          document.getElementById('directorCueText').innerText = cue.message;
-        }
       });
 
       if (typeof SkawanStreamer !== 'undefined') {
@@ -457,6 +522,7 @@
       document.getElementById('badgePvwSource').innerText = pvwSrc.toUpperCase();
       document.getElementById('pvwScreenLabel').innerText = pvwSrc.toUpperCase();
 
+      // PGM Monitor Update
       const pgmVideo = document.getElementById('pgmCamVideo');
       const pgmFallback = document.getElementById('pgmFallbackBox');
       const pgmVtWrap = document.getElementById('pgmVtWrapper');
@@ -480,14 +546,84 @@
           if (pgmFallback) pgmFallback.classList.remove('hidden');
         }
       }
+
+      // PVW Monitor Update
+      const pvwVideo = document.getElementById('pvwCamVideo');
+      const pvwFallback = document.getElementById('pvwFallbackBox');
+      const pvwVtWrap = document.getElementById('pvwVtWrapper');
+
+      if (pvwSrc === 'vt') {
+        if (pvwVideo) { pvwVideo.classList.remove('opacity-100'); pvwVideo.classList.add('opacity-0', 'pointer-events-none'); }
+        if (pvwFallback) pvwFallback.classList.add('hidden');
+        if (pvwVtWrap) { pvwVtWrap.classList.remove('opacity-0', 'pointer-events-none'); pvwVtWrap.classList.add('opacity-100'); pvwVtWrap.style.zIndex = '15'; }
+      } else {
+        if (pvwVtWrap) { pvwVtWrap.classList.remove('opacity-100'); pvwVtWrap.classList.add('opacity-0', 'pointer-events-none'); pvwVtWrap.style.zIndex = '0'; }
+        const pvwStream = remoteCamStreams.get(pvwSrc) || remoteCamStreams.get(pvwSrc.replace('_', ''));
+        if (pvwStream && pvwVideo) {
+          if (pvwVideo.srcObject !== pvwStream) pvwVideo.srcObject = pvwStream;
+          pvwVideo.classList.remove('opacity-0', 'pointer-events-none');
+          pvwVideo.classList.add('opacity-100');
+          pvwVideo.style.zIndex = '15';
+          if (pvwFallback) pvwFallback.classList.add('hidden');
+          pvwVideo.play().catch(() => {});
+        } else {
+          if (pvwVideo) { pvwVideo.classList.remove('opacity-100'); pvwVideo.classList.add('opacity-0', 'pointer-events-none'); }
+          if (pvwFallback) pvwFallback.classList.remove('hidden');
+        }
+      }
+
+      syncSwitcherVt();
     }
 
     function syncSwitcherVt() {
       const isPgmVt = liveState.programSource === 'vt';
-      const ytWrap = document.getElementById('pgmVtYtWrap');
-      if (ytWrap) {
-        ytWrap.style.opacity = isPgmVt ? '1' : '0';
-        ytWrap.style.zIndex = isPgmVt ? '10' : '0';
+      const isPvwVt = liveState.previewSource === 'vt';
+
+      const pgmYtWrap = document.getElementById('pgmVtYtWrap');
+      const pvwYtWrap = document.getElementById('pvwVtYtWrap');
+
+      if (pgmYtWrap) {
+        pgmYtWrap.style.opacity = isPgmVt ? '1' : '0';
+        pgmYtWrap.style.zIndex = isPgmVt ? '10' : '0';
+      }
+      if (pvwYtWrap) {
+        pvwYtWrap.style.opacity = isPvwVt ? '1' : '0';
+        pvwYtWrap.style.zIndex = isPvwVt ? '10' : '0';
+      }
+
+      const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      const isPlaying = latestVtState.status === 'playing';
+      let curTime = latestVtState.currentTime || 0;
+
+      if (isPlaying && latestVtState.updatedAt) {
+        const elapsed = Math.max(0, (Date.now() - latestVtState.updatedAt) / 1000);
+        curTime = (curTime + elapsed) % (latestVtState.totalDuration || 120);
+      }
+
+      // Sync PGM Player Lockstep
+      if (isPgmYtReady && switcherPgmYt && typeof switcherPgmYt.playVideo === 'function') {
+        switcherPgmYt.mute();
+        if (currentPgmYtId !== ytId) {
+          currentPgmYtId = ytId;
+          switcherPgmYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
+        } else {
+          const c = switcherPgmYt.getCurrentTime() || 0;
+          if (Math.abs(c - curTime) > 3.0) switcherPgmYt.seekTo(curTime, true);
+        }
+        if (isPlaying && isPgmVt) switcherPgmYt.playVideo(); else switcherPgmYt.pauseVideo();
+      }
+
+      // Sync PVW Player Lockstep
+      if (isPvwYtReady && switcherPvwYt && typeof switcherPvwYt.playVideo === 'function') {
+        switcherPvwYt.mute();
+        if (currentPvwYtId !== ytId) {
+          currentPvwYtId = ytId;
+          switcherPvwYt.loadVideoById({ videoId: ytId, startSeconds: curTime });
+        } else {
+          const c = switcherPvwYt.getCurrentTime() || 0;
+          if (Math.abs(c - curTime) > 3.0) switcherPvwYt.seekTo(curTime, true);
+        }
+        if (isPlaying && isPvwVt) switcherPvwYt.playVideo(); else switcherPvwYt.pauseVideo();
       }
     }
 
