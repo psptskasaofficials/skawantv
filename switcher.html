@@ -3,87 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SKAWAN TV - Switcher Deck</title>
-  <!-- Tailwind CSS untuk styling cepat dan bersih -->
+  <title>SKAWAN TV - Switcher</title>
+  <!-- Masukkan CSS / Tailwind sesuai layout asli versi 1.0 Anda -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Firebase SDK (Compat Version untuk kemudahan integrasi Realtime Database) -->
+  <!-- Firebase SDK Compat -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col">
+<body>
 
-  <!-- Header / Navbar Panel -->
-  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center">
-    <div>
-      <h1 class="text-xl font-bold tracking-wider text-red-500">SKAWAN TV <span class="text-sm text-slate-400 font-normal">| Switcher Control Deck</span></h1>
+  <!-- ==========================================
+       GANTI / SESUAIKAN BAGIAN HTML INI 
+       DENGAN STRUKTUR LAYOUT ASLI VERSI 1.0 ANDA
+       ========================================== -->
+  <div class="container">
+    <h1>SKAWAN TV - Switcher Control</h1>
+    <p>Room: <span id="roomBadge">--</span></p>
+
+    <!-- Area Tombol Switcher Asli Anda (Ditambah tombol ShareScreen) -->
+    <div class="switcher-buttons">
+      <button id="btnCam1" onclick="switchSource('cam_1')">Kamera 1</button>
+      <button id="btnCam2" onclick="switchSource('cam_2')">Kamera 2</button>
+      
+      <!-- Tambahan Tombol ShareScreen (Mengikuti gaya tombol asli Anda) -->
+      <button id="btnShare" onclick="startAndShareScreen()">Share Screen</button>
+      
+      <button id="btnStandby" onclick="switchSource('standby')">Standby</button>
     </div>
-    <div class="flex items-center gap-4">
-      <span id="roomBadge" class="bg-slate-700 px-3 py-1 rounded text-xs font-mono text-amber-400">Room: --</span>
-      <span id="connectionStatus" class="inline-block w-3 h-3 rounded-full bg-yellow-500" title="Menghubungkan..."></span>
+
+    <!-- Mini PGM Preview (Opsional sesuai layout asli) -->
+    <div class="mini-pgm-preview">
+      <div id="currentActiveLabel">Status: --</div>
     </div>
-  </header>
+  </div>
 
-  <!-- Main Content Layout -->
-  <main class="flex-1 p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full">
-    
-    <!-- Kolom Kiri & Tengah: Tombol Pemicu Sumber (Switcher Deck) -->
-    <section class="lg:col-span-2 flex flex-col gap-6">
-      <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
-        <h2 class="text-lg font-semibold mb-4 text-slate-200 border-b border-slate-700 pb-2">🎛️ Program Source Switcher</h2>
-        
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- Tombol Kamera 1 -->
-          <button id="btnCam1" onclick="switchSource('cam_1')" class="p-4 rounded-lg font-bold text-left transition border border-slate-600 bg-slate-700 hover:bg-slate-600 flex flex-col justify-between h-28">
-            <span class="text-sm text-slate-400">INPUT 01</span>
-            <span class="text-xl">📷 Kamera Utama (Cam 1)</span>
-            <span class="tally-indicator text-xs font-mono text-slate-400">STANDBY</span>
-          </button>
-
-          <!-- Tombol Kamera 2 -->
-          <button id="btnCam2" onclick="switchSource('cam_2')" class="p-4 rounded-lg font-bold text-left transition border border-slate-600 bg-slate-700 hover:bg-slate-600 flex flex-col justify-between h-28">
-            <span class="text-sm text-slate-400">INPUT 02</span>
-            <span class="text-xl">📷 Kamera Sudut 2 (Cam 2)</span>
-            <span class="tally-indicator text-xs font-mono text-slate-400">STANDBY</span>
-          </button>
-
-          <!-- Tombol ShareScreen -->
-          <button id="btnShare" onclick="startAndShareScreen()" class="p-4 rounded-lg font-bold text-left transition border border-slate-600 bg-slate-700 hover:bg-slate-600 flex flex-col justify-between h-28">
-            <span class="text-sm text-slate-400">INPUT 03</span>
-            <span class="text-xl">🖥️ Share Screen / Presentasi</span>
-            <span class="tally-indicator text-xs font-mono text-slate-400">STANDBY</span>
-          </button>
-
-          <!-- Tombol Standby / Black -->
-          <button id="btnStandby" onclick="switchSource('standby')" class="p-4 rounded-lg font-bold text-left transition border border-slate-600 bg-slate-700 hover:bg-slate-600 flex flex-col justify-between h-28">
-            <span class="text-sm text-slate-400">INPUT 04</span>
-            <span class="text-xl">⬛ Standby / Black Screen</span>
-            <span class="tally-indicator text-xs font-mono text-slate-400">STANDBY</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Kolom Kanan: Mini PGM Preview & Status -->
-    <section class="flex flex-col gap-6">
-      <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg flex flex-col">
-        <h2 class="text-lg font-semibold mb-4 text-slate-200 border-b border-slate-700 pb-2">📺 Mini PGM Preview</h2>
-        
-        <!-- Layar Monitor Kecil -->
-        <div id="miniPgmContainer" class="w-full aspect-video bg-black rounded-lg border border-slate-600 flex items-center justify-center relative overflow-hidden">
-          <span class="text-slate-500 text-sm font-mono animate-pulse">Memuat Preview PGM...</span>
-        </div>
-        <div class="mt-4 text-xs text-slate-400 flex justify-between">
-          <span>Status Aktif:</span>
-          <span id="currentActiveLabel" class="font-bold text-amber-400">--</span>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Skrip Logika Firebase & Interaksi Switcher -->
+  <!-- Skrip Logika Sinkronisasi Firebase & ShareScreen (Layout Tetap Aman) -->
   <script>
-    // Konfigurasi Firebase Anda (Sesuaikan dengan kredensial proyek Anda)
+    // Konfigurasi Firebase Anda
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_AUTH_DOMAIN",
@@ -94,61 +50,57 @@
       appId: "YOUR_APP_ID"
     };
 
-    // Inisialisasi Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
     const database = firebase.database();
 
-    // Ambil Token Ruangan dari URL (contoh: switcher.html?room=STUDIO1)
+    // Ambil Token Ruangan dari URL
     const urlParams = new URLSearchParams(window.location.search);
     const roomToken = urlParams.get('room') || 'DEFAULT_ROOM';
-    document.getElementById('roomBadge.innerText').innerText; // fallback
-    document.getElementById('roomBadge').textContent = `Room: ${roomToken}`;
+    document.getElementById('roomBadge').textContent = roomToken;
 
     const liveStateRef = database.ref(`rooms/${roomToken}/live_state`);
 
-    // 1. Fungsi Mengganti Sumber Video Utama (Kirim perintah ke Firebase)
+    // 1. Fungsi Mengganti Sumber Video Utama ke Firebase
     function switchSource(sourceType) {
       liveStateRef.update({
         programSource: sourceType,
         isSharing: (sourceType === 'sharescreen'),
         lastUpdated: Date.now()
       }).catch((error) => {
-        console.error("Gagal mengganti sumber PGM:", error);
+        console.error("Gagal mengganti sumber:", error);
       });
     }
 
-    // 2. Fungsi Khusus ShareScreen
+    // 2. Fungsi ShareScreen (Tanpa merusak layout)
     async function startAndShareScreen() {
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         
-        // Update state ke Firebase
+        // Kirim sinyal ke Firebase bahwa source aktif adalah sharescreen
         switchSource('sharescreen');
 
-        // Jika pengguna menekan tombol "Stop Sharing" dari browser bar
+        // Jika pengguna menutup share screen dari browser, kembalikan ke kamera 1
         screenStream.getVideoTracks()[0].onended = function () {
-          switchSource('cam_1'); // Kembali otomatis ke cam_1 saat share ditutup
+          switchSource('cam_1');
         };
       } catch (error) {
-        console.error("ShareScreen dibatalkan atau gagal:", error);
+        console.error("ShareScreen dibatalkan:", error);
       }
     }
 
-    // 3. Listener Real-time untuk Sinkronisasi Tampilan & Tombol Tally
+    // 3. Listener Real-time untuk Sinkronisasi Status Tally / Tombol Aktif
     liveStateRef.on('value', (snapshot) => {
-      const statusIndicator = document.getElementById('connectionStatus');
-      statusIndicator.classList.remove('bg-yellow-500', 'bg-red-500');
-      statusIndicator.classList.add('bg-green-500'); // Terhubung
-
       if (!snapshot.exists()) return;
       const state = snapshot.val();
       const activeSource = state.programSource || 'cam_1';
 
-      document.getElementById('currentActiveLabel').textContent = activeSource.toUpperCase();
+      // Update label status
+      const label = document.getElementById('currentActiveLabel');
+      if (label) label.textContent = `Status: ${activeSource.toUpperCase()}`;
 
-      // Reset semua tombol ke kondisi Standby / Hijau redup
+      // Indikator visual tombol aktif (Opsional: sesuaikan kelas CSS dengan versi 1.0 Anda)
       const buttons = {
         'cam_1': document.getElementById('btnCam1'),
         'cam_2': document.getElementById('btnCam2'),
@@ -158,21 +110,12 @@
 
       Object.keys(buttons).forEach(key => {
         const btn = buttons[key];
-        const tally = btn.querySelector('.tally-indicator');
-        if (key === activeSource) {
-          // Tally ON-AIR (Merah Menyala)
-          btn.classList.remove('bg-slate-700', 'border-slate-600');
-          btn.classList.add('bg-red-900/60', 'border-red-500', 'ring-2', 'ring-red-500');
-          tally.textContent = 'ON-AIR (LIVE)';
-          tally.classList.remove('text-slate-400');
-          tally.classList.add('text-red-400', 'font-bold');
-        } else {
-          // Standby (Normal)
-          btn.classList.remove('bg-red-900/60', 'border-red-500', 'ring-2', 'ring-red-500');
-          btn.classList.add('bg-slate-700', 'border-slate-600');
-          tally.textContent = 'STANDBY';
-          tally.classList.remove('text-red-400', 'font-bold');
-          tally.classList.add('text-slate-400');
+        if (btn) {
+          if (key === activeSource) {
+            btn.style.border = "2px solid red"; // Penanda sederhana aktif (bisa diganti class CSS asli)
+          } else {
+            btn.style.border = "none";
+          }
         }
       });
     });
