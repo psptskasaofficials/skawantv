@@ -4,10 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Switcher (ATEM Desk) | SKAWAN TV</title>
+  
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
   <script>
     tailwind.config = {
       theme: {
@@ -18,100 +22,287 @@
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
-            skawan: { red: '#E50914', darkBg: '#090D14', cardDark: '#121824', borderDark: '#1E293B' }
+            skawan: {
+              red: '#E50914',
+              redHover: '#C70812',
+              darkBg: '#090D14',
+              cardDark: '#121824',
+              borderDark: '#1E293B',
+              atemDark: '#0B0F19',
+              atemPanel: '#161D2B'
+            }
           }
         }
       }
     }
   </script>
+
+  <!-- Firebase SDK (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+
+  <!-- Native WebRTC Streamer & YouTube API -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
+
   <style>
-    .atem-btn { transition: all 0.1s ease; user-select: none; }
-    .atem-btn:active { transform: scale(0.96); }
-    .btn-pgm-active { background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%) !important; color: #fff !important; box-shadow: 0 0 18px rgba(239, 68, 68, 0.85); }
-    .btn-pvw-active { background: linear-gradient(180deg, #10b981 0%, #047857 100%) !important; color: #fff !important; box-shadow: 0 0 18px rgba(16, 185, 129, 0.75); }
-    iframe.video-fit { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
-    video, iframe { transform: translateZ(0); backface-visibility: hidden; }
+    .atem-btn {
+      transition: all 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .atem-btn:active {
+      transform: scale(0.96);
+    }
+    .btn-pgm-active {
+      background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%) !important;
+      color: #ffffff !important;
+      border-color: #f87171 !important;
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.85), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
+    }
+    .btn-pvw-active {
+      background: linear-gradient(180deg, #10b981 0%, #047857 100%) !important;
+      color: #ffffff !important;
+      border-color: #34d399 !important;
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
+    }
+    @keyframes ticker-anim {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .marquee-text {
+      display: inline-block;
+      white-space: nowrap;
+      animation: ticker-anim 16s linear infinite;
+    }
+    iframe.video-fit {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      pointer-events: none;
+    }
+    video, iframe, #pgmVtWrapper, #pvwVtWrapper {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col pb-6">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white pb-6">
+
+  <!-- TOP NAVIGATION BAR -->
   <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
-    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="index.html" class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-white">SW</div>
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-base text-white shadow-sm shadow-red-600/30">
+            SW
+          </div>
           <div>
-            <div class="flex items-center gap-1"><span class="font-brand font-black text-white text-base">SKAWAN</span><span class="font-brand font-black text-red-500 text-base">TV</span></div>
-            <span class="text-[9px] uppercase text-slate-400 block">ATEM Mini Pro Video Switcher</span>
+            <div class="flex items-center gap-1">
+              <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
+              <span class="font-brand font-black text-red-500 text-base leading-none">TV</span>
+            </div>
+            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">ATEM Mini Pro Video Switcher</span>
           </div>
         </a>
+        <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-950/60 text-red-400 border border-red-800">
+          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+          Master Switching Desk
+        </span>
       </div>
-      <div class="flex items-center gap-2">
-        <div class="bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-xs">Ruangan: <span id="navRoomToken" class="font-mono font-bold text-red-400">SKASA</span></div>
-        <button onclick="bukaModalKeluar()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg transition">Keluar</button>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
+          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
+          <span id="navRoomToken" class="font-mono font-bold text-xs text-red-400">SKASA</span>
+        </div>
+        <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
+          <span>👤</span>
+          <span id="navUserName">Switcher Operator</span>
+        </div>
+        <button onclick="window.location.href='login.html'" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar">
+          <span>🚪</span>
+          <span class="hidden sm:inline">Keluar</span>
+        </button>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-4 py-3 w-full flex-1 space-y-4">
-    <!-- Dual Monitor -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Preview -->
-      <div class="bg-slate-950 border-2 border-emerald-500 rounded-2xl p-3 shadow-xl space-y-2">
-        <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs text-emerald-400 font-bold uppercase">
-          <span>PREVIEW (PVW)</span><span id="badgePvwSource" class="font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300">CAM 2</span>
+  <!-- BANNER KOMANDO SUTRADARA (PD INTERCOM) -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
+    <div id="directorCueBanner" class="bg-gradient-to-r from-red-600 via-rose-600 to-indigo-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-red-500/30">
+      <div class="flex items-center gap-2.5">
+        <div class="p-1.5 rounded-xl bg-white/20 shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
         </div>
-        <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800">
-          <video id="pvwCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 opacity-0 pointer-events-none" autoplay playsinline muted></video>
-          <div id="pvwFallbackBox" class="text-center relative z-0"><span id="pvwScreenLabel" class="font-brand font-black text-3xl text-slate-300">CAM 2</span></div>
+        <div>
+          <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-rose-200 block">INSTRUKSI SUTRADARA (PD):</span>
+          <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby Cam 1 & Siapkan Transisi</span>
+        </div>
+      </div>
+      <span id="directorCueTime" class="text-[10px] font-mono bg-black/30 px-2 py-0.5 rounded font-bold shrink-0">LIVE</span>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
+
+    <!-- DUAL MONITOR UTAMA (PREVIEW vs PROGRAM) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <!-- Layar PREVIEW (PVW - HIJAU) -->
+      <div class="bg-slate-950 border-2 border-emerald-500 rounded-2xl p-3 shadow-xl space-y-2 relative overflow-hidden">
+        <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="font-brand font-black text-xs uppercase tracking-wider text-emerald-400">PREVIEW (PVW)</span>
+          </div>
+          <span id="badgePvwSource" class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 uppercase">
+            CAM 2
+          </span>
+        </div>
+
+        <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="pvwScreenContainer">
+          <video id="pvwCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
+
+          <div id="pvwVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 opacity-0 pointer-events-none">
+            <div id="pvwVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none">
+              <div id="pvwVtYtEl" class="w-full h-full"></div>
+            </div>
+          </div>
+
+          <div id="pvwFallbackBox" class="text-center space-y-1 relative z-0">
+            <span id="pvwScreenLabel" class="font-brand font-black text-3xl sm:text-4xl text-slate-300 tracking-wider">CAM 2</span>
+            <span class="text-[10px] font-mono text-emerald-400 block uppercase">STANDBY</span>
+          </div>
+
+          <div class="absolute bottom-2 left-2 bg-emerald-600/90 text-white font-mono text-[9px] px-2 py-0.5 rounded font-bold z-20">
+            PREVIEW BUS
+          </div>
         </div>
       </div>
 
-      <!-- Program -->
-      <div class="bg-slate-950 border-2 border-red-600 rounded-2xl p-3 shadow-2xl space-y-2">
-        <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs text-red-500 font-bold uppercase">
-          <span>PROGRAM (PGM) • ON-AIR</span><span id="badgePgmSource" class="font-mono px-2 py-0.5 rounded bg-red-950 text-red-300 animate-pulse">CAM 1</span>
+      <!-- Layar PROGRAM (PGM ON-AIR - MERAH) -->
+      <div class="bg-slate-950 border-2 border-red-600 rounded-2xl p-3 shadow-2xl space-y-2 relative overflow-hidden" id="pgmMainCard">
+        <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
+            <span class="font-brand font-black text-xs uppercase tracking-wider text-red-500">PROGRAM (PGM) &bull; ON-AIR</span>
+          </div>
+          <span id="badgePgmSource" class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-700 animate-pulse uppercase">
+            CAM 1
+          </span>
         </div>
-        <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800">
-          <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 opacity-0 pointer-events-none" autoplay playsinline muted></video>
-          <!-- Layer VT di PGM Switcher -->
-          <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 opacity-0 pointer-events-none">
-            <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none"><div id="pgmVtYtEl" class="w-full h-full"></div></div>
+
+        <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 transition-opacity duration-300" id="pgmScreenContainer">
+          <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
+
+          <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 opacity-0 pointer-events-none">
+            <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none">
+              <div id="pgmVtYtEl" class="w-full h-full"></div>
+            </div>
           </div>
-          <div id="pgmFallbackBox" class="text-center relative z-0"><span id="pgmScreenLabel" class="font-brand font-black text-3xl text-red-500">CAM 1</span></div>
-          
-          <!-- CG Overlay -->
-          <div id="pgmLowerThirdBox" class="hidden absolute bottom-7 left-3 right-3 z-30">
-            <div id="pgmLtTitle" class="bg-red-600 text-white font-bold text-xs px-3 py-1 rounded-t-lg inline-block">NAMA</div>
-            <div id="pgmLtSubtitle" class="bg-slate-950/95 border-l-4 border-red-500 text-slate-100 text-[11px] px-3 py-1 rounded-b-lg"><span>Keterangan</span></div>
+
+          <div id="pgmFallbackBox" class="text-center space-y-1 relative z-0">
+            <span id="pgmScreenLabel" class="font-brand font-black text-3xl sm:text-4xl text-red-500 tracking-wider">CAM 1</span>
+            <span class="text-[10px] font-mono text-red-400 block uppercase">LIVE BROADCAST</span>
           </div>
+
+          <!-- Lower Third Overlay -->
+          <div id="pgmLowerThirdBox" class="hidden absolute bottom-7 left-3 right-3 z-30 transition-all duration-300">
+            <div id="pgmLtTitle" class="bg-gradient-to-r from-red-600 to-rose-600 text-white font-brand font-black text-xs px-3 py-1 rounded-t-lg inline-block">NAMA</div>
+            <div id="pgmLtSubtitle" class="bg-slate-950/95 border-l-4 border-red-500 text-slate-100 text-[11px] font-medium px-3 py-1 rounded-b-lg flex items-center justify-between">
+              <span>Keterangan</span>
+              <span class="text-[9px] font-mono text-red-400 font-bold ml-2">LIVE</span>
+            </div>
+          </div>
+
+          <!-- Bug Logo -->
+          <div id="pgmBugLogo" class="hidden absolute top-3 right-3 z-30 flex items-center justify-center max-w-[130px] max-h-10">
+            <div class="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded border border-white/20">
+              <span class="text-[9px] font-brand font-black text-white uppercase">SKAWAN <span class="text-red-500">TV</span></span>
+            </div>
+          </div>
+
+          <!-- Ticker -->
+          <div id="pgmTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-5 bg-red-700 text-white z-30 overflow-hidden flex items-center">
+            <div id="switcherTickerWibHeader" class="bg-slate-950 px-2 h-full flex items-center font-mono font-black text-[8px] text-amber-400 shrink-0">00:00 WIB</div>
+            <div class="w-full overflow-hidden text-[9px] font-medium px-1">
+              <span id="pgmTickerText" class="marquee-text">Siaran Simulasi SKAWAN TV</span>
+            </div>
+          </div>
+
+          <!-- Live Badge -->
+          <div id="badgeLiveOnAir" class="hidden absolute top-2 left-2 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded shadow z-30 animate-pulse">LIVE</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MULTIVIEW FEEDS BARIS BAWAH -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 shadow-md space-y-2">
+      <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="font-brand font-bold text-slate-200 uppercase tracking-wider">Multiview Live Feeds &amp; ShareScreen[cite: 2]</span>
+        </div>
+        <span class="font-mono text-[10px] text-slate-400">Klik kotak untuk menetapkan ke bus Preview</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5" id="multiviewCardsGrid">
+        <div id="mv-card-cam_1" onclick="pilihBusLangsung('pvw', 'cam_1')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
+          <video id="mv-video-cam_1" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+          <div class="flex items-center justify-between relative z-10"><span class="font-brand font-black text-xs text-white">CAM 1</span><span id="mv-badge-cam_1" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span></div>
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_1">MENUNGGU</div>
+        </div>
+        <div id="mv-card-cam_2" onclick="pilihBusLangsung('pvw', 'cam_2')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
+          <video id="mv-video-cam_2" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+          <div class="flex items-center justify-between relative z-10"><span class="font-brand font-black text-xs text-white">CAM 2</span><span id="mv-badge-cam_2" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span></div>
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_2">MENUNGGU</div>
+        </div>
+        <div id="mv-card-cam_3" onclick="pilihBusLangsung('pvw', 'cam_3')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
+          <video id="mv-video-cam_3" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+          <div class="flex items-center justify-between relative z-10"><span class="font-brand font-black text-xs text-white">CAM 3</span><span id="mv-badge-cam_3" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span></div>
+          <div class="text-center font-mono font-bold text-xs text-slate-400 relative z-10" id="mv-label-cam_3">MENUNGGU</div>
+        </div>
+        <div id="mv-card-sharescreen" onclick="pilihBusLangsung('pvw', 'sharescreen')" class="bg-slate-900 border-2 border-indigo-700/60 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-indigo-500 transition shadow">
+          <video id="mv-video-sharescreen" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none" autoplay playsinline muted></video>
+          <div class="flex items-center justify-between relative z-10"><span class="font-brand font-black text-xs text-indigo-300">SHARESCREEN</span><span id="mv-badge-sharescreen" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span></div>
+          <div class="text-center font-mono font-bold text-xs text-indigo-400 relative z-10" id="mv-label-sharescreen">DESKTOP</div>
+        </div>
+        <div id="mv-card-vt" onclick="pilihBusLangsung('pvw', 'vt')" class="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden cursor-pointer hover:border-slate-500 transition shadow">
+          <div class="flex items-center justify-between relative z-10"><span class="font-brand font-black text-xs text-white">VT / MEDIA</span><span id="mv-badge-vt" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">OFF</span></div>
+          <div class="text-center font-mono font-bold text-xs text-amber-400 relative z-10">PLAYOUT</div>
         </div>
       </div>
     </div>
 
-    <!-- ATEM Control Desk -->
-    <div class="bg-slate-950 border-2 border-slate-800 rounded-2xl p-4 shadow-2xl space-y-4">
+    <!-- ATEM CONTROL DESK -->
+    <div class="bg-slate-950 border-2 border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div class="lg:col-span-8 space-y-3">
           <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-1.5">
-            <span class="text-[10px] font-mono font-bold text-red-400 uppercase">PROGRAM BUS</span>
-            <div class="grid grid-cols-4 gap-2">
+            <span class="text-[10px] font-mono font-bold text-red-400 uppercase">PROGRAM BUS (ON-AIR)</span>
+            <div class="grid grid-cols-5 gap-2">
               <button id="btn-pgm-cam_1" onclick="pilihBusLangsung('pgm', 'cam_1')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">CAM 1</button>
               <button id="btn-pgm-cam_2" onclick="pilihBusLangsung('pgm', 'cam_2')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">CAM 2</button>
               <button id="btn-pgm-cam_3" onclick="pilihBusLangsung('pgm', 'cam_3')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">CAM 3</button>
+              <button id="btn-pgm-sharescreen" onclick="pilihBusLangsung('pgm', 'sharescreen')" class="atem-btn py-3 rounded-xl border border-indigo-700 bg-slate-800 font-bold text-xs text-indigo-300">SCREEN</button>
               <button id="btn-pgm-vt" onclick="pilihBusLangsung('pgm', 'vt')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">VT</button>
             </div>
           </div>
           <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-1.5">
-            <span class="text-[10px] font-mono font-bold text-emerald-400 uppercase">PREVIEW BUS</span>
-            <div class="grid grid-cols-4 gap-2">
+            <span class="text-[10px] font-mono font-bold text-emerald-400 uppercase">PREVIEW BUS (STANDBY)[cite: 2]</span>
+            <div class="grid grid-cols-5 gap-2">
               <button id="btn-pvw-cam_1" onclick="pilihBusLangsung('pvw', 'cam_1')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">CAM 1</button>
               <button id="btn-pvw-cam_2" onclick="pilihBusLangsung('pvw', 'cam_2')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">CAM 2</button>
               <button id="btn-pvw-cam_3" onclick="pilihBusLangsung('pvw', 'cam_3')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">CAM 3</button>
+              <button id="btn-pvw-sharescreen" onclick="pilihBusLangsung('pvw', 'sharescreen')" class="atem-btn py-3 rounded-xl border border-indigo-700 bg-slate-800 font-bold text-xs text-indigo-300">SCREEN</button>
               <button id="btn-pvw-vt" onclick="pilihBusLangsung('pvw', 'vt')" class="atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 font-bold text-xs text-slate-200">VT</button>
             </div>
           </div>
@@ -133,6 +324,7 @@
     const remoteCamStreams = new Map();
     let streamerInstance = null;
     let switcherPgmYt = null;
+    let switcherPvwYt = null;
 
     function getDatabase() {
       return window.db || (typeof firebase !== 'undefined' ? firebase.database() : null);
@@ -170,6 +362,14 @@
         applyCgOverlay(snap.val());
       });
 
+      db.ref(`rooms/${token}/director_cues`).on('value', snap => {
+        if (!snap.exists()) return;
+        const cue = snap.val();
+        if (cue.targetRole === 'SWITCHER' || cue.targetRole === 'ALL') {
+          document.getElementById('directorCueText').innerText = cue.message;
+        }
+      });
+
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -177,6 +377,14 @@
           onRemoteStream: (camKey, stream) => {
             const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
             remoteCamStreams.set(normKey, stream);
+            remoteCamStreams.set(camKey, stream);
+
+            const mvVideo = document.getElementById(`mv-video-${normKey}`) || document.getElementById(`mv-video-${camKey}`);
+            if (mvVideo) {
+              if (mvVideo.srcObject !== stream) mvVideo.srcObject = stream;
+              mvVideo.classList.remove('hidden');
+              mvVideo.play().catch(() => {});
+            }
             updateMonitors();
           }
         });
@@ -209,18 +417,45 @@
     }
 
     function updateBusButtons() {
-      ['cam_1', 'cam_2', 'cam_3', 'vt'].forEach(src => {
+      ['cam_1', 'cam_2', 'cam_3', 'sharescreen', 'vt'].forEach(src => {
         const pgmBtn = document.getElementById(`btn-pgm-${src}`);
         const pvwBtn = document.getElementById(`btn-pvw-${src}`);
         if (pgmBtn) pgmBtn.className = src === liveState.programSource ? "atem-btn py-3 rounded-xl border btn-pgm-active font-bold text-xs" : "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold text-xs";
         if (pvwBtn) pvwBtn.className = src === liveState.previewSource ? "atem-btn py-3 rounded-xl border btn-pvw-active font-bold text-xs" : "atem-btn py-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-bold text-xs";
       });
+      updateTallyVisuals();
+    }
+
+    function updateTallyVisuals() {
+      ['cam_1', 'cam_2', 'cam_3', 'sharescreen', 'vt'].forEach(src => {
+        const card = document.getElementById(`mv-card-${src}`);
+        const badge = document.getElementById(`mv-badge-${src}`);
+        if (!card || !badge) return;
+
+        if (src === liveState.programSource) {
+          card.className = "bg-slate-900 border-2 border-red-500 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden shadow-lg ring-1 ring-red-500/50";
+          badge.className = "text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse shadow";
+          badge.innerText = "PGM";
+        } else if (src === liveState.previewSource) {
+          card.className = "bg-slate-900 border-2 border-emerald-500 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden shadow-md ring-1 ring-emerald-500/50";
+          badge.className = "text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow";
+          badge.innerText = "PVW";
+        } else {
+          card.className = "bg-slate-900 border-2 border-slate-700 rounded-xl p-2 flex flex-col justify-between aspect-video relative overflow-hidden transition shadow";
+          badge.className = "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400";
+          badge.innerText = "OFF";
+        }
+      });
     }
 
     function updateMonitors() {
       const activeSrc = liveState.programSource || 'cam_1';
+      const pvwSrc = liveState.previewSource || 'cam_2';
+
       document.getElementById('badgePgmSource').innerText = activeSrc.toUpperCase();
       document.getElementById('pgmScreenLabel').innerText = activeSrc.toUpperCase();
+      document.getElementById('badgePvwSource').innerText = pvwSrc.toUpperCase();
+      document.getElementById('pvwScreenLabel').innerText = pvwSrc.toUpperCase();
 
       const pgmVideo = document.getElementById('pgmCamVideo');
       const pgmFallback = document.getElementById('pgmFallbackBox');
@@ -266,8 +501,6 @@
         ltBox.classList.add('hidden');
       }
     }
-
-    function bukaModalKeluar() { window.location.href = 'login.html'; }
   </script>
 </body>
 </html>
