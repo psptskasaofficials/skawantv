@@ -144,7 +144,7 @@
     </div>
   </nav>
 
-  <!-- BANNER KOMANDO INTERCOM -->
+  <!-- BANNER KOMANDO INTERCOM SUTRADARA -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
     <div id="directorCueBanner" class="bg-gradient-to-r from-amber-600 via-orange-600 to-red-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-amber-400/40">
       <div class="flex items-center gap-2.5">
@@ -153,7 +153,7 @@
         </div>
         <div>
           <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-200 block">KOMANDO SUTRADARA (PD):</span>
-          <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby VT Bumper &amp; Naikkan Fader Host</span>
+          <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby VT &amp; Sinkronkan Audio Master</span>
         </div>
       </div>
       <span id="directorCueTime" class="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded font-bold shrink-0">LIVE</span>
@@ -176,7 +176,7 @@
             </div>
             <div class="flex items-center gap-1.5">
               <span id="badgeVtOnAirStatus" class="font-mono text-[10px] font-black px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 uppercase">
-                READY
+                STANDBY
               </span>
               <span id="badgeVtSourceType" class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 uppercase">
                 YOUTUBE
@@ -195,11 +195,11 @@
             <div id="audioVtFallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-slate-950/80 space-y-2">
               <span class="text-3xl">🎬</span>
               <span class="font-brand font-black text-sm text-slate-300">Belum Ada Media VT Dipilih</span>
-              <span class="text-[11px] font-mono text-slate-500">Pilih klip di playlist sebelah kanan atau tempel link baru</span>
+              <span class="text-[11px] font-mono text-slate-500">Pilih klip di playlist atau masukkan URL baru</span>
             </div>
 
             <div class="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-white/10 font-mono text-[11px] text-amber-400 font-bold z-20">
-              <span id="lblTimecodeCurrent">00:00</span> / <span id="lblTimecodeTotal" class="text-slate-400">02:00</span>
+              <span id="lblTimecodeCurrent">00:00</span> / <span id="lblTimecodeTotal" class="text-slate-400">00:00</span>
             </div>
           </div>
 
@@ -207,7 +207,7 @@
           <div class="space-y-1">
             <input type="range" id="sliderVtProgress" min="0" max="120" value="0" step="1" oninput="seekVtPosition(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
             <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span id="lblActiveClipTitle" class="text-white font-bold truncate max-w-[280px]">SKAWAN TV Broadcast</span>
+              <span id="lblActiveClipTitle" class="text-white font-bold truncate max-w-[280px]">Menyinkronkan Siaran...</span>
               <span id="lblVtPercent" class="text-amber-400 font-bold">0%</span>
             </div>
           </div>
@@ -244,7 +244,7 @@
               </button>
             </div>
 
-            <!-- Loop Switcher -->
+            <!-- Loop Mode Selection -->
             <div class="flex flex-wrap items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[11px] font-mono gap-1">
               <span class="text-slate-400 flex items-center gap-1">
                 <span>🔁</span>
@@ -265,7 +265,7 @@
           </div>
         </div>
 
-        <!-- PGM RETURN MONITOR REAL-TIME -->
+        <!-- PGM RETURN MONITOR REAL-TIME (SYNCHRONIZED WITH INDEX.HTML) -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
             <div class="flex items-center gap-2">
@@ -278,11 +278,22 @@
           </div>
 
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="pgmReturnViewport">
+            <!-- Feed Kamera WebRTC -->
             <video id="pgmReturnCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
+
+            <!-- Feed VT Visual saat PGM aktif di VT -->
+            <div id="pgmReturnVtWrapper" class="absolute inset-0 w-full h-full bg-black z-10 opacity-0 pointer-events-none transition-opacity duration-200 flex items-center justify-center">
+              <div id="pgmReturnVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
+                <iframe id="pgmReturnYtIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="" allow="autoplay" tabindex="-1"></iframe>
+              </div>
+            </div>
+
+            <!-- Fallback Standby Label -->
             <div id="pgmReturnFallback" class="text-center space-y-1 relative z-0">
               <span id="pgmReturnFallbackLabel" class="font-brand font-black text-2xl text-slate-500">CAM 1</span>
               <span class="text-[10px] font-mono text-slate-400 block uppercase">SUMBER SIARAN AKTIF</span>
             </div>
+
             <div class="absolute bottom-2 left-2 bg-red-600 text-white font-mono text-[9px] px-2 py-0.5 rounded font-bold z-20 shadow">
               PROGRAM OUT
             </div>
@@ -312,7 +323,7 @@
           <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Input Cepat Tautan YouTube / Video ID:</span>
             <div class="grid grid-cols-12 gap-1.5">
-              <input type="text" id="quickAddTitle" placeholder="Judul Klip (cth: Bumper)" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500">
+              <input type="text" id="quickAddTitle" placeholder="Judul Klip (cth: Profil Segmen 1)" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500">
               <input type="text" id="quickAddUrl" placeholder="Tempel URL YouTube / Video ID" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-500">
               <button onclick="eksekusiQuickAdd()" class="col-span-2 deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-black rounded-lg text-xs flex items-center justify-center">
                 + Tambah
@@ -325,9 +336,9 @@
         </div>
 
         <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-          <span id="lblPlaylistCount">Total Klip: 1 Video</span>
-          <button onclick="resetPlaylistKeDefault()" class="text-slate-500 hover:text-amber-400 text-[11px] underline transition">
-            Muat Klip Bawaan SKAWAN TV
+          <span id="lblPlaylistCount">Total Klip: 0 Video</span>
+          <button onclick="kosongkanPlaylistManual()" class="text-slate-500 hover:text-amber-400 text-[11px] underline transition">
+            Bersihkan Seluruh Playlist
           </button>
         </div>
       </div>
@@ -438,6 +449,46 @@
     </div>
   </main>
 
+  <!-- MODAL TAMBAH KLIP -->
+  <div id="modalTambahKlip" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-white">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+          <h3 class="font-brand font-black text-sm uppercase tracking-wider text-white">Tambah Klip Video ke Playlist</h3>
+        </div>
+        <button onclick="tutupModalTambahKlip()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-400 uppercase mb-1">Judul Klip:</label>
+          <input type="text" id="modalInputClipTitle" placeholder="Contoh: Liputan Lapangan" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-400 uppercase mb-1">Tipe Sumber Media:</label>
+          <select id="modalSelectSourceType" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none">
+            <option value="youtube">YouTube (URL / 11-Digit Video ID)</option>
+            <option value="mp4">HTML5 Native MP4</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-400 uppercase mb-1">URL YouTube / Video ID:</label>
+          <input type="text" id="modalInputClipUrl" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-400 uppercase mb-1">Perkiraan Durasi (Detik):</label>
+          <input type="number" id="modalInputClipDuration" min="5" max="3600" value="120" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono outline-none focus:border-amber-500">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="tutupModalTambahKlip()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">Batal</button>
+        <button onclick="eksekusiModalTambahKlip()" class="deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">Simpan ke Playlist</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL NOTIFIKASI -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
@@ -468,34 +519,24 @@
     let currentRoomToken = 'SKASA';
     let currentRoleKey = 'audio_vt';
     let currentSiswaUser = '';
-    
-    // KUNCI SINKRONISASI: Mencegah timpaan data ke Firebase saat baru memuat halaman
+
+    // Kunci Sinkronisasi Pasif (Passive Sync Lock)
     let isCatchingUp = true;
     let syncLockTimeout = null;
 
-    let vtPlaylist = [
-      {
-        id: 'vt_default_skawan',
-        title: 'SKAWAN TV Broadcast',
-        sourceType: 'youtube',
-        youtubeId: 'Jnp3esoHb9k',
-        url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
-        durationSec: 120
-      }
-    ];
-
-    let activePlayingIndex = 0;
+    let vtPlaylist = [];
+    let activePlayingIndex = -1;
     let activeCueIndex = -1;
     let loopMode = localStorage.getItem('skawan_vt_loop_mode') || 'playlist';
 
     let vtPlaybackState = {
-      status: 'playing',
+      status: 'paused',
       currentTime: 0,
       totalDuration: 120,
-      title: 'SKAWAN TV Broadcast',
+      title: 'Menghubungkan ke PGM...',
       sourceType: 'youtube',
-      youtubeId: 'Jnp3esoHb9k',
-      url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k'
+      youtubeId: '',
+      url: ''
     };
 
     let liveState = { programSource: 'cam_1', previewSource: 'cam_2' };
@@ -529,11 +570,11 @@
     }
 
     function extractCleanYtId(raw) {
-      if (!raw) return 'Jnp3esoHb9k';
+      if (!raw) return '';
       const str = String(raw).trim();
       if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
       const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-      return match ? match[1] : 'Jnp3esoHb9k';
+      return match ? match[1] : '';
     }
 
     function formatTimecode(sec) {
@@ -551,12 +592,13 @@
       }
     }
 
+    // Inisialisasi YouTube API Standalone
     function initAudioYtPlayer() {
       if (isYtReady && audioYtPlayer) return;
       if (typeof YT === 'undefined' || !YT.Player) return;
 
-      const currentClip = vtPlaylist[activePlayingIndex] || vtPlaylist[0];
-      const vidId = extractCleanYtId(currentClip.youtubeId || currentClip.url);
+      const vidId = extractCleanYtId(vtPlaybackState.youtubeId || vtPlaybackState.url);
+      if (!vidId) return;
 
       try {
         audioYtPlayer = new YT.Player('audioVtYtEl', {
@@ -577,8 +619,8 @@
             onReady: (e) => {
               isYtReady = true;
               currentLoadedYtId = vidId;
-              
-              // KUNCI CATCH-UP: Lompat langsung ke detik siaran yang sedang berjalan
+
+              // Langsung melompat ke detik berjalan dari siaran Firebase
               if (vtPlaybackState.currentTime > 0) {
                 e.target.seekTo(vtPlaybackState.currentTime, true);
               }
@@ -589,14 +631,14 @@
               }
               updateAudioFaderVolume();
 
-              // Buka kunci pengiriman data setelah player sinkron
+              // Buka kunci proteksi setelah pemutar lokal sinkron
               clearTimeout(syncLockTimeout);
               syncLockTimeout = setTimeout(() => {
                 isCatchingUp = false;
-              }, 1200);
+              }, 1500);
             },
             onStateChange: (e) => {
-              // Jika baru memuat ulang, abaikan event agar tidak menimpa Firebase
+              // Jika sedang dalam proses catch-up pasif, jangan kirim perubahan ke Firebase
               if (isCatchingUp) return;
 
               if (e.data === YT.PlayerState.PLAYING) {
@@ -636,66 +678,78 @@
       initAudioVtSystem(currentRoomToken);
     });
 
+    // PENGAMBILAN LANGSUNG DARI FIREBASE (TANPA BUMPER BAWAAN)
     function initAudioVtSystem(token) {
       const activeDb = getDatabase();
+      if (!activeDb) return;
 
-      if (activeDb) {
-        // Ambil Playlist
-        activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
-          if (snap.exists()) {
-            const data = snap.val();
-            if (Array.isArray(data) && data.length > 0) {
-              vtPlaylist = data;
-              localStorage.setItem(`skawan_vt_playlist_${token}`, JSON.stringify(vtPlaylist));
-              renderPlaylistUI();
-            }
-          } else {
-            activeDb.ref(`rooms/${token}/vt_playlist`).set(vtPlaylist);
+      // 1. Ambil Antrean Playlist Tersimpan
+      activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
+        if (snap.exists()) {
+          const data = snap.val();
+          if (Array.isArray(data)) {
+            vtPlaylist = data;
+            localStorage.setItem(`skawan_vt_playlist_${token}`, JSON.stringify(vtPlaylist));
+            renderPlaylistUI();
           }
-        });
+        }
+      });
 
-        // Ambil State VT Aktif & Hitung Waktu Berjalan Presisi (Catch-Up)
-        activeDb.ref(`rooms/${token}/vt_state`).once('value', snap => {
-          if (snap.exists()) {
-            const remoteVt = snap.val();
-            let calculatedCurrent = remoteVt.currentTime || 0;
+      // 2. Ambil State Siaran Berjalan dari Firebase PGM
+      activeDb.ref(`rooms/${token}/vt_state`).on('value', snap => {
+        if (!snap.exists()) return;
+        const remoteVt = snap.val();
 
-            // Jika sedang berputar, hitung selisih waktu detik nyata
-            if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
-              const elapsedSec = Math.max(0, (Date.now() - remoteVt.updatedAt) / 1000);
-              calculatedCurrent = (remoteVt.currentTime + elapsedSec) % (remoteVt.totalDuration || 120);
-            }
+        // Hitung waktu siaran nyata secara presisi
+        let calculatedCurrent = remoteVt.currentTime || 0;
+        if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
+          const elapsedSec = Math.max(0, (Date.now() - remoteVt.updatedAt) / 1000);
+          calculatedCurrent = (remoteVt.currentTime + elapsedSec) % (remoteVt.totalDuration || 120);
+        }
 
-            vtPlaybackState = {
-              ...vtPlaybackState,
-              ...remoteVt,
-              currentTime: calculatedCurrent
-            };
+        const prevId = vtPlaybackState.youtubeId;
+        vtPlaybackState = {
+          ...vtPlaybackState,
+          ...remoteVt,
+          currentTime: calculatedCurrent
+        };
 
-            // Cari index klip yang sesuai di playlist
-            const foundIdx = vtPlaylist.findIndex(p => p.youtubeId === remoteVt.youtubeId || p.url === remoteVt.url);
-            if (foundIdx !== -1) activePlayingIndex = foundIdx;
+        // Cari indeks klip di daftar playlist
+        const foundIdx = vtPlaylist.findIndex(p => p.youtubeId === remoteVt.youtubeId || p.url === remoteVt.url);
+        if (foundIdx !== -1) activePlayingIndex = foundIdx;
 
-            muatKlipKePlayer(activePlayingIndex, false);
-          } else {
-            muatKlipKePlayer(0, false);
+        // Muat atau sinkronkan pemutar lokal
+        if (!isYtReady || !audioYtPlayer) {
+          initAudioYtPlayer();
+        } else if (prevId !== vtPlaybackState.youtubeId && vtPlaybackState.youtubeId) {
+          muatKlipKePlayer(activePlayingIndex, false);
+        } else {
+          // Sinkronkan drift jika selisih waktu di atas 2 detik
+          const curLocal = audioYtPlayer.getCurrentTime ? audioYtPlayer.getCurrentTime() : 0;
+          if (Math.abs(curLocal - calculatedCurrent) > 2.0) {
+            audioYtPlayer.seekTo(calculatedCurrent, true);
           }
-        });
+          if (vtPlaybackState.status === 'playing' && audioYtPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
+            audioYtPlayer.playVideo();
+          } else if (vtPlaybackState.status === 'paused' && audioYtPlayer.getPlayerState() !== YT.PlayerState.PAUSED) {
+            audioYtPlayer.pauseVideo();
+          }
+        }
 
-        // Monitor PGM Return Feed Real-Time
-        activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
-          if (!snap.exists()) return;
-          const live = snap.val();
-          liveState.programSource = live.programSource || liveState.programSource;
-          liveState.previewSource = live.previewSource || liveState.previewSource;
-          updatePgmReturnMonitor();
-        });
-      } else {
-        muatKlipKePlayer(0, false);
+        updatePlaybackBadges();
         renderPlaylistUI();
-      }
+      });
 
-      // Streamer WebRTC untuk PGM Monitor Video Visual
+      // 3. Monitor PGM Return Feed Real-Time
+      activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
+        if (!snap.exists()) return;
+        const live = snap.val();
+        liveState.programSource = live.programSource || liveState.programSource;
+        liveState.previewSource = live.previewSource || liveState.previewSource;
+        updatePgmReturnMonitor();
+      });
+
+      // 4. WebRTC Streamer untuk Monitor PGM Kamera Visual
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -821,6 +875,7 @@
     }
 
     function pindahKlip(delta) {
+      if (vtPlaylist.length === 0) return;
       let target = activePlayingIndex + delta;
       if (target < 0) target = vtPlaylist.length - 1;
       if (target >= vtPlaylist.length) target = 0;
@@ -853,7 +908,7 @@
         }
         vtPlaybackState.status = 'playing';
         broadcastVtPlaybackState();
-      } else if (loopMode === 'playlist') {
+      } else if (loopMode === 'playlist' && vtPlaylist.length > 0) {
         let nextIdx = activePlayingIndex + 1;
         if (nextIdx >= vtPlaylist.length) nextIdx = 0;
         activeCueIndex = -1;
@@ -901,10 +956,19 @@
       container.innerHTML = '';
       document.getElementById('lblPlaylistCount').innerText = `Total Klip: ${vtPlaylist.length} Video`;
 
+      if (vtPlaylist.length === 0) {
+        container.innerHTML = `
+          <div class="p-4 text-center text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
+            Belum ada video dalam daftar antrean.
+          </div>
+        `;
+        return;
+      }
+
       vtPlaylist.forEach((item, idx) => {
         const isPlayingNow = (idx === activePlayingIndex);
         const card = document.createElement('div');
-        card.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${isPlayingNow ? 'bg-emerald-950/40 border-emerald-500' : 'bg-slate-950 border-slate-800'}`;
+        card.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${isPlayingNow ? 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/50' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`;
         card.onclick = () => pilihKlipPlaylist(idx);
         
         card.innerHTML = `
@@ -928,10 +992,6 @@
 
     function hapusKlipDariPlaylist(e, idx) {
       e.stopPropagation();
-      if (vtPlaylist.length <= 1) {
-        showNotice("Peringatan", "Minimal harus tersisa 1 klip di dalam daftar playlist.", false);
-        return;
-      }
       const removed = vtPlaylist[idx];
       vtPlaylist.splice(idx, 1);
       if (activePlayingIndex >= vtPlaylist.length) activePlayingIndex = vtPlaylist.length - 1;
@@ -940,6 +1000,15 @@
       simpanDanSinkronkanPlaylist();
       renderPlaylistUI();
       showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus secara permanen.`, true);
+    }
+
+    function kosongkanPlaylistManual() {
+      if (!confirm("Kosongkan seluruh daftar playlist?")) return;
+      vtPlaylist = [];
+      activePlayingIndex = -1;
+      activeCueIndex = -1;
+      simpanDanSinkronkanPlaylist();
+      renderPlaylistUI();
     }
 
     function eksekusiQuickAdd() {
@@ -963,46 +1032,54 @@
       renderPlaylistUI();
     }
 
-    function resetPlaylistKeDefault() {
-      vtPlaylist = [
-        {
-          id: 'vt_default_skawan',
-          title: 'SKAWAN TV Broadcast',
-          sourceType: 'youtube',
-          youtubeId: 'Jnp3esoHb9k',
-          url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
-          durationSec: 120
-        }
-      ];
-      activePlayingIndex = 0;
-      activeCueIndex = -1;
-      simpanDanSinkronkanPlaylist();
-      muatKlipKePlayer(0, true);
-      renderPlaylistUI();
-      showNotice("Playlist Direset", "Playlist dikembalikan ke klip bawaan studio.", true);
-    }
-
+    // UPDATE MONITOR PGM RETURN SECARA REAL-TIME SESUAI INDEX.HTML
     function updatePgmReturnMonitor() {
       const activeSrc = liveState.programSource || 'cam_1';
       document.getElementById('badgeActivePgmSource').innerText = activeSrc.toUpperCase();
       document.getElementById('pgmReturnFallbackLabel').innerText = activeSrc.toUpperCase();
 
-      const pgmVideo = document.getElementById('pgmReturnCamVideo');
+      const pgmCamVideo = document.getElementById('pgmReturnCamVideo');
+      const pgmVtWrap = document.getElementById('pgmReturnVtWrapper');
       const pgmFallback = document.getElementById('pgmReturnFallback');
-      const stream = remoteCamStreams.get(activeSrc) || remoteCamStreams.get(activeSrc.replace('_', ''));
+      const pgmYtIframe = document.getElementById('pgmReturnYtIframe');
 
-      if (stream && pgmVideo) {
-        if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
-        pgmVideo.classList.remove('opacity-0', 'pointer-events-none');
-        pgmVideo.classList.add('opacity-100');
-        if (pgmFallback) pgmFallback.classList.add('hidden');
-        pgmVideo.play().catch(() => {});
-      } else {
-        if (pgmVideo) {
-          pgmVideo.classList.remove('opacity-100');
-          pgmVideo.classList.add('opacity-0', 'pointer-events-none');
+      if (activeSrc === 'vt') {
+        if (pgmCamVideo) {
+          pgmCamVideo.classList.remove('opacity-100');
+          pgmCamVideo.classList.add('opacity-0', 'pointer-events-none');
         }
-        if (pgmFallback) pgmFallback.classList.remove('hidden');
+        if (pgmFallback) pgmFallback.classList.add('hidden');
+        if (pgmVtWrap) {
+          pgmVtWrap.classList.remove('opacity-0', 'pointer-events-none');
+          pgmVtWrap.classList.add('opacity-100');
+        }
+
+        // Tampilkan feed YouTube yang sama dengan index.html
+        const yId = extractCleanYtId(vtPlaybackState.youtubeId || vtPlaybackState.url);
+        if (yId && pgmYtIframe && (!pgmYtIframe.src || !pgmYtIframe.src.includes(yId))) {
+          pgmYtIframe.src = `https://www.youtube-nocookie.com/embed/${yId}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${yId}&playsinline=1`;
+        }
+      } else {
+        if (pgmVtWrap) {
+          pgmVtWrap.classList.remove('opacity-100');
+          pgmVtWrap.classList.add('opacity-0', 'pointer-events-none');
+        }
+        if (pgmYtIframe) pgmYtIframe.src = 'about:blank';
+
+        const stream = remoteCamStreams.get(activeSrc) || remoteCamStreams.get(activeSrc.replace('_', ''));
+        if (stream && pgmCamVideo) {
+          if (pgmCamVideo.srcObject !== stream) pgmCamVideo.srcObject = stream;
+          pgmCamVideo.classList.remove('opacity-0', 'pointer-events-none');
+          pgmCamVideo.classList.add('opacity-100');
+          if (pgmFallback) pgmFallback.classList.add('hidden');
+          pgmCamVideo.play().catch(() => {});
+        } else {
+          if (pgmCamVideo) {
+            pgmCamVideo.classList.remove('opacity-100');
+            pgmCamVideo.classList.add('opacity-0', 'pointer-events-none');
+          }
+          if (pgmFallback) pgmFallback.classList.remove('hidden');
+        }
       }
     }
 
@@ -1042,6 +1119,9 @@
           document.getElementById('lblTimecodeTotal').innerText = formatTimecode(totalD);
           document.getElementById('sliderVtProgress').max = Math.floor(totalD);
           document.getElementById('sliderVtProgress').value = Math.floor(curTime);
+
+          const pct = totalD > 0 ? Math.round((curTime / totalD) * 100) : 0;
+          document.getElementById('lblVtPercent').innerText = `${pct}%`;
         }
       }, 500);
     }
@@ -1058,7 +1138,35 @@
       }, 100);
     }
 
-    function bukaModalKeluar(type) {
+    function bukaModalTambahKlip() {
+      document.getElementById('modalTambahKlip').classList.remove('hidden');
+    }
+    function tutupModalTambahKlip() {
+      document.getElementById('modalTambahKlip').classList.add('hidden');
+    }
+    function eksekusiModalTambahKlip() {
+      const title = document.getElementById('modalInputClipTitle').value.trim() || 'Klip Baru';
+      const url = document.getElementById('modalInputClipUrl').value.trim();
+      const dur = parseInt(document.getElementById('modalInputClipDuration').value) || 120;
+      const type = document.getElementById('modalSelectSourceType').value;
+
+      if (!url) return;
+
+      vtPlaylist.push({
+        id: `vt_${Date.now()}`,
+        title: title,
+        sourceType: type,
+        youtubeId: extractCleanYtId(url),
+        url: url,
+        durationSec: dur
+      });
+
+      simpanDanSinkronkanPlaylist();
+      renderPlaylistUI();
+      tutupModalTambahKlip();
+    }
+
+    function bukaModalKeluar() {
       document.getElementById('exitConfirmModal').classList.remove('hidden');
     }
     function tutupModalKeluar() {
