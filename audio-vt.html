@@ -47,7 +47,6 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    /* Slider Audio Mixer Kustom */
     input[type=range].fader-slider {
       -webkit-appearance: none;
       width: 100%;
@@ -75,7 +74,6 @@
       border: 1px solid #ffffff;
       box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
     }
-
     .deck-btn {
       transition: all 0.1s ease;
       -webkit-tap-highlight-color: transparent;
@@ -102,9 +100,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black pb-6">
 
-  <!-- ============================================== -->
-  <!-- NAVIGATION BAR (AUDIO & VT DECK)               -->
-  <!-- ============================================== -->
+  <!-- NAVIGATION BAR -->
   <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -136,11 +132,11 @@
           <span>🎧</span>
           <span id="navUserName">Audio/VT Operator</span>
         </div>
-        <button onclick="bukaModalKeluar('ganti')" class="deck-btn text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
+        <button onclick="bukaModalKeluar('ganti')" class="deck-btn text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
           <span>🔄</span>
           <span class="hidden sm:inline">Ganti Peran</span>
         </button>
-        <button onclick="bukaModalKeluar('keluar')" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar Sesi">
+        <button onclick="bukaModalKeluar('keluar')" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
           <span>🚪</span>
           <span class="hidden sm:inline">Keluar</span>
         </button>
@@ -148,7 +144,7 @@
     </div>
   </nav>
 
-  <!-- BANNER NOTIFIKASI KOMANDO INTERCOM DARI SUTRADARA (PD) -->
+  <!-- BANNER KOMANDO INTERCOM -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
     <div id="directorCueBanner" class="bg-gradient-to-r from-amber-600 via-orange-600 to-red-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-amber-400/40">
       <div class="flex items-center gap-2.5">
@@ -164,20 +160,14 @@
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- MAIN WORKSPACE: SIDE-BY-SIDE + AUDIO MIXER     -->
-  <!-- ============================================== -->
+  <!-- WORKSPACE UTAMA -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
-
-    <!-- BARIS ATAS: 2 KOLOM (KIRI: VT & PGM RETURN | KANAN: PLAYLIST QUEUE) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-      <!-- ============================================== -->
-      <!-- KOLOM KIRI (6 Kolom): PEMUTAR VT & RETURN PGM   -->
-      <!-- ============================================== -->
+      <!-- KOLOM KIRI: VT PLAYOUT & RETURN PGM MONITOR -->
       <div class="lg:col-span-6 space-y-3">
         
-        <!-- CARD PEMUTAR VT UTAMA (16:9 CLEAN DIGITAL) -->
+        <!-- CARD VT PLAYOUT -->
         <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-3 shadow-xl space-y-2.5">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
             <div class="flex items-center gap-2">
@@ -194,7 +184,7 @@
             </div>
           </div>
 
-          <!-- Layar Pemutar Video -->
+          <!-- Video Player Viewport -->
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 shadow-inner" id="vtPlayerContainer">
             <video id="audioVtHtml5Video" class="w-full h-full object-contain hidden" playsinline></video>
             <div id="audioVtYtWrap" class="w-full h-full">
@@ -222,10 +212,10 @@
             </div>
           </div>
 
-          <!-- Tombol Kontrol Siaran VT & Pilihan Looping -->
+          <!-- Tombol Kontrol Playout -->
           <div class="space-y-2 pt-1 border-t border-slate-800">
             <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
-              <button onclick="eksekusiCueVt()" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Kembalikan ke Detik Awal">
+              <button onclick="eksekusiCueVt()" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Reset Detik Awal">
                 <span>⏮</span>
                 <span>CUE</span>
               </button>
@@ -240,21 +230,21 @@
                 <span>PAUSE</span>
               </button>
 
-              <button onclick="pindahKlip(-1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Sebelumnya">
+              <button onclick="pindahKlip(-1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700">
                 ◀
               </button>
 
-              <button onclick="pindahKlip(1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Selanjutnya">
+              <button onclick="pindahKlip(1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700">
                 ▶
               </button>
 
-              <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition" title="Ganti Mode Looping Siaran">
+              <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition">
                 <span id="iconLoopMode">🔁</span>
                 <span id="lblLoopMode">PLAYLIST</span>
               </button>
             </div>
 
-            <!-- Opsi Pilihan Cepat Mode Looping -->
+            <!-- Loop Switcher -->
             <div class="flex flex-wrap items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[11px] font-mono gap-1">
               <span class="text-slate-400 flex items-center gap-1">
                 <span>🔁</span>
@@ -275,7 +265,7 @@
           </div>
         </div>
 
-        <!-- MONITOR RETURN PGM SIARAN -->
+        <!-- PGM RETURN MONITOR REAL-TIME -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
             <div class="flex items-center gap-2">
@@ -301,11 +291,8 @@
 
       </div>
 
-      <!-- ============================================== -->
-      <!-- KOLOM KANAN (6 Kolom): PLAYLIST BERANTAI OTOMATIS -->
-      <!-- ============================================== -->
+      <!-- KOLOM KANAN: PLAYLIST BERANTAI OTOMATIS -->
       <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3.5 flex flex-col justify-between">
-        
         <div class="space-y-3">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-2">
             <div class="flex items-center gap-2">
@@ -314,17 +301,6 @@
             </div>
             
             <div class="flex items-center gap-1.5 self-end sm:self-center">
-              <input type="file" id="inputImportJsonFile" accept=".json,application/json" class="hidden" onchange="tanganiImporFileJson(event)">
-              <button onclick="document.getElementById('inputImportJsonFile').click()" class="deck-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold text-[11px] flex items-center gap-1 transition">
-                <span>📥</span>
-                <span>Import</span>
-              </button>
-
-              <button onclick="eksporPlaylistKeJson()" class="deck-btn px-2.5 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 font-semibold text-[11px] flex items-center gap-1 transition">
-                <span>📤</span>
-                <span>Export</span>
-              </button>
-
               <button onclick="bukaModalTambahKlip()" class="deck-btn px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold text-[11px] flex items-center gap-1 shadow-md shadow-amber-600/30">
                 <span>+</span>
                 <span>Tambah VT</span>
@@ -334,20 +310,18 @@
 
           <!-- Quick Add Bar -->
           <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
-            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Input Cepat Tautan YouTube / Google Drive / MP4:</span>
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Input Cepat Tautan YouTube / Video ID:</span>
             <div class="grid grid-cols-12 gap-1.5">
               <input type="text" id="quickAddTitle" placeholder="Judul Klip (cth: Bumper)" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500">
-              <input type="text" id="quickAddUrl" placeholder="Tempel URL YouTube / Drive / MP4" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-500">
+              <input type="text" id="quickAddUrl" placeholder="Tempel URL YouTube / Video ID" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-500">
               <button onclick="eksekusiQuickAdd()" class="col-span-2 deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-black rounded-lg text-xs flex items-center justify-center">
                 + Tambah
               </button>
             </div>
           </div>
 
-          <!-- Daftar Klip -->
-          <div class="space-y-1.5 max-h-[310px] sm:max-h-[350px] overflow-y-auto pr-1" id="playlistItemsContainer">
-            <!-- Render dinamis dengan tombol hapus (✕) tersinkronisasi Firebase -->
-          </div>
+          <!-- Container Playlist Items -->
+          <div class="space-y-1.5 max-h-[310px] sm:max-h-[350px] overflow-y-auto pr-1" id="playlistItemsContainer"></div>
         </div>
 
         <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
@@ -356,36 +330,20 @@
             Muat Klip Bawaan SKAWAN TV
           </button>
         </div>
-
       </div>
 
     </div>
 
-    <!-- ============================================== -->
-    <!-- BARIS BAWAH: BROADCAST AUDIO MIXER 6-CHANNEL  -->
-    <!-- ============================================== -->
+    <!-- AUDIO MIXER 6-CHANNEL -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
         <div class="flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-amber-500 shadow"></span>
           <h3 class="font-brand font-black text-sm uppercase tracking-wider text-white">Broadcast Audio Console (6-Channel Studio Mixer)</h3>
         </div>
-
-        <div class="flex items-center gap-2">
-          <button id="btnHardwareMic" onclick="toggleHardwareMicInput()" class="deck-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition">
-            <span id="iconHardwareMic">🎙️</span>
-            <span id="lblHardwareMic">Sambungkan Mic Laptop</span>
-          </button>
-
-          <select id="selectMicChannelRoute" class="bg-slate-950 border border-slate-700 text-slate-200 text-[11px] font-mono rounded-lg px-2 py-1 outline-none">
-            <option value="ch1">Rute: CH 1 (Host)</option>
-            <option value="ch2">Rute: CH 2 (Guest)</option>
-            <option value="ch3">Rute: CH 3 (Floor)</option>
-          </select>
-        </div>
       </div>
 
-      <!-- 6 Strip Fader -->
+      <!-- Fader Strip -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" id="audioMixerStripsGrid">
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch1">
           <div class="w-full">
@@ -478,64 +436,7 @@
         </div>
       </div>
     </div>
-
   </main>
-
-  <!-- MODAL TAMBAH KLIP -->
-  <div id="modalTambahKlip" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 text-white">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-          <h3 class="font-brand font-black text-sm uppercase tracking-wider text-white">Tambah Klip Video ke Playlist</h3>
-        </div>
-        <button onclick="tutupModalTambahKlip()" class="text-slate-400 hover:text-white">✕</button>
-      </div>
-
-      <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Judul Klip:</label>
-          <input type="text" id="modalInputClipTitle" placeholder="Contoh: Profil Sekolah" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-amber-500">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Tipe Sumber Media:</label>
-          <select id="modalSelectSourceType" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none">
-            <option value="youtube">YouTube (URL / 11-Digit Video ID)</option>
-            <option value="gdrive">Google Drive Video</option>
-            <option value="mp4">HTML5 Native MP4</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1" id="lblModalUrlInput">URL YouTube / Video ID:</label>
-          <input type="text" id="modalInputClipUrl" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono outline-none focus:border-amber-500">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Perkiraan Durasi (Detik):</label>
-          <input type="number" id="modalInputClipDuration" min="5" max="3600" value="120" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono outline-none focus:border-amber-500">
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-        <button onclick="tutupModalTambahKlip()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">Batal</button>
-        <button onclick="eksekusiModalTambahKlip()" class="deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">Simpan ke Playlist</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL KONFIRMASI KELUAR -->
-  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
-      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">🔄</div>
-      <div>
-        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Kru?</h4>
-        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">Slot posisi akan dilepaskan di sistem studio.</p>
-      </div>
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">Batal</button>
-        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">Ya, Lepaskan Slot</button>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL NOTIFIKASI -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
@@ -547,15 +448,30 @@
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- JAVASCRIPT LOGIC                               -->
-  <!-- ============================================== -->
+  <!-- MODAL KONFIRMASI KELUAR -->
+  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">🔄</div>
+      <div>
+        <h4 class="text-base font-brand font-black text-white">Keluar / Ganti Peran?</h4>
+        <p class="text-xs text-slate-300 mt-1 leading-relaxed">Slot kru Anda akan dikosongkan pada sesi studio.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">Batal</button>
+        <button onclick="eksekusiKeluarSesi()" class="deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">Ya, Keluar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT ENGINE -->
   <script>
     let currentRoomToken = 'SKASA';
     let currentRoleKey = 'audio_vt';
     let currentSiswaUser = '';
-    let pendingExitType = 'ganti';
-    let isInitialStartup = true;
+    
+    // KUNCI SINKRONISASI: Mencegah timpaan data ke Firebase saat baru memuat halaman
+    let isCatchingUp = true;
+    let syncLockTimeout = null;
 
     let vtPlaylist = [
       {
@@ -595,15 +511,6 @@
     let audioYtPlayer = null;
     let isYtReady = false;
     let currentLoadedYtId = '';
-    let vtTickerInterval = null;
-    let vuMeterInterval = null;
-
-    let audioCtx = null;
-    let micMediaStream = null;
-    let micSourceNode = null;
-    let micGainNode = null;
-    let isHardwareMicActive = false;
-
     let streamerInstance = null;
     const remoteCamStreams = new Map();
 
@@ -634,16 +541,6 @@
       const m = Math.floor(sec / 60);
       const s = sec % 60;
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    function matikanSubtitleYouTube(player) {
-      if (!player) return;
-      try {
-        if (typeof player.unloadModule === 'function') {
-          player.unloadModule('captions');
-          player.unloadModule('cc');
-        }
-      } catch (e) {}
     }
 
     function simpanDanSinkronkanPlaylist() {
@@ -680,15 +577,28 @@
             onReady: (e) => {
               isYtReady = true;
               currentLoadedYtId = vidId;
-              matikanSubtitleYouTube(e.target);
+              
+              // KUNCI CATCH-UP: Lompat langsung ke detik siaran yang sedang berjalan
+              if (vtPlaybackState.currentTime > 0) {
+                e.target.seekTo(vtPlaybackState.currentTime, true);
+              }
               if (vtPlaybackState.status === 'playing') {
                 e.target.playVideo();
               } else {
                 e.target.pauseVideo();
               }
               updateAudioFaderVolume();
+
+              // Buka kunci pengiriman data setelah player sinkron
+              clearTimeout(syncLockTimeout);
+              syncLockTimeout = setTimeout(() => {
+                isCatchingUp = false;
+              }, 1200);
             },
             onStateChange: (e) => {
+              // Jika baru memuat ulang, abaikan event agar tidak menimpa Firebase
+              if (isCatchingUp) return;
+
               if (e.data === YT.PlayerState.PLAYING) {
                 vtPlaybackState.status = 'playing';
                 updatePlaybackBadges();
@@ -715,8 +625,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      currentRoomToken = (roomParam || sessionStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
+      currentRoomToken = (urlParams.get('room') || sessionStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
       currentSiswaUser = sessionStorage.getItem('skawan_user') || 'Audio/VT Operator';
 
       document.getElementById('navRoomToken').innerText = currentRoomToken;
@@ -731,6 +640,7 @@
       const activeDb = getDatabase();
 
       if (activeDb) {
+        // Ambil Playlist
         activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
           if (snap.exists()) {
             const data = snap.val();
@@ -744,22 +654,35 @@
           }
         });
 
+        // Ambil State VT Aktif & Hitung Waktu Berjalan Presisi (Catch-Up)
         activeDb.ref(`rooms/${token}/vt_state`).once('value', snap => {
           if (snap.exists()) {
             const remoteVt = snap.val();
-            let startAt = remoteVt.currentTime || 0;
+            let calculatedCurrent = remoteVt.currentTime || 0;
+
+            // Jika sedang berputar, hitung selisih waktu detik nyata
             if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
               const elapsedSec = Math.max(0, (Date.now() - remoteVt.updatedAt) / 1000);
-              startAt = (remoteVt.currentTime + elapsedSec) % (remoteVt.totalDuration || 120);
+              calculatedCurrent = (remoteVt.currentTime + elapsedSec) % (remoteVt.totalDuration || 120);
             }
-            vtPlaybackState = { ...vtPlaybackState, ...remoteVt, currentTime: startAt };
+
+            vtPlaybackState = {
+              ...vtPlaybackState,
+              ...remoteVt,
+              currentTime: calculatedCurrent
+            };
+
+            // Cari index klip yang sesuai di playlist
+            const foundIdx = vtPlaylist.findIndex(p => p.youtubeId === remoteVt.youtubeId || p.url === remoteVt.url);
+            if (foundIdx !== -1) activePlayingIndex = foundIdx;
+
             muatKlipKePlayer(activePlayingIndex, false);
           } else {
             muatKlipKePlayer(0, false);
           }
-          isInitialStartup = false;
         });
 
+        // Monitor PGM Return Feed Real-Time
         activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
           if (!snap.exists()) return;
           const live = snap.val();
@@ -768,17 +691,23 @@
           updatePgmReturnMonitor();
         });
       } else {
-        const localPlaylist = localStorage.getItem(`skawan_vt_playlist_${token}`);
-        if (localPlaylist) {
-          try {
-            const parsed = JSON.parse(localPlaylist);
-            if (Array.isArray(parsed) && parsed.length > 0) vtPlaylist = parsed;
-          } catch (e) {}
-        }
         muatKlipKePlayer(0, false);
         renderPlaylistUI();
       }
-      renderPlaylistUI();
+
+      // Streamer WebRTC untuk PGM Monitor Video Visual
+      if (typeof SkawanStreamer !== 'undefined') {
+        streamerInstance = new SkawanStreamer({
+          roomToken: token,
+          roleKey: 'audio_vt',
+          onRemoteStream: (camKey, stream) => {
+            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+            remoteCamStreams.set(normKey, stream);
+            remoteCamStreams.set(camKey, stream);
+            updatePgmReturnMonitor();
+          }
+        });
+      }
     }
 
     function muatKlipKePlayer(index, shouldBroadcast = true) {
@@ -821,17 +750,19 @@
           html5Vid.classList.remove('hidden');
           html5Vid.onended = tanganiKlipSelesai;
           html5Vid.src = vtPlaybackState.url;
+          html5Vid.currentTime = vtPlaybackState.currentTime || 0;
           if (vtPlaybackState.status === 'playing') html5Vid.play().catch(()=>{});
         }
       }
 
       updatePlaybackBadges();
       renderPlaylistUI();
-      if (shouldBroadcast) broadcastVtPlaybackState();
+      if (shouldBroadcast && !isCatchingUp) broadcastVtPlaybackState();
     }
 
     function pilihKlipPlaylist(index) {
       if (index < 0 || index >= vtPlaylist.length) return;
+      isCatchingUp = false;
       if (vtPlaybackState.status === 'playing') {
         activeCueIndex = index;
         renderPlaylistUI();
@@ -843,6 +774,7 @@
     }
 
     function eksekusiRollVt() {
+      isCatchingUp = false;
       if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
         activePlayingIndex = activeCueIndex;
         activeCueIndex = -1;
@@ -859,6 +791,7 @@
     }
 
     function eksekusiPauseVt() {
+      isCatchingUp = false;
       vtPlaybackState.status = 'paused';
       if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
         audioYtPlayer.pauseVideo();
@@ -869,6 +802,7 @@
     }
 
     function eksekusiCueVt() {
+      isCatchingUp = false;
       vtPlaybackState.currentTime = 0;
       if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
         audioYtPlayer.seekTo(0, true);
@@ -877,6 +811,7 @@
     }
 
     function seekVtPosition(val) {
+      isCatchingUp = false;
       const sec = parseFloat(val) || 0;
       vtPlaybackState.currentTime = sec;
       if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
@@ -946,7 +881,7 @@
     }
 
     function broadcastVtPlaybackState() {
-      if (isInitialStartup) return;
+      if (isCatchingUp) return;
       const activeDb = getDatabase();
       if (!activeDb) return;
       activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
@@ -1004,7 +939,7 @@
 
       simpanDanSinkronkanPlaylist();
       renderPlaylistUI();
-      showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus secara permanen dari antrean studio.`, true);
+      showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus secara permanen.`, true);
     }
 
     function eksekusiQuickAdd() {
@@ -1051,6 +986,24 @@
       const activeSrc = liveState.programSource || 'cam_1';
       document.getElementById('badgeActivePgmSource').innerText = activeSrc.toUpperCase();
       document.getElementById('pgmReturnFallbackLabel').innerText = activeSrc.toUpperCase();
+
+      const pgmVideo = document.getElementById('pgmReturnCamVideo');
+      const pgmFallback = document.getElementById('pgmReturnFallback');
+      const stream = remoteCamStreams.get(activeSrc) || remoteCamStreams.get(activeSrc.replace('_', ''));
+
+      if (stream && pgmVideo) {
+        if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+        pgmVideo.classList.remove('opacity-0', 'pointer-events-none');
+        pgmVideo.classList.add('opacity-100');
+        if (pgmFallback) pgmFallback.classList.add('hidden');
+        pgmVideo.play().catch(() => {});
+      } else {
+        if (pgmVideo) {
+          pgmVideo.classList.remove('opacity-100');
+          pgmVideo.classList.add('opacity-0', 'pointer-events-none');
+        }
+        if (pgmFallback) pgmFallback.classList.remove('hidden');
+      }
     }
 
     function initAudioMixerUi() {
@@ -1113,15 +1066,6 @@
     }
     function eksekusiKeluarSesi() {
       window.location.href = 'login.html';
-    }
-    function bukaModalTambahKlip() {
-      document.getElementById('modalTambahKlip').classList.remove('hidden');
-    }
-    function tutupModalTambahKlip() {
-      document.getElementById('modalTambahKlip').classList.add('hidden');
-    }
-    function eksekusiModalTambahKlip() {
-      tutupModalTambahKlip();
     }
   </script>
 </body>
