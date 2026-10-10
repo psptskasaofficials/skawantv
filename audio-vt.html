@@ -346,7 +346,7 @@
 
           <!-- Daftar Klip -->
           <div class="space-y-1.5 max-h-[310px] sm:max-h-[350px] overflow-y-auto pr-1" id="playlistItemsContainer">
-            <!-- Render dinamis dengan tombol hapus (✕) -->
+            <!-- Render dinamis dengan tombol hapus (✕) tersinkronisasi Firebase -->
           </div>
         </div>
 
@@ -608,12 +608,7 @@
     const remoteCamStreams = new Map();
 
     function getDatabase() {
-      if (window.db) return window.db;
-      if (typeof firebase !== 'undefined' && firebase.database) {
-        window.db = firebase.database();
-        return window.db;
-      }
-      return null;
+      return window.db || (typeof firebase !== 'undefined' ? firebase.database() : null);
     }
 
     function showNotice(title, message, isSuccess = true) {
@@ -649,6 +644,14 @@
           player.unloadModule('cc');
         }
       } catch (e) {}
+    }
+
+    function simpanDanSinkronkanPlaylist() {
+      localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(vtPlaylist);
+      }
     }
 
     function initAudioYtPlayer() {
@@ -695,7 +698,6 @@
                 updatePlaybackBadges();
                 broadcastVtPlaybackState();
               } else if (e.data === YT.PlayerState.ENDED) {
-                // AUTO-ADVANCE BERANTAI OTOMATIS
                 tanganiKlipSelesai();
               }
             }
@@ -727,13 +729,6 @@
 
     function initAudioVtSystem(token) {
       const activeDb = getDatabase();
-      const localPlaylist = localStorage.getItem(`skawan_vt_playlist_${token}`);
-      if (localPlaylist) {
-        try {
-          const parsed = JSON.parse(localPlaylist);
-          if (Array.isArray(parsed) && parsed.length > 0) vtPlaylist = parsed;
-        } catch (e) {}
-      }
 
       if (activeDb) {
         activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
@@ -741,8 +736,11 @@
             const data = snap.val();
             if (Array.isArray(data) && data.length > 0) {
               vtPlaylist = data;
+              localStorage.setItem(`skawan_vt_playlist_${token}`, JSON.stringify(vtPlaylist));
               renderPlaylistUI();
             }
+          } else {
+            activeDb.ref(`rooms/${token}/vt_playlist`).set(vtPlaylist);
           }
         });
 
@@ -770,6 +768,13 @@
           updatePgmReturnMonitor();
         });
       } else {
+        const localPlaylist = localStorage.getItem(`skawan_vt_playlist_${token}`);
+        if (localPlaylist) {
+          try {
+            const parsed = JSON.parse(localPlaylist);
+            if (Array.isArray(parsed) && parsed.length > 0) vtPlaylist = parsed;
+          } catch (e) {}
+        }
         muatKlipKePlayer(0, false);
         renderPlaylistUI();
       }
@@ -997,9 +1002,9 @@
       if (activePlayingIndex >= vtPlaylist.length) activePlayingIndex = vtPlaylist.length - 1;
       if (activeCueIndex === idx) activeCueIndex = -1;
 
-      localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
+      simpanDanSinkronkanPlaylist();
       renderPlaylistUI();
-      showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus dari antrean.`, true);
+      showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus secara permanen dari antrean studio.`, true);
     }
 
     function eksekusiQuickAdd() {
@@ -1017,10 +1022,29 @@
         url: rawUrl,
         durationSec: 120
       });
-      localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
+      simpanDanSinkronkanPlaylist();
       titleInput.value = '';
       urlInput.value = '';
       renderPlaylistUI();
+    }
+
+    function resetPlaylistKeDefault() {
+      vtPlaylist = [
+        {
+          id: 'vt_default_skawan',
+          title: 'SKAWAN TV Broadcast',
+          sourceType: 'youtube',
+          youtubeId: 'Jnp3esoHb9k',
+          url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
+          durationSec: 120
+        }
+      ];
+      activePlayingIndex = 0;
+      activeCueIndex = -1;
+      simpanDanSinkronkanPlaylist();
+      muatKlipKePlayer(0, true);
+      renderPlaylistUI();
+      showNotice("Playlist Direset", "Playlist dikembalikan ke klip bawaan studio.", true);
     }
 
     function updatePgmReturnMonitor() {
