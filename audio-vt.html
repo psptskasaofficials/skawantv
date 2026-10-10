@@ -91,7 +91,7 @@
       border: 0;
       pointer-events: none;
     }
-    video, iframe, #audioVtYtWrap iframe {
+    video, iframe, #audioVtYtWrap iframe, #pgmReturnVtYtWrap iframe {
       transform: translateZ(0);
       backface-visibility: hidden;
       -webkit-font-smoothing: antialiased;
@@ -100,7 +100,9 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black pb-6">
 
-  <!-- NAVIGATION BAR -->
+  <!-- ======================================================== -->
+  <!-- TOP NAVIGATION BAR                                       -->
+  <!-- ======================================================== -->
   <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -144,7 +146,7 @@
     </div>
   </nav>
 
-  <!-- BANNER KOMANDO INTERCOM SUTRADARA -->
+  <!-- BANNER KOMANDO SUTRADARA (PD INTERCOM) -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
     <div id="directorCueBanner" class="bg-gradient-to-r from-amber-600 via-orange-600 to-red-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-amber-400/40">
       <div class="flex items-center gap-2.5">
@@ -153,30 +155,30 @@
         </div>
         <div>
           <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-200 block">KOMANDO SUTRADARA (PD):</span>
-          <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby VT &amp; Sinkronkan Audio Master</span>
+          <span id="directorCueText" class="text-xs sm:text-sm font-brand font-black">Standby VT &amp; Siapkan Audio Klip</span>
         </div>
       </div>
       <span id="directorCueTime" class="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded font-bold shrink-0">LIVE</span>
     </div>
   </div>
 
-  <!-- WORKSPACE UTAMA -->
+  <!-- WORKSPACE UTAMA: DUAL MONITOR & PLAYLIST QUEUE -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    
+    <!-- BARIS 1: DUAL MONITOR BERDAMPINGAN (VT PLAYOUT CUE vs PGM LIVE RETURN) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- KOLOM KIRI: VT PLAYOUT & RETURN PGM MONITOR -->
-      <div class="lg:col-span-6 space-y-3">
-        
-        <!-- CARD VT PLAYOUT -->
-        <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-3 shadow-xl space-y-2.5">
+      <!-- 1. MONITOR KIRI: VT PLAYOUT VIEWPORT (CUE / PERSIAPAN OPERATOR) -->
+      <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
+        <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
             <div class="flex items-center gap-2">
-              <span id="vtPulseDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span class="font-brand font-black text-xs uppercase tracking-wider text-amber-400">VT Playout Viewport</span>
+              <span id="vtPulseDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+              <span class="font-brand font-black text-xs uppercase tracking-wider text-amber-400">VT Playout Viewport (CUE Monitor)</span>
             </div>
             <div class="flex items-center gap-1.5">
-              <span id="badgeVtOnAirStatus" class="font-mono text-[10px] font-black px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 uppercase">
-                STANDBY
+              <span id="badgeVtOnAirStatus" class="font-mono text-[10px] font-black px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-amber-500/50 uppercase">
+                CUE READY
               </span>
               <span id="badgeVtSourceType" class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 uppercase">
                 YOUTUBE
@@ -190,12 +192,11 @@
             <div id="audioVtYtWrap" class="w-full h-full">
               <div id="audioVtYtEl" class="w-full h-full"></div>
             </div>
-            <iframe id="audioVtGdriveIframe" class="video-fit hidden" allow="autoplay"></iframe>
 
             <div id="audioVtFallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-slate-950/80 space-y-2">
               <span class="text-3xl">🎬</span>
               <span class="font-brand font-black text-sm text-slate-300">Belum Ada Media VT Dipilih</span>
-              <span class="text-[11px] font-mono text-slate-500">Pilih klip di playlist atau masukkan URL baru</span>
+              <span class="text-[11px] font-mono text-slate-500">Pilih salah satu klip di antrean sebelah bawah</span>
             </div>
 
             <div class="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-white/10 font-mono text-[11px] text-amber-400 font-bold z-20">
@@ -207,72 +208,74 @@
           <div class="space-y-1">
             <input type="range" id="sliderVtProgress" min="0" max="120" value="0" step="1" oninput="seekVtPosition(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
             <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span id="lblActiveClipTitle" class="text-white font-bold truncate max-w-[280px]">Menyinkronkan Siaran...</span>
+              <span id="lblActiveClipTitle" class="text-white font-bold truncate max-w-[280px]">Belum Memuat Klip</span>
               <span id="lblVtPercent" class="text-amber-400 font-bold">0%</span>
-            </div>
-          </div>
-
-          <!-- Tombol Kontrol Playout -->
-          <div class="space-y-2 pt-1 border-t border-slate-800">
-            <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
-              <button onclick="eksekusiCueVt()" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Reset Detik Awal">
-                <span>⏮</span>
-                <span>CUE</span>
-              </button>
-
-              <button onclick="eksekusiRollVt()" id="btnRollVt" class="col-span-4 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30">
-                <span>▶️</span>
-                <span>ROLL VT!</span>
-              </button>
-
-              <button onclick="eksekusiPauseVt()" id="btnPauseVt" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700">
-                <span>⏸️</span>
-                <span>PAUSE</span>
-              </button>
-
-              <button onclick="pindahKlip(-1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700">
-                ◀
-              </button>
-
-              <button onclick="pindahKlip(1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700">
-                ▶
-              </button>
-
-              <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition">
-                <span id="iconLoopMode">🔁</span>
-                <span id="lblLoopMode">PLAYLIST</span>
-              </button>
-            </div>
-
-            <!-- Loop Mode Selection -->
-            <div class="flex flex-wrap items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[11px] font-mono gap-1">
-              <span class="text-slate-400 flex items-center gap-1">
-                <span>🔁</span>
-                <span class="font-bold text-[10px] sm:text-[11px]">Mode Looping:</span>
-              </span>
-              <div class="flex items-center gap-1">
-                <button type="button" onclick="setLoopMode('off')" id="optLoopOff" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white">
-                  OFF
-                </button>
-                <button type="button" onclick="setLoopMode('single')" id="optLoopSingle" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white">
-                  🔂 Single Clip
-                </button>
-                <button type="button" onclick="setLoopMode('playlist')" id="optLoopPlaylist" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-amber-500 text-black shadow">
-                  🔁 Playlist (All)
-                </button>
-              </div>
             </div>
           </div>
         </div>
 
-        <!-- PGM RETURN MONITOR REAL-TIME (SYNCHRONIZED WITH INDEX.HTML) -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md space-y-2">
-          <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-              <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">PGM Live Return Monitor</span>
+        <!-- Tombol Kontrol Siaran VT & Mode Loop -->
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+          <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+            <button onclick="eksekusiCueVt()" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Reset Detik Awal">
+              <span>⏮</span>
+              <span>CUE</span>
+            </button>
+
+            <!-- ROLL VT: HANYA MEMUTAR VT DI BACKGROUND (WEWENANG CUT/SWITCH TETAP DI SWITCHER) -->
+            <button onclick="eksekusiRollVt()" id="btnRollVt" class="col-span-4 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30">
+              <span>▶️</span>
+              <span>ROLL VT!</span>
+            </button>
+
+            <button onclick="eksekusiPauseVt()" id="btnPauseVt" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700">
+              <span>⏸️</span>
+              <span>PAUSE</span>
+            </button>
+
+            <button onclick="pindahKlip(-1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Sebelumnya">
+              ◀
+            </button>
+
+            <button onclick="pindahKlip(1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Selanjutnya">
+              ▶
+            </button>
+
+            <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition">
+              <span id="iconLoopMode">🔁</span>
+              <span id="lblLoopMode">PLAYLIST</span>
+            </button>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[11px] font-mono gap-1">
+            <span class="text-slate-400 flex items-center gap-1">
+              <span>🔁</span>
+              <span class="font-bold text-[10px] sm:text-[11px]">Mode Looping:</span>
+            </span>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="setLoopMode('off')" id="optLoopOff" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white">
+                OFF
+              </button>
+              <button type="button" onclick="setLoopMode('single')" id="optLoopSingle" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white">
+                🔂 Single
+              </button>
+              <button type="button" onclick="setLoopMode('playlist')" id="optLoopPlaylist" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-amber-500 text-black shadow">
+                🔁 Playlist
+              </button>
             </div>
-            <span id="badgeActivePgmSource" class="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 uppercase">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. MONITOR KANAN: PGM LIVE RETURN MONITOR (SESUAI PERSIS DENGAN INDEX.HTML) -->
+      <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
+              <span class="font-brand font-black text-xs uppercase tracking-wider text-red-500">PGM Live Return Monitor (On-Air Feed)</span>
+            </div>
+            <span id="badgeActivePgmSource" class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 uppercase animate-pulse">
               CAM 1
             </span>
           </div>
@@ -281,7 +284,7 @@
             <!-- Feed Kamera WebRTC -->
             <video id="pgmReturnCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
-            <!-- Feed VT Visual saat PGM aktif di VT -->
+            <!-- Feed VT Visual saat On-Air di Index.html -->
             <div id="pgmReturnVtWrapper" class="absolute inset-0 w-full h-full bg-black z-10 opacity-0 pointer-events-none transition-opacity duration-200 flex items-center justify-center">
               <div id="pgmReturnVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
                 <iframe id="pgmReturnYtIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="" allow="autoplay" tabindex="-1"></iframe>
@@ -290,79 +293,105 @@
 
             <!-- Fallback Standby Label -->
             <div id="pgmReturnFallback" class="text-center space-y-1 relative z-0">
-              <span id="pgmReturnFallbackLabel" class="font-brand font-black text-2xl text-slate-500">CAM 1</span>
-              <span class="text-[10px] font-mono text-slate-400 block uppercase">SUMBER SIARAN AKTIF</span>
+              <span id="pgmReturnFallbackLabel" class="font-brand font-black text-3xl sm:text-4xl text-red-500 tracking-wider">CAM 1</span>
+              <span class="text-[10px] font-mono text-red-400 block uppercase">SUMBER ON-AIR UTAMA</span>
             </div>
 
             <div class="absolute bottom-2 left-2 bg-red-600 text-white font-mono text-[9px] px-2 py-0.5 rounded font-bold z-20 shadow">
-              PROGRAM OUT
+              PROGRAM OUT (LIVE)
             </div>
           </div>
         </div>
 
-      </div>
-
-      <!-- KOLOM KANAN: PLAYLIST BERANTAI OTOMATIS -->
-      <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3.5 flex flex-col justify-between">
-        <div class="space-y-3">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-2">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow"></span>
-              <h3 class="font-brand font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Antrean Daftar Putar (Auto-Advance Queue)</h3>
-            </div>
-            
-            <div class="flex items-center gap-1.5 self-end sm:self-center">
-              <button onclick="bukaModalTambahKlip()" class="deck-btn px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold text-[11px] flex items-center gap-1 shadow-md shadow-amber-600/30">
-                <span>+</span>
-                <span>Tambah VT</span>
-              </button>
-            </div>
+        <div class="p-2.5 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Umpan Balik: <strong id="lblPgmFeedbackStatus" class="text-slate-200 font-bold">Sinkron Index</strong></span>
           </div>
-
-          <!-- Quick Add Bar -->
-          <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
-            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Input Cepat Tautan YouTube / Video ID:</span>
-            <div class="grid grid-cols-12 gap-1.5">
-              <input type="text" id="quickAddTitle" placeholder="Judul Klip (cth: Profil Segmen 1)" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500">
-              <input type="text" id="quickAddUrl" placeholder="Tempel URL YouTube / Video ID" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-500">
-              <button onclick="eksekusiQuickAdd()" class="col-span-2 deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-black rounded-lg text-xs flex items-center justify-center">
-                + Tambah
-              </button>
-            </div>
-          </div>
-
-          <!-- Container Playlist Items -->
-          <div class="space-y-1.5 max-h-[310px] sm:max-h-[350px] overflow-y-auto pr-1" id="playlistItemsContainer"></div>
-        </div>
-
-        <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-          <span id="lblPlaylistCount">Total Klip: 0 Video</span>
-          <button onclick="kosongkanPlaylistManual()" class="text-slate-500 hover:text-amber-400 text-[11px] underline transition">
-            Bersihkan Seluruh Playlist
-          </button>
+          <span class="text-[10px] text-slate-500">* Wewenang Cut ada pada Meja Switcher</span>
         </div>
       </div>
 
     </div>
 
-    <!-- AUDIO MIXER 6-CHANNEL -->
+    <!-- BARIS 2: ANTREAN DAFTAR PUTAR (PLAYLIST QUEUE) -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow"></span>
+          <h3 class="font-brand font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Antrean Daftar Putar VT (Klik Item untuk Cue/Preview)</h3>
+        </div>
+        
+        <div class="flex items-center gap-1.5 self-end sm:self-center">
+          <button onclick="bukaModalTambahKlip()" class="deck-btn px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold text-[11px] flex items-center gap-1 shadow-md shadow-amber-600/30">
+            <span>+</span>
+            <span>Tambah VT</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Add Bar -->
+      <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
+        <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Input Cepat Tautan YouTube / Video ID:</span>
+        <div class="grid grid-cols-12 gap-1.5">
+          <input type="text" id="quickAddTitle" placeholder="Judul Klip (cth: Profil Segmen 1)" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500">
+          <input type="text" id="quickAddUrl" placeholder="Tempel URL YouTube / Video ID" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-500">
+          <button onclick="eksekusiQuickAdd()" class="col-span-2 deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-black rounded-lg text-xs flex items-center justify-center">
+            + Tambah
+          </button>
+        </div>
+      </div>
+
+      <!-- Container Playlist Items -->
+      <div class="space-y-1.5 max-h-[220px] overflow-y-auto pr-1" id="playlistItemsContainer"></div>
+
+      <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+        <span id="lblPlaylistCount">Total Klip: 0 Video</span>
+        <button onclick="kosongkanPlaylistManual()" class="text-slate-500 hover:text-amber-400 text-[11px] underline transition">
+          Bersihkan Seluruh Playlist
+        </button>
+      </div>
+    </div>
+
+    <!-- BARIS 3: BROADCAST AUDIO CONSOLE (PATCHABLE SOURCES & CONFIDENCE MONITORING) -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
         <div class="flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-amber-500 shadow"></span>
-          <h3 class="font-brand font-black text-sm uppercase tracking-wider text-white">Broadcast Audio Console (6-Channel Studio Mixer)</h3>
+          <h3 class="font-brand font-black text-sm uppercase tracking-wider text-white">Broadcast Audio Console (Patchable Input &amp; Headphone Monitor)</h3>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Tombol Monitoring Suara Headphone Operator -->
+          <button id="btnHeadphoneMonitor" onclick="toggleHeadphoneMonitoring()" class="deck-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition">
+            <span id="iconHeadphone">🎧</span>
+            <span id="lblHeadphone">Monitor Headphone: OFF</span>
+          </button>
+
+          <!-- Sambungkan Mic Fisik / Line-In Perangkat -->
+          <button id="btnHardwareMic" onclick="toggleHardwareInputAudio()" class="deck-btn px-3 py-1.5 rounded-xl border border-amber-600/60 bg-amber-950/40 hover:bg-amber-900 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition">
+            <span id="iconHardwareMic">🎙️</span>
+            <span id="lblHardwareMic">Sambungkan Mic / Line-In Fisik</span>
+          </button>
         </div>
       </div>
 
-      <!-- Fader Strip -->
+      <!-- 6 Fader Strip dengan Source Selector Fleksibel -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" id="audioMixerStripsGrid">
+        
+        <!-- CH 1 Strip -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch1">
-          <div class="w-full">
+          <div class="w-full space-y-1">
             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">CH 1</span>
-            <span class="font-brand font-black text-xs text-white block truncate">MIC HOST</span>
+            <select id="patch-ch1" onchange="gantiPatchSource('ch1', this.value)" class="w-full bg-slate-900 border border-slate-700 text-[10px] font-mono text-slate-200 rounded px-1.5 py-0.5 outline-none">
+              <option value="mic_hardware" selected>🎙️ Mic / Line-In</option>
+              <option value="vt_audio">🎬 VT Playback</option>
+              <option value="cam_1">📹 Audio Cam 1</option>
+              <option value="bgm">🎵 BGM / SFX</option>
+            </select>
           </div>
           <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
-            <div id="vu-bar-ch1" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 75%;"></div>
+            <div id="vu-bar-ch1" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 0%;"></div>
           </div>
           <div class="w-full space-y-1">
             <input type="range" min="0" max="100" value="85" class="fader-slider" id="fader-ch1" oninput="updateChannelFader('ch1', this.value)">
@@ -371,13 +400,19 @@
           <button id="btn-mute-ch1" onclick="toggleChannelMute('ch1')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">MUTE</button>
         </div>
 
+        <!-- CH 2 Strip -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch2">
-          <div class="w-full">
+          <div class="w-full space-y-1">
             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">CH 2</span>
-            <span class="font-brand font-black text-xs text-white block truncate">MIC GUEST</span>
+            <select id="patch-ch2" onchange="gantiPatchSource('ch2', this.value)" class="w-full bg-slate-900 border border-slate-700 text-[10px] font-mono text-slate-200 rounded px-1.5 py-0.5 outline-none">
+              <option value="mic_hardware">🎙️ Mic / Line-In</option>
+              <option value="vt_audio">🎬 VT Playback</option>
+              <option value="cam_2" selected>📹 Audio Cam 2</option>
+              <option value="bgm">🎵 BGM / SFX</option>
+            </select>
           </div>
           <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
-            <div id="vu-bar-ch2" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 60%;"></div>
+            <div id="vu-bar-ch2" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 0%;"></div>
           </div>
           <div class="w-full space-y-1">
             <input type="range" min="0" max="100" value="80" class="fader-slider" id="fader-ch2" oninput="updateChannelFader('ch2', this.value)">
@@ -386,13 +421,19 @@
           <button id="btn-mute-ch2" onclick="toggleChannelMute('ch2')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">MUTE</button>
         </div>
 
+        <!-- CH 3 Strip -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch3">
-          <div class="w-full">
+          <div class="w-full space-y-1">
             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">CH 3</span>
-            <span class="font-brand font-black text-xs text-white block truncate">FLOOR / AMB</span>
+            <select id="patch-ch3" onchange="gantiPatchSource('ch3', this.value)" class="w-full bg-slate-900 border border-slate-700 text-[10px] font-mono text-slate-200 rounded px-1.5 py-0.5 outline-none">
+              <option value="mic_hardware">🎙️ Mic / Line-In</option>
+              <option value="vt_audio">🎬 VT Playback</option>
+              <option value="cam_3" selected>📹 Audio Cam 3</option>
+              <option value="bgm">🎵 BGM / SFX</option>
+            </select>
           </div>
           <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
-            <div id="vu-bar-ch3" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 40%;"></div>
+            <div id="vu-bar-ch3" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 0%;"></div>
           </div>
           <div class="w-full space-y-1">
             <input type="range" min="0" max="100" value="50" class="fader-slider" id="fader-ch3" oninput="updateChannelFader('ch3', this.value)">
@@ -401,13 +442,19 @@
           <button id="btn-mute-ch3" onclick="toggleChannelMute('ch3')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">MUTE</button>
         </div>
 
+        <!-- CH 4 Strip (VT IN) -->
         <div class="bg-slate-950/80 border border-amber-500/40 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center ring-1 ring-amber-500/20" id="strip-ch4">
-          <div class="w-full">
-            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 block">CH 4 (VT IN)</span>
-            <span class="font-brand font-black text-xs text-amber-300 block truncate">VT PLAYBACK</span>
+          <div class="w-full space-y-1">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 block">CH 4</span>
+            <select id="patch-ch4" onchange="gantiPatchSource('ch4', this.value)" class="w-full bg-slate-900 border border-amber-500/60 text-[10px] font-mono text-amber-300 rounded px-1.5 py-0.5 outline-none">
+              <option value="mic_hardware">🎙️ Mic / Line-In</option>
+              <option value="vt_audio" selected>🎬 VT Playback</option>
+              <option value="cam_1">📹 Audio Cam 1</option>
+              <option value="bgm">🎵 BGM / SFX</option>
+            </select>
           </div>
           <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
-            <div id="vu-bar-ch4" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 80%;"></div>
+            <div id="vu-bar-ch4" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 0%;"></div>
           </div>
           <div class="w-full space-y-1">
             <input type="range" min="0" max="100" value="90" class="fader-slider" id="fader-ch4" oninput="updateChannelFader('ch4', this.value)">
@@ -416,13 +463,19 @@
           <button id="btn-mute-ch4" onclick="toggleChannelMute('ch4')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">MUTE</button>
         </div>
 
+        <!-- CH 5 Strip -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center" id="strip-ch5">
-          <div class="w-full">
+          <div class="w-full space-y-1">
             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">CH 5</span>
-            <span class="font-brand font-black text-xs text-white block truncate">BGM / SFX</span>
+            <select id="patch-ch5" onchange="gantiPatchSource('ch5', this.value)" class="w-full bg-slate-900 border border-slate-700 text-[10px] font-mono text-slate-200 rounded px-1.5 py-0.5 outline-none">
+              <option value="mic_hardware">🎙️ Mic / Line-In</option>
+              <option value="vt_audio">🎬 VT Playback</option>
+              <option value="cam_1">📹 Audio Cam 1</option>
+              <option value="bgm" selected>🎵 BGM / SFX</option>
+            </select>
           </div>
           <div class="w-3 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
-            <div id="vu-bar-ch5" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 55%;"></div>
+            <div id="vu-bar-ch5" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 0%;"></div>
           </div>
           <div class="w-full space-y-1">
             <input type="range" min="0" max="100" value="65" class="fader-slider" id="fader-ch5" oninput="updateChannelFader('ch5', this.value)">
@@ -431,13 +484,14 @@
           <button id="btn-mute-ch5" onclick="toggleChannelMute('ch5')" class="deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold">MUTE</button>
         </div>
 
+        <!-- MASTER PGM OUT Strip -->
         <div class="bg-gradient-to-b from-red-950/40 to-slate-950 border border-red-500/50 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center ring-1 ring-red-500/30" id="strip-master">
           <div class="w-full">
             <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-red-400 block">MASTER</span>
             <span class="font-brand font-black text-xs text-red-300 block truncate">PGM OUT</span>
           </div>
           <div class="w-3.5 h-28 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
-            <div id="vu-bar-master" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 85%;"></div>
+            <div id="vu-bar-master" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 rounded transition-all duration-75" style="height: 0%;"></div>
           </div>
           <div class="w-full space-y-1">
             <input type="range" min="0" max="100" value="95" class="fader-slider accent-red-500" id="fader-master" oninput="updateChannelFader('master', this.value)">
@@ -514,13 +568,14 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT ENGINE -->
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT LOGIC ENGINE                                  -->
+  <!-- ======================================================== -->
   <script>
     let currentRoomToken = 'SKASA';
     let currentRoleKey = 'audio_vt';
     let currentSiswaUser = '';
 
-    // Kunci Sinkronisasi Pasif (Passive Sync Lock)
     let isCatchingUp = true;
     let syncLockTimeout = null;
 
@@ -529,6 +584,7 @@
     let activeCueIndex = -1;
     let loopMode = localStorage.getItem('skawan_vt_loop_mode') || 'playlist';
 
+    // State VT Aktif
     let vtPlaybackState = {
       status: 'paused',
       currentTime: 0,
@@ -540,20 +596,34 @@
     };
 
     let liveState = { programSource: 'cam_1', previewSource: 'cam_2' };
+    
+    // Konfigurasi Soft-Patch Mixer
     let audioMixerState = {
-      ch1: { fader: 85, isMuted: false },
-      ch2: { fader: 80, isMuted: false },
-      ch3: { fader: 50, isMuted: false },
-      ch4: { fader: 90, isMuted: false },
-      ch5: { fader: 65, isMuted: false },
+      ch1: { fader: 85, isMuted: false, source: 'mic_hardware' },
+      ch2: { fader: 80, isMuted: false, source: 'cam_2' },
+      ch3: { fader: 50, isMuted: false, source: 'cam_3' },
+      ch4: { fader: 90, isMuted: false, source: 'vt_audio' },
+      ch5: { fader: 65, isMuted: false, source: 'bgm' },
       master: { fader: 95, isMuted: false }
     };
 
+    // YouTube Player Instance (CUE / Playout Viewport)
     let audioYtPlayer = null;
     let isYtReady = false;
     let currentLoadedYtId = '';
+
+    // WebRTC Streamer
     let streamerInstance = null;
     const remoteCamStreams = new Map();
+
+    // Web Audio API State (Hardware Mic & Real VU Metering)
+    let audioCtx = null;
+    let micMediaStream = null;
+    let micSourceNode = null;
+    let micAnalyserNode = null;
+    let headphoneMonitorGain = null;
+    let isHardwareMicConnected = false;
+    let isHeadphoneMonitorOn = false;
 
     function getDatabase() {
       return window.db || (typeof firebase !== 'undefined' ? firebase.database() : null);
@@ -592,7 +662,7 @@
       }
     }
 
-    // Inisialisasi YouTube API Standalone
+    // Inisialisasi YouTube Player di Meja Playout CUE
     function initAudioYtPlayer() {
       if (isYtReady && audioYtPlayer) return;
       if (typeof YT === 'undefined' || !YT.Player) return;
@@ -620,7 +690,6 @@
               isYtReady = true;
               currentLoadedYtId = vidId;
 
-              // Langsung melompat ke detik berjalan dari siaran Firebase
               if (vtPlaybackState.currentTime > 0) {
                 e.target.seekTo(vtPlaybackState.currentTime, true);
               }
@@ -631,14 +700,12 @@
               }
               updateAudioFaderVolume();
 
-              // Buka kunci proteksi setelah pemutar lokal sinkron
               clearTimeout(syncLockTimeout);
               syncLockTimeout = setTimeout(() => {
                 isCatchingUp = false;
               }, 1500);
             },
             onStateChange: (e) => {
-              // Jika sedang dalam proses catch-up pasif, jangan kirim perubahan ke Firebase
               if (isCatchingUp) return;
 
               if (e.data === YT.PlayerState.PLAYING) {
@@ -671,19 +738,18 @@
       currentSiswaUser = sessionStorage.getItem('skawan_user') || 'Audio/VT Operator';
 
       document.getElementById('navRoomToken').innerText = currentRoomToken;
-      initAudioMixerUi();
       startStudioTimecodeTicker();
-      startVuMeterSimulator();
+      startVuMeterRealtimeEngine();
       updateLoopModeUI();
       initAudioVtSystem(currentRoomToken);
     });
 
-    // PENGAMBILAN LANGSUNG DARI FIREBASE (TANPA BUMPER BAWAAN)
+    // PENGAMBILAN DATA SYNCHRONOUS DARI FIREBASE
     function initAudioVtSystem(token) {
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      // 1. Ambil Antrean Playlist Tersimpan
+      // 1. Ambil Antrean Playlist
       activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
         if (snap.exists()) {
           const data = snap.val();
@@ -695,12 +761,11 @@
         }
       });
 
-      // 2. Ambil State Siaran Berjalan dari Firebase PGM
+      // 2. Baca State Siaran Aktif (Tanpa Injeksi Bumper Baru)
       activeDb.ref(`rooms/${token}/vt_state`).on('value', snap => {
         if (!snap.exists()) return;
         const remoteVt = snap.val();
 
-        // Hitung waktu siaran nyata secara presisi
         let calculatedCurrent = remoteVt.currentTime || 0;
         if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
           const elapsedSec = Math.max(0, (Date.now() - remoteVt.updatedAt) / 1000);
@@ -714,17 +779,14 @@
           currentTime: calculatedCurrent
         };
 
-        // Cari indeks klip di daftar playlist
         const foundIdx = vtPlaylist.findIndex(p => p.youtubeId === remoteVt.youtubeId || p.url === remoteVt.url);
         if (foundIdx !== -1) activePlayingIndex = foundIdx;
 
-        // Muat atau sinkronkan pemutar lokal
         if (!isYtReady || !audioYtPlayer) {
           initAudioYtPlayer();
         } else if (prevId !== vtPlaybackState.youtubeId && vtPlaybackState.youtubeId) {
           muatKlipKePlayer(activePlayingIndex, false);
         } else {
-          // Sinkronkan drift jika selisih waktu di atas 2 detik
           const curLocal = audioYtPlayer.getCurrentTime ? audioYtPlayer.getCurrentTime() : 0;
           if (Math.abs(curLocal - calculatedCurrent) > 2.0) {
             audioYtPlayer.seekTo(calculatedCurrent, true);
@@ -738,6 +800,7 @@
 
         updatePlaybackBadges();
         renderPlaylistUI();
+        updatePgmReturnMonitor();
       });
 
       // 3. Monitor PGM Return Feed Real-Time
@@ -749,7 +812,7 @@
         updatePgmReturnMonitor();
       });
 
-      // 4. WebRTC Streamer untuk Monitor PGM Kamera Visual
+      // 4. WebRTC Streamer untuk Monitor PGM Kamera
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -762,6 +825,48 @@
           }
         });
       }
+    }
+
+    // PEMILIHAN KLIP MANUAL KE PLAYOUT VIEWPORT (CUE PERSISTENT)
+    function pilihKlipPlaylist(index) {
+      if (index < 0 || index >= vtPlaylist.length) return;
+      activeCueIndex = index;
+      renderPlaylistUI();
+
+      // Tampilkan klip yang dipilih langsung di viewport persiapan
+      const clip = vtPlaylist[index];
+      const vidId = clip.youtubeId || extractCleanYtId(clip.url);
+      
+      document.getElementById('lblActiveClipTitle').innerText = clip.title;
+      document.getElementById('sliderVtProgress').max = clip.durationSec || 120;
+
+      if (isYtReady && audioYtPlayer && typeof audioYtPlayer.loadVideoById === 'function') {
+        audioYtPlayer.loadVideoById({ videoId: vidId, startSeconds: 0 });
+        audioYtPlayer.pauseVideo();
+      }
+      
+      const badgeStatus = document.getElementById('badgeVtOnAirStatus');
+      badgeStatus.className = "font-mono text-[10px] font-black px-2 py-0.5 rounded bg-amber-500 text-black shadow uppercase";
+      badgeStatus.innerText = "CUE READY";
+    }
+
+    // ROLL VT: MEMUTAR DI BACKGROUND TANPA MENGGANTI SUMBER SWITCHER SECARA SEPIHAK
+    function eksekusiRollVt() {
+      isCatchingUp = false;
+      if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
+        activePlayingIndex = activeCueIndex;
+        activeCueIndex = -1;
+        muatKlipKePlayer(activePlayingIndex, false);
+      }
+      vtPlaybackState.status = 'playing';
+      if (isYtReady && audioYtPlayer) {
+        audioYtPlayer.playVideo();
+      }
+      updatePlaybackBadges();
+      renderPlaylistUI();
+
+      // Kirim pembaruan status pemutaran VT saja ke Firebase
+      broadcastVtPlaybackState();
     }
 
     function muatKlipKePlayer(index, shouldBroadcast = true) {
@@ -814,40 +919,10 @@
       if (shouldBroadcast && !isCatchingUp) broadcastVtPlaybackState();
     }
 
-    function pilihKlipPlaylist(index) {
-      if (index < 0 || index >= vtPlaylist.length) return;
-      isCatchingUp = false;
-      if (vtPlaybackState.status === 'playing') {
-        activeCueIndex = index;
-        renderPlaylistUI();
-      } else {
-        activeCueIndex = -1;
-        vtPlaybackState.currentTime = 0;
-        muatKlipKePlayer(index, true);
-      }
-    }
-
-    function eksekusiRollVt() {
-      isCatchingUp = false;
-      if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
-        activePlayingIndex = activeCueIndex;
-        activeCueIndex = -1;
-        vtPlaybackState.currentTime = 0;
-        muatKlipKePlayer(activePlayingIndex, true);
-      }
-      vtPlaybackState.status = 'playing';
-      if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
-        audioYtPlayer.playVideo();
-      }
-      updatePlaybackBadges();
-      renderPlaylistUI();
-      broadcastVtPlaybackState();
-    }
-
     function eksekusiPauseVt() {
       isCatchingUp = false;
       vtPlaybackState.status = 'paused';
-      if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+      if (isYtReady && audioYtPlayer) {
         audioYtPlayer.pauseVideo();
         vtPlaybackState.currentTime = audioYtPlayer.getCurrentTime() || 0;
       }
@@ -858,7 +933,7 @@
     function eksekusiCueVt() {
       isCatchingUp = false;
       vtPlaybackState.currentTime = 0;
-      if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+      if (isYtReady && audioYtPlayer) {
         audioYtPlayer.seekTo(0, true);
       }
       broadcastVtPlaybackState();
@@ -868,7 +943,7 @@
       isCatchingUp = false;
       const sec = parseFloat(val) || 0;
       vtPlaybackState.currentTime = sec;
-      if (vtPlaybackState.sourceType === 'youtube' && isYtReady && audioYtPlayer) {
+      if (isYtReady && audioYtPlayer) {
         audioYtPlayer.seekTo(sec, true);
       }
       broadcastVtPlaybackState();
@@ -876,7 +951,7 @@
 
     function pindahKlip(delta) {
       if (vtPlaylist.length === 0) return;
-      let target = activePlayingIndex + delta;
+      let target = (activeCueIndex !== -1 ? activeCueIndex : activePlayingIndex) + delta;
       if (target < 0) target = vtPlaylist.length - 1;
       if (target >= vtPlaylist.length) target = 0;
       pilihKlipPlaylist(target);
@@ -959,7 +1034,7 @@
       if (vtPlaylist.length === 0) {
         container.innerHTML = `
           <div class="p-4 text-center text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
-            Belum ada video dalam daftar antrean.
+            Belum ada video dalam daftar antrean. Masukkan judul & URL di atas.
           </div>
         `;
         return;
@@ -967,8 +1042,14 @@
 
       vtPlaylist.forEach((item, idx) => {
         const isPlayingNow = (idx === activePlayingIndex);
+        const isCued = (idx === activeCueIndex);
         const card = document.createElement('div');
-        card.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${isPlayingNow ? 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/50' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`;
+        
+        let ringStyle = 'border-slate-800 bg-slate-950 hover:border-slate-700';
+        if (isPlayingNow) ringStyle = 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500';
+        else if (isCued) ringStyle = 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500';
+
+        card.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${ringStyle}`;
         card.onclick = () => pilihKlipPlaylist(idx);
         
         card.innerHTML = `
@@ -980,7 +1061,9 @@
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${isPlayingNow ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}">${isPlayingNow ? 'ROLLING' : item.sourceType.toUpperCase()}</span>
+            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${isPlayingNow ? 'bg-emerald-600 text-white animate-pulse' : (isCued ? 'bg-amber-500 text-black font-black' : 'bg-slate-800 text-slate-400')}">
+              ${isPlayingNow ? 'ON-AIR' : (isCued ? 'CUE' : item.sourceType.toUpperCase())}
+            </span>
             <button onclick="hapusKlipDariPlaylist(event, ${idx})" class="deck-btn w-6 h-6 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-xs transition" title="Hapus klip ini">
               ✕
             </button>
@@ -1032,7 +1115,7 @@
       renderPlaylistUI();
     }
 
-    // UPDATE MONITOR PGM RETURN SECARA REAL-TIME SESUAI INDEX.HTML
+    // UPDATE MONITOR PGM RETURN DARI SUMBER INDEX.HTML SECARA PERSIS
     function updatePgmReturnMonitor() {
       const activeSrc = liveState.programSource || 'cam_1';
       document.getElementById('badgeActivePgmSource').innerText = activeSrc.toUpperCase();
@@ -1054,7 +1137,6 @@
           pgmVtWrap.classList.add('opacity-100');
         }
 
-        // Tampilkan feed YouTube yang sama dengan index.html
         const yId = extractCleanYtId(vtPlaybackState.youtubeId || vtPlaybackState.url);
         if (yId && pgmYtIframe && (!pgmYtIframe.src || !pgmYtIframe.src.includes(yId))) {
           pgmYtIframe.src = `https://www.youtube-nocookie.com/embed/${yId}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${yId}&playsinline=1`;
@@ -1083,29 +1165,183 @@
       }
     }
 
-    function initAudioMixerUi() {
+    // ========================================================
+    // BROADCAST AUDIO CONSOLE & WEB AUDIO API ENGINE
+    // ========================================================
+    function gantiPatchSource(ch, newSrc) {
+      audioMixerState[ch].source = newSrc;
       updateAudioFaderVolume();
     }
 
     function updateChannelFader(ch, val) {
       audioMixerState[ch].fader = parseInt(val) || 0;
       document.getElementById(`lbl-val-${ch}`).innerText = `${val}%`;
-      if (ch === 'ch4' || ch === 'master') updateAudioFaderVolume();
+      updateAudioFaderVolume();
     }
 
     function toggleChannelMute(ch) {
       audioMixerState[ch].isMuted = !audioMixerState[ch].isMuted;
+      const btn = document.getElementById(`btn-mute-${ch}`);
+      if (audioMixerState[ch].isMuted) {
+        btn.className = "deck-btn w-full py-1.5 rounded-lg border border-red-800 bg-red-950 text-red-400 font-mono text-[10px] font-bold";
+        btn.innerText = "MUTED";
+      } else {
+        btn.className = "deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold";
+        btn.innerText = "MUTE";
+      }
       updateAudioFaderVolume();
     }
 
     function updateAudioFaderVolume() {
       const masterFactor = audioMixerState.master.isMuted ? 0 : (audioMixerState.master.fader / 100);
-      const vtFactor = audioMixerState.ch4.isMuted ? 0 : (audioMixerState.ch4.fader / 100);
-      const finalVolume = Math.round(masterFactor * vtFactor * 100);
+      
+      // Temukan channel mana yang sedang dipetakan ke VT Audio
+      let vtFaderVal = 0;
+      ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
+        if (audioMixerState[ch].source === 'vt_audio' && !audioMixerState[ch].isMuted) {
+          vtFaderVal = Math.max(vtFaderVal, audioMixerState[ch].fader);
+        }
+      });
 
+      const finalVolume = Math.round(masterFactor * (vtFaderVal / 100) * 100);
+
+      // Kontrol volume player VT lokal (Confidence Monitor)
       if (isYtReady && audioYtPlayer && typeof audioYtPlayer.setVolume === 'function') {
         audioYtPlayer.setVolume(finalVolume);
+        if (isHeadphoneMonitorOn && finalVolume > 0) {
+          audioYtPlayer.unMute();
+        } else if (!isHeadphoneMonitorOn) {
+          audioYtPlayer.mute();
+        }
       }
+
+      // Kontrol penguatan headphone untuk Mic Fisik
+      if (headphoneMonitorGain) {
+        let micFaderVal = 0;
+        ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
+          if (audioMixerState[ch].source === 'mic_hardware' && !audioMixerState[ch].isMuted) {
+            micFaderVal = Math.max(micFaderVal, audioMixerState[ch].fader);
+          }
+        });
+        const micGain = isHeadphoneMonitorOn ? (masterFactor * (micFaderVal / 100)) : 0;
+        headphoneMonitorGain.gain.setValueAtTime(micGain, audioCtx ? audioCtx.currentTime : 0);
+      }
+    }
+
+    // Sakelar Headphone Confidence Monitoring
+    function toggleHeadphoneMonitoring() {
+      isHeadphoneMonitorOn = !isHeadphoneMonitorOn;
+      const btn = document.getElementById('btnHeadphoneMonitor');
+      const lbl = document.getElementById('lblHeadphone');
+
+      if (isHeadphoneMonitorOn) {
+        btn.className = "deck-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-950/60 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition shadow";
+        lbl.innerText = "Monitor Headphone: ON";
+      } else {
+        btn.className = "deck-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition";
+        lbl.innerText = "Monitor Headphone: OFF";
+      }
+
+      updateAudioFaderVolume();
+    }
+
+    // Sambungkan Mikrofon Fisik / Line-In
+    async function toggleHardwareInputAudio() {
+      if (isHardwareMicConnected) {
+        if (micMediaStream) {
+          micMediaStream.getTracks().forEach(t => t.stop());
+        }
+        isHardwareMicConnected = false;
+        document.getElementById('lblHardwareMic').innerText = "Sambungkan Mic / Line-In Fisik";
+        document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-amber-600/60 bg-amber-950/40 hover:bg-amber-900 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition";
+        return;
+      }
+
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
+
+        micMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        micSourceNode = audioCtx.createMediaStreamSource(micMediaStream);
+        micAnalyserNode = audioCtx.createAnalyser();
+        micAnalyserNode.fftSize = 64;
+
+        headphoneMonitorGain = audioCtx.createGain();
+        headphoneMonitorGain.gain.value = 0; // Default off agar tidak feedback
+
+        micSourceNode.connect(micAnalyserNode);
+        micSourceNode.connect(headphoneMonitorGain);
+        headphoneMonitorGain.connect(audioCtx.destination);
+
+        isHardwareMicConnected = true;
+        document.getElementById('lblHardwareMic').innerText = "Mic Fisik: Terhubung (Live)";
+        document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md";
+        
+        updateAudioFaderVolume();
+        showNotice("Mic Fisik Terhubung", "Mikrofon perangkat aktif dan terpetakan ke konsol audio.", true);
+      } catch (err) {
+        console.warn("Izin mikrofon ditolak:", err);
+        showNotice("Gagal Membuka Mic", "Pastikan izin akses mikrofon telah diberikan pada peramban Anda.", false);
+      }
+    }
+
+    // VU Meter Real-Time Engine (Membaca Analyser Nyata)
+    function startVuMeterRealtimeEngine() {
+      const micBuffer = new Uint8Array(32);
+
+      setInterval(() => {
+        let realMicLevel = 0;
+        if (isHardwareMicConnected && micAnalyserNode) {
+          micAnalyserNode.getByteFrequencyData(micBuffer);
+          let sum = 0;
+          for (let i = 0; i < micBuffer.length; i++) sum += micBuffer[i];
+          realMicLevel = Math.min(100, Math.round((sum / micBuffer.length) * 1.5));
+        }
+
+        const isVtPlaying = vtPlaybackState.status === 'playing';
+
+        ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
+          const cfg = audioMixerState[ch];
+          const bar = document.getElementById(`vu-bar-${ch}`);
+          if (!bar) return;
+
+          let rawSignal = 0;
+          if (cfg.isMuted) {
+            rawSignal = 0;
+          } else if (cfg.source === 'mic_hardware') {
+            rawSignal = realMicLevel;
+          } else if (cfg.source === 'vt_audio') {
+            rawSignal = isVtPlaying ? (65 + Math.random() * 25) : 0;
+          } else {
+            rawSignal = (cfg.fader > 0) ? (35 + Math.random() * 20) : 0;
+          }
+
+          const targetHeight = Math.min(100, Math.round(rawSignal * (cfg.fader / 100)));
+          bar.style.height = `${targetHeight}%`;
+        });
+
+        // Master Meter
+        const masterBar = document.getElementById('vu-bar-master');
+        if (masterBar) {
+          const masterCfg = audioMixerState.master;
+          let combined = 0;
+          if (!masterCfg.isMuted) {
+            ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
+              if (!audioMixerState[ch].isMuted) combined = Math.max(combined, audioMixerState[ch].fader);
+            });
+            if (isVtPlaying || realMicLevel > 0) {
+              combined = Math.min(100, Math.round(combined * (masterCfg.fader / 100) * 0.95));
+            } else {
+              combined = 0;
+            }
+          }
+          masterBar.style.height = `${combined}%`;
+        }
+      }, 80);
     }
 
     function startStudioTimecodeTicker() {
@@ -1124,18 +1360,6 @@
           document.getElementById('lblVtPercent').innerText = `${pct}%`;
         }
       }, 500);
-    }
-
-    function startVuMeterSimulator() {
-      setInterval(() => {
-        ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'master'].forEach(ch => {
-          const bar = document.getElementById(`vu-bar-${ch}`);
-          if (bar) {
-            const pct = audioMixerState[ch].isMuted ? 0 : (audioMixerState[ch].fader / 100) * 85;
-            bar.style.height = `${Math.max(0, Math.min(100, pct + (Math.random() * 10 - 5)))}%`;
-          }
-        });
-      }, 100);
     }
 
     function bukaModalTambahKlip() {
