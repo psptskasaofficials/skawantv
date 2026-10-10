@@ -165,20 +165,20 @@
   <!-- WORKSPACE UTAMA: DUAL MONITOR & PLAYLIST QUEUE -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
     
-    <!-- BARIS 1: DUAL MONITOR BERDAMPINGAN (VT PLAYOUT CUE vs PGM LIVE RETURN) -->
+    <!-- BARIS 1: DUAL MONITOR BERDAMPINGAN (VT PREVIEW/CUE vs PGM LIVE RETURN) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- 1. MONITOR KIRI: VT PLAYOUT VIEWPORT (CUE / PERSIAPAN OPERATOR) -->
+      <!-- 1. MONITOR KIRI: VT PLAYOUT VIEWPORT (CUE / PREVIEW DECK) -->
       <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
             <div class="flex items-center gap-2">
               <span id="vtPulseDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-              <span class="font-brand font-black text-xs uppercase tracking-wider text-amber-400">VT Playout Viewport (CUE Monitor)</span>
+              <span class="font-brand font-black text-xs uppercase tracking-wider text-amber-400">VT Playout Viewport (Preview / CUE)</span>
             </div>
             <div class="flex items-center gap-1.5">
-              <span id="badgeVtOnAirStatus" class="font-mono text-[10px] font-black px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-amber-500/50 uppercase">
-                CUE READY
+              <span id="badgeVtOnAirStatus" class="font-mono text-[10px] font-black px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/50 uppercase">
+                STANDBY
               </span>
               <span id="badgeVtSourceType" class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 uppercase">
                 YOUTUBE
@@ -186,17 +186,17 @@
             </div>
           </div>
 
-          <!-- Video Player Viewport -->
+          <!-- Video Player Viewport (Clean Embed Nocookie) -->
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800 shadow-inner" id="vtPlayerContainer">
             <video id="audioVtHtml5Video" class="w-full h-full object-contain hidden" playsinline></video>
             <div id="audioVtYtWrap" class="w-full h-full">
               <div id="audioVtYtEl" class="w-full h-full"></div>
             </div>
 
-            <div id="audioVtFallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-slate-950/80 space-y-2">
+            <div id="audioVtFallback" class="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-slate-950/80 space-y-2 z-10">
               <span class="text-3xl">🎬</span>
-              <span class="font-brand font-black text-sm text-slate-300">Belum Ada Media VT Dipilih</span>
-              <span class="text-[11px] font-mono text-slate-500">Pilih salah satu klip di antrean sebelah bawah</span>
+              <span class="font-brand font-black text-sm text-slate-300">Belum Ada Klip Dipilih</span>
+              <span class="text-[11px] font-mono text-slate-500">Pilih salah satu klip pada daftar antrean di bawah</span>
             </div>
 
             <div class="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-white/10 font-mono text-[11px] text-amber-400 font-bold z-20">
@@ -204,70 +204,53 @@
             </div>
           </div>
 
-          <!-- Timeline Slider -->
+          <!-- Timeline Slider (Hanya untuk CUE) -->
           <div class="space-y-1">
-            <input type="range" id="sliderVtProgress" min="0" max="120" value="0" step="1" oninput="seekVtPosition(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+            <input type="range" id="sliderVtProgress" min="0" max="120" value="0" step="1" oninput="seekCuePosition(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
             <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span id="lblActiveClipTitle" class="text-white font-bold truncate max-w-[280px]">Belum Memuat Klip</span>
+              <span id="lblActiveClipTitle" class="text-white font-bold truncate max-w-[280px]">Pilih Klip di Antrean</span>
               <span id="lblVtPercent" class="text-amber-400 font-bold">0%</span>
             </div>
           </div>
         </div>
 
-        <!-- Tombol Kontrol Siaran VT & Mode Loop -->
+        <!-- TOMBOL KONTROL OPERASIONAL KHUSUS (HANYA PADA PREVIEW / CUE) -->
         <div class="space-y-2 pt-2 border-t border-slate-800">
-          <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
-            <button onclick="eksekusiCueVt()" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Reset Detik Awal">
+          <div class="grid grid-cols-12 gap-2">
+            
+            <!-- Tombol CUE: Kembalikan preview ke detik 00:00 -->
+            <button onclick="eksekusiCueLokal()" class="col-span-3 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700" title="CUE: Kembalikan ke Detik 00:00">
               <span>⏮</span>
               <span>CUE</span>
             </button>
 
-            <!-- ROLL VT: HANYA MEMUTAR VT DI BACKGROUND (WEWENANG CUT/SWITCH TETAP DI SWITCHER) -->
-            <button onclick="eksekusiRollVt()" id="btnRollVt" class="col-span-4 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30">
-              <span>▶️</span>
-              <span>ROLL VT!</span>
+            <!-- Tombol Test Play/Pause Lokal (Hanya di monitor CUE, tidak masuk PGM) -->
+            <button onclick="toggleTestPlayLokal()" id="btnTestPlay" class="col-span-3 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-amber-600/40" title="Putar atau jeda lokal di monitor Preview">
+              <span id="iconTestPlay">▶</span>
+              <span id="lblTestPlay">TEST</span>
             </button>
 
-            <button onclick="eksekusiPauseVt()" id="btnPauseVt" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-slate-700">
-              <span>⏸️</span>
-              <span>PAUSE</span>
+            <!-- TOMBOL UTAMA: ROLL TO PGM (Mengirim klip ke siaran langsung) -->
+            <button onclick="eksekusiRollToPgm()" id="btnRollToPgm" class="col-span-6 sm:col-span-5 deck-btn py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30">
+              <span>⚡</span>
+              <span>ROLL TO PGM</span>
             </button>
 
-            <button onclick="pindahKlip(-1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Sebelumnya">
-              ◀
-            </button>
-
-            <button onclick="pindahKlip(1)" class="col-span-1 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-brand font-bold text-xs flex items-center justify-center border border-slate-700" title="Klip Selanjutnya">
-              ▶
-            </button>
-
-            <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-2 sm:col-span-1 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition">
+            <!-- Ganti Mode Loop -->
+            <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-12 sm:col-span-3 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-amber-900/30 transition">
               <span id="iconLoopMode">🔁</span>
               <span id="lblLoopMode">PLAYLIST</span>
             </button>
           </div>
 
-          <div class="flex flex-wrap items-center justify-between bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[11px] font-mono gap-1">
-            <span class="text-slate-400 flex items-center gap-1">
-              <span>🔁</span>
-              <span class="font-bold text-[10px] sm:text-[11px]">Mode Looping:</span>
-            </span>
-            <div class="flex items-center gap-1">
-              <button type="button" onclick="setLoopMode('off')" id="optLoopOff" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white">
-                OFF
-              </button>
-              <button type="button" onclick="setLoopMode('single')" id="optLoopSingle" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-slate-800 text-slate-400 hover:text-white">
-                🔂 Single
-              </button>
-              <button type="button" onclick="setLoopMode('playlist')" id="optLoopPlaylist" class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition bg-amber-500 text-black shadow">
-                🔁 Playlist
-              </button>
-            </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 bg-slate-950/60 px-3 py-1.5 rounded-xl border border-slate-800">
+            <span>Status CUE: <strong id="lblCueStatusDetail" class="text-amber-400">Siap Ditinjau</strong></span>
+            <span class="text-[10px] text-slate-500">* Klik ROLL TO PGM untuk menayangkan klip</span>
           </div>
         </div>
       </div>
 
-      <!-- 2. MONITOR KANAN: PGM LIVE RETURN MONITOR (SESUAI PERSIS DENGAN INDEX.HTML) -->
+      <!-- 2. MONITOR KANAN: PGM LIVE RETURN MONITOR (PASIF - BERSIH TANPA TOMBOL) -->
       <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -280,6 +263,7 @@
             </span>
           </div>
 
+          <!-- Video Viewport Pasif (Cermin Murni dari index.html) -->
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-800" id="pgmReturnViewport">
             <!-- Feed Kamera WebRTC -->
             <video id="pgmReturnCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
@@ -303,23 +287,23 @@
           </div>
         </div>
 
-        <div class="p-2.5 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+        <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
           <div class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>Umpan Balik: <strong id="lblPgmFeedbackStatus" class="text-slate-200 font-bold">Sinkron Index</strong></span>
+            <span>Umpan Balik: <strong id="lblPgmFeedbackStatus" class="text-slate-200 font-bold">Sinkron Index.html</strong></span>
           </div>
-          <span class="text-[10px] text-slate-500">* Wewenang Cut ada pada Meja Switcher</span>
+          <span class="text-[10px] text-slate-500">* Pemilihan sumber aktif dikendalikan di Switcher</span>
         </div>
       </div>
 
     </div>
 
-    <!-- BARIS 2: ANTREAN DAFTAR PUTAR (PLAYLIST QUEUE) -->
+    <!-- BARIS 2: ANTREAN DAFTAR PUTAR (ONLINE & SINKRON FIREBASE) -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-2">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow"></span>
-          <h3 class="font-brand font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Antrean Daftar Putar VT (Klik Item untuk Cue/Preview)</h3>
+          <h3 class="font-brand font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Antrean Daftar Putar Online (Klik Item untuk Menyiapkan CUE)</h3>
         </div>
         
         <div class="flex items-center gap-1.5 self-end sm:self-center">
@@ -348,12 +332,12 @@
       <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
         <span id="lblPlaylistCount">Total Klip: 0 Video</span>
         <button onclick="kosongkanPlaylistManual()" class="text-slate-500 hover:text-amber-400 text-[11px] underline transition">
-          Bersihkan Seluruh Playlist
+          Bersihkan Seluruh Playlist di Firebase
         </button>
       </div>
     </div>
 
-    <!-- BARIS 3: BROADCAST AUDIO CONSOLE (PATCHABLE SOURCES & CONFIDENCE MONITORING) -->
+    <!-- BARIS 3: BROADCAST AUDIO CONSOLE (INPUT PATCHING & REAL MONITORING) -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
         <div class="flex items-center gap-2">
@@ -517,10 +501,10 @@
       <div class="space-y-3 text-xs">
         <div>
           <label class="block font-bold text-slate-400 uppercase mb-1">Judul Klip:</label>
-          <input type="text" id="modalInputClipTitle" placeholder="Contoh: Liputan Lapangan" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-amber-500">
+          <input type="text" id="modalInputClipTitle" placeholder="Contoh: Liputan Berita" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-amber-500">
         </div>
         <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Tipe Sumber Media:</label>
+          <label class="block font-bold text-slate-400 uppercase mb-1">Tipe Media:</label>
           <select id="modalSelectSourceType" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none">
             <option value="youtube">YouTube (URL / 11-Digit Video ID)</option>
             <option value="mp4">HTML5 Native MP4</option>
@@ -538,7 +522,7 @@
 
       <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
         <button onclick="tutupModalTambahKlip()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">Batal</button>
-        <button onclick="eksekusiModalTambahKlip()" class="deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">Simpan ke Playlist</button>
+        <button onclick="eksekusiModalTambahKlip()" class="deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">Simpan ke Firebase</button>
       </div>
     </div>
   </div>
@@ -576,28 +560,30 @@
     let currentRoleKey = 'audio_vt';
     let currentSiswaUser = '';
 
-    let isCatchingUp = true;
-    let syncLockTimeout = null;
-
+    // Playlist Online Sinkron dengan Firebase
     let vtPlaylist = [];
-    let activePlayingIndex = -1;
-    let activeCueIndex = -1;
-    let loopMode = localStorage.getItem('skawan_vt_loop_mode') || 'playlist';
 
-    // State VT Aktif
-    let vtPlaybackState = {
+    // State Klip Lokal di Monitor Preview/CUE (Tidak dikirim ke Firebase sebelum ROLL)
+    let cuedClip = null;
+    let cuedIndex = -1;
+    let isTestPlaying = false;
+
+    // State VT yang Sedang On-Air di Firebase
+    let onAirVtState = {
       status: 'paused',
       currentTime: 0,
       totalDuration: 120,
-      title: 'Menghubungkan ke PGM...',
+      title: 'Menunggu Siaran...',
       sourceType: 'youtube',
       youtubeId: '',
-      url: ''
+      url: '',
+      updatedAt: 0
     };
 
     let liveState = { programSource: 'cam_1', previewSource: 'cam_2' };
-    
-    // Konfigurasi Soft-Patch Mixer
+    let loopMode = localStorage.getItem('skawan_vt_loop_mode') || 'playlist';
+
+    // Konfigurasi Soft-Patching Audio Mixer
     let audioMixerState = {
       ch1: { fader: 85, isMuted: false, source: 'mic_hardware' },
       ch2: { fader: 80, isMuted: false, source: 'cam_2' },
@@ -607,10 +593,9 @@
       master: { fader: 95, isMuted: false }
     };
 
-    // YouTube Player Instance (CUE / Playout Viewport)
-    let audioYtPlayer = null;
-    let isYtReady = false;
-    let currentLoadedYtId = '';
+    // YouTube Player Instance (Hanya untuk CUE Lokal)
+    let cueYtPlayer = null;
+    let isCueYtReady = false;
 
     // WebRTC Streamer
     let streamerInstance = null;
@@ -654,84 +639,9 @@
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
-    function simpanDanSinkronkanPlaylist() {
-      localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(vtPlaylist);
-      }
-    }
-
-    // Inisialisasi YouTube Player di Meja Playout CUE
-    function initAudioYtPlayer() {
-      if (isYtReady && audioYtPlayer) return;
-      if (typeof YT === 'undefined' || !YT.Player) return;
-
-      const vidId = extractCleanYtId(vtPlaybackState.youtubeId || vtPlaybackState.url);
-      if (!vidId) return;
-
-      try {
-        audioYtPlayer = new YT.Player('audioVtYtEl', {
-          height: '100%',
-          width: '100%',
-          host: 'https://www.youtube-nocookie.com',
-          videoId: vidId,
-          playerVars: {
-            playsinline: 1,
-            controls: 1,
-            rel: 0,
-            autoplay: 1,
-            mute: 0,
-            modestbranding: 1,
-            origin: window.location.origin || 'http://localhost'
-          },
-          events: {
-            onReady: (e) => {
-              isYtReady = true;
-              currentLoadedYtId = vidId;
-
-              if (vtPlaybackState.currentTime > 0) {
-                e.target.seekTo(vtPlaybackState.currentTime, true);
-              }
-              if (vtPlaybackState.status === 'playing') {
-                e.target.playVideo();
-              } else {
-                e.target.pauseVideo();
-              }
-              updateAudioFaderVolume();
-
-              clearTimeout(syncLockTimeout);
-              syncLockTimeout = setTimeout(() => {
-                isCatchingUp = false;
-              }, 1500);
-            },
-            onStateChange: (e) => {
-              if (isCatchingUp) return;
-
-              if (e.data === YT.PlayerState.PLAYING) {
-                vtPlaybackState.status = 'playing';
-                updatePlaybackBadges();
-                broadcastVtPlaybackState();
-              } else if (e.data === YT.PlayerState.PAUSED) {
-                vtPlaybackState.status = 'paused';
-                updatePlaybackBadges();
-                broadcastVtPlaybackState();
-              } else if (e.data === YT.PlayerState.ENDED) {
-                tanganiKlipSelesai();
-              }
-            }
-          }
-        });
-        isYtReady = true;
-      } catch (err) {}
-    }
-
-    if (window.YT && window.YT.Player) {
-      initAudioYtPlayer();
-    } else {
-      window.onYouTubeIframeAPIReady = initAudioYtPlayer;
-    }
-
+    // ============================================================
+    // INITIALIZATION & REALTIME FIREBASE SINKRONISASI
+    // ============================================================
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       currentRoomToken = (urlParams.get('room') || sessionStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
@@ -744,66 +654,31 @@
       initAudioVtSystem(currentRoomToken);
     });
 
-    // PENGAMBILAN DATA SYNCHRONOUS DARI FIREBASE
     function initAudioVtSystem(token) {
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      // 1. Ambil Antrean Playlist
+      // 1. Sinkronisasi Playlist Online dari Firebase
       activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
         if (snap.exists()) {
           const data = snap.val();
-          if (Array.isArray(data)) {
-            vtPlaylist = data;
-            localStorage.setItem(`skawan_vt_playlist_${token}`, JSON.stringify(vtPlaylist));
-            renderPlaylistUI();
-          }
+          vtPlaylist = Array.isArray(data) ? data : Object.values(data);
+        } else {
+          vtPlaylist = [];
         }
+        localStorage.setItem(`skawan_vt_playlist_${token}`, JSON.stringify(vtPlaylist));
+        renderPlaylistUI();
       });
 
-      // 2. Baca State Siaran Aktif (Tanpa Injeksi Bumper Baru)
+      // 2. Mendengarkan Status On-Air VT dari Firebase
       activeDb.ref(`rooms/${token}/vt_state`).on('value', snap => {
         if (!snap.exists()) return;
-        const remoteVt = snap.val();
-
-        let calculatedCurrent = remoteVt.currentTime || 0;
-        if (remoteVt.status === 'playing' && remoteVt.updatedAt) {
-          const elapsedSec = Math.max(0, (Date.now() - remoteVt.updatedAt) / 1000);
-          calculatedCurrent = (remoteVt.currentTime + elapsedSec) % (remoteVt.totalDuration || 120);
-        }
-
-        const prevId = vtPlaybackState.youtubeId;
-        vtPlaybackState = {
-          ...vtPlaybackState,
-          ...remoteVt,
-          currentTime: calculatedCurrent
-        };
-
-        const foundIdx = vtPlaylist.findIndex(p => p.youtubeId === remoteVt.youtubeId || p.url === remoteVt.url);
-        if (foundIdx !== -1) activePlayingIndex = foundIdx;
-
-        if (!isYtReady || !audioYtPlayer) {
-          initAudioYtPlayer();
-        } else if (prevId !== vtPlaybackState.youtubeId && vtPlaybackState.youtubeId) {
-          muatKlipKePlayer(activePlayingIndex, false);
-        } else {
-          const curLocal = audioYtPlayer.getCurrentTime ? audioYtPlayer.getCurrentTime() : 0;
-          if (Math.abs(curLocal - calculatedCurrent) > 2.0) {
-            audioYtPlayer.seekTo(calculatedCurrent, true);
-          }
-          if (vtPlaybackState.status === 'playing' && audioYtPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
-            audioYtPlayer.playVideo();
-          } else if (vtPlaybackState.status === 'paused' && audioYtPlayer.getPlayerState() !== YT.PlayerState.PAUSED) {
-            audioYtPlayer.pauseVideo();
-          }
-        }
-
-        updatePlaybackBadges();
+        onAirVtState = { ...onAirVtState, ...snap.val() };
         renderPlaylistUI();
         updatePgmReturnMonitor();
       });
 
-      // 3. Monitor PGM Return Feed Real-Time
+      // 3. Mendengarkan Switcher PGM/PVW State
       activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
         if (!snap.exists()) return;
         const live = snap.val();
@@ -812,7 +687,7 @@
         updatePgmReturnMonitor();
       });
 
-      // 4. WebRTC Streamer untuk Monitor PGM Kamera
+      // 4. WebRTC Video Kamera Remote
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -827,146 +702,172 @@
       }
     }
 
-    // PEMILIHAN KLIP MANUAL KE PLAYOUT VIEWPORT (CUE PERSISTENT)
+    // ============================================================
+    // PLAYER CUE LOKAL (YOUTUBE NOCOOKIE - BEBAS IKLAN)
+    // ============================================================
+    function initCueYtPlayer(vidId) {
+      const ytWrap = document.getElementById('audioVtYtWrap');
+      const fallbackBox = document.getElementById('audioVtFallback');
+      if (fallbackBox) fallbackBox.classList.add('hidden');
+      if (ytWrap) ytWrap.classList.remove('hidden');
+
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.loadVideoById === 'function') {
+        cueYtPlayer.loadVideoById({ videoId: vidId, startSeconds: 0 });
+        cueYtPlayer.pauseVideo();
+        isTestPlaying = false;
+        updateTestPlayBtnUI();
+        return;
+      }
+
+      if (typeof YT === 'undefined' || !YT.Player) return;
+
+      try {
+        cueYtPlayer = new YT.Player('audioVtYtEl', {
+          height: '100%',
+          width: '100%',
+          host: 'https://www.youtube-nocookie.com',
+          videoId: vidId,
+          playerVars: {
+            playsinline: 1,
+            controls: 0,
+            rel: 0,
+            autoplay: 0,
+            mute: 0,
+            modestbranding: 1,
+            iv_load_policy: 3,
+            disablekb: 1,
+            origin: window.location.origin || 'http://localhost'
+          },
+          events: {
+            onReady: (e) => {
+              isCueYtReady = true;
+              e.target.pauseVideo();
+              updateAudioFaderVolume();
+            },
+            onStateChange: (e) => {
+              if (e.data === YT.PlayerState.PLAYING) {
+                isTestPlaying = true;
+                updateTestPlayBtnUI();
+              } else if (e.data === YT.PlayerState.PAUSED) {
+                isTestPlaying = false;
+                updateTestPlayBtnUI();
+              } else if (e.data === YT.PlayerState.ENDED) {
+                isTestPlaying = false;
+                updateTestPlayBtnUI();
+                e.target.seekTo(0, true);
+              }
+            }
+          }
+        });
+      } catch (err) {}
+    }
+
+    // MEMILIH KLIP HANYA KE CUE LOKAL (TIDAK MEMPENGARUHI FIREBASE/INDEX.HTML)
     function pilihKlipPlaylist(index) {
       if (index < 0 || index >= vtPlaylist.length) return;
-      activeCueIndex = index;
-      renderPlaylistUI();
+      cuedIndex = index;
+      cuedClip = vtPlaylist[index];
 
-      // Tampilkan klip yang dipilih langsung di viewport persiapan
-      const clip = vtPlaylist[index];
-      const vidId = clip.youtubeId || extractCleanYtId(clip.url);
-      
-      document.getElementById('lblActiveClipTitle').innerText = clip.title;
-      document.getElementById('sliderVtProgress').max = clip.durationSec || 120;
+      document.getElementById('lblActiveClipTitle').innerText = cuedClip.title;
+      document.getElementById('sliderVtProgress').max = cuedClip.durationSec || 120;
+      document.getElementById('lblCueStatusDetail').innerText = `Klip: ${cuedClip.title} (Siap)`;
 
-      if (isYtReady && audioYtPlayer && typeof audioYtPlayer.loadVideoById === 'function') {
-        audioYtPlayer.loadVideoById({ videoId: vidId, startSeconds: 0 });
-        audioYtPlayer.pauseVideo();
-      }
-      
       const badgeStatus = document.getElementById('badgeVtOnAirStatus');
       badgeStatus.className = "font-mono text-[10px] font-black px-2 py-0.5 rounded bg-amber-500 text-black shadow uppercase";
       badgeStatus.innerText = "CUE READY";
-    }
 
-    // ROLL VT: MEMUTAR DI BACKGROUND TANPA MENGGANTI SUMBER SWITCHER SECARA SEPIHAK
-    function eksekusiRollVt() {
-      isCatchingUp = false;
-      if (activeCueIndex !== -1 && activeCueIndex !== activePlayingIndex) {
-        activePlayingIndex = activeCueIndex;
-        activeCueIndex = -1;
-        muatKlipKePlayer(activePlayingIndex, false);
-      }
-      vtPlaybackState.status = 'playing';
-      if (isYtReady && audioYtPlayer) {
-        audioYtPlayer.playVideo();
-      }
-      updatePlaybackBadges();
+      const vidId = cuedClip.youtubeId || extractCleanYtId(cuedClip.url);
+      initCueYtPlayer(vidId);
       renderPlaylistUI();
-
-      // Kirim pembaruan status pemutaran VT saja ke Firebase
-      broadcastVtPlaybackState();
     }
 
-    function muatKlipKePlayer(index, shouldBroadcast = true) {
-      if (index < 0 || index >= vtPlaylist.length) return;
-      activePlayingIndex = index;
-      const clip = vtPlaylist[index];
+    // KONTROL KHUSUS PREVIEW / CUE
+    function eksekusiCueLokal() {
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.seekTo === 'function') {
+        cueYtPlayer.seekTo(0, true);
+        cueYtPlayer.pauseVideo();
+        isTestPlaying = false;
+        updateTestPlayBtnUI();
+      }
+    }
 
-      vtPlaybackState.title = clip.title || 'Video Tape Media';
-      vtPlaybackState.sourceType = clip.sourceType || 'youtube';
-      vtPlaybackState.url = clip.url || '';
-      vtPlaybackState.youtubeId = clip.youtubeId || extractCleanYtId(clip.url);
-      vtPlaybackState.totalDuration = clip.durationSec || 120;
+    function toggleTestPlayLokal() {
+      if (!cuedClip) return;
+      if (!cueYtPlayer || !isCueYtReady) return;
 
-      document.getElementById('lblActiveClipTitle').innerText = vtPlaybackState.title;
-      document.getElementById('badgeVtSourceType').innerText = vtPlaybackState.sourceType.toUpperCase();
-      document.getElementById('sliderVtProgress').max = vtPlaybackState.totalDuration;
-
-      const ytWrap = document.getElementById('audioVtYtWrap');
-      const html5Vid = document.getElementById('audioVtHtml5Video');
-      const fallbackBox = document.getElementById('audioVtFallback');
-
-      if (fallbackBox) fallbackBox.classList.add('hidden');
-
-      if (vtPlaybackState.sourceType === 'youtube') {
-        if (html5Vid) html5Vid.classList.add('hidden');
-        if (ytWrap) ytWrap.classList.remove('hidden');
-
-        if (isYtReady && audioYtPlayer && typeof audioYtPlayer.loadVideoById === 'function') {
-          const vidId = vtPlaybackState.youtubeId;
-          audioYtPlayer.loadVideoById({ videoId: vidId, startSeconds: vtPlaybackState.currentTime || 0 });
-          if (vtPlaybackState.status === 'playing') {
-            audioYtPlayer.playVideo();
-          } else {
-            audioYtPlayer.pauseVideo();
-          }
-        }
+      if (isTestPlaying) {
+        cueYtPlayer.pauseVideo();
       } else {
-        if (ytWrap) ytWrap.classList.add('hidden');
-        if (html5Vid) {
-          html5Vid.classList.remove('hidden');
-          html5Vid.onended = tanganiKlipSelesai;
-          html5Vid.src = vtPlaybackState.url;
-          html5Vid.currentTime = vtPlaybackState.currentTime || 0;
-          if (vtPlaybackState.status === 'playing') html5Vid.play().catch(()=>{});
-        }
+        cueYtPlayer.playVideo();
       }
-
-      updatePlaybackBadges();
-      renderPlaylistUI();
-      if (shouldBroadcast && !isCatchingUp) broadcastVtPlaybackState();
     }
 
-    function eksekusiPauseVt() {
-      isCatchingUp = false;
-      vtPlaybackState.status = 'paused';
-      if (isYtReady && audioYtPlayer) {
-        audioYtPlayer.pauseVideo();
-        vtPlaybackState.currentTime = audioYtPlayer.getCurrentTime() || 0;
+    function updateTestPlayBtnUI() {
+      const btn = document.getElementById('btnTestPlay');
+      const icon = document.getElementById('iconTestPlay');
+      const lbl = document.getElementById('lblTestPlay');
+      if (isTestPlaying) {
+        btn.className = "col-span-3 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-amber-600 text-black font-brand font-bold text-xs flex items-center justify-center gap-1 shadow";
+        icon.innerText = "⏸";
+        lbl.innerText = "PAUSE";
+      } else {
+        btn.className = "col-span-3 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-amber-600/40";
+        icon.innerText = "▶";
+        lbl.innerText = "TEST";
       }
-      updatePlaybackBadges();
-      broadcastVtPlaybackState();
     }
 
-    function eksekusiCueVt() {
-      isCatchingUp = false;
-      vtPlaybackState.currentTime = 0;
-      if (isYtReady && audioYtPlayer) {
-        audioYtPlayer.seekTo(0, true);
-      }
-      broadcastVtPlaybackState();
-    }
-
-    function seekVtPosition(val) {
-      isCatchingUp = false;
+    function seekCuePosition(val) {
       const sec = parseFloat(val) || 0;
-      vtPlaybackState.currentTime = sec;
-      if (isYtReady && audioYtPlayer) {
-        audioYtPlayer.seekTo(sec, true);
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.seekTo === 'function') {
+        cueYtPlayer.seekTo(sec, true);
       }
-      broadcastVtPlaybackState();
     }
 
-    function pindahKlip(delta) {
-      if (vtPlaylist.length === 0) return;
-      let target = (activeCueIndex !== -1 ? activeCueIndex : activePlayingIndex) + delta;
-      if (target < 0) target = vtPlaylist.length - 1;
-      if (target >= vtPlaylist.length) target = 0;
-      pilihKlipPlaylist(target);
-    }
+    // ============================================================
+    // EKSEKUSI ROLL TO PGM: MENTRANSFER DARI CUE KE FIREBASE ON-AIR
+    // ============================================================
+    function eksekusiRollToPgm() {
+      if (!cuedClip) {
+        showNotice("Peringatan", "Pilih klip terlebih dahulu di antrean playlist sebelum menekan ROLL TO PGM.", false);
+        return;
+      }
 
-    function setLoopMode(mode) {
-      loopMode = mode;
-      localStorage.setItem('skawan_vt_loop_mode', mode);
-      updateLoopModeUI();
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const vidId = cuedClip.youtubeId || extractCleanYtId(cuedClip.url);
+      const cueTime = (cueYtPlayer && typeof cueYtPlayer.getCurrentTime === 'function') ? (cueYtPlayer.getCurrentTime() || 0) : 0;
+
+      // Update state ke Firebase secara resmi
+      activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
+        status: 'playing',
+        currentTime: cueTime,
+        totalDuration: cuedClip.durationSec || 120,
+        title: cuedClip.title || 'VT Playout',
+        sourceType: cuedClip.sourceType || 'youtube',
+        youtubeId: vidId,
+        url: cuedClip.url || '',
+        updatedAt: Date.now()
+      }).then(() => {
+        showNotice("Klip Mengudara (On-Air)", `Klip "${cuedClip.title}" telah dikirim ke PGM siaran utama!`, true);
+      });
+
+      // Hentikan pengetesan lokal
+      if (cueYtPlayer && typeof cueYtPlayer.pauseVideo === 'function') {
+        cueYtPlayer.pauseVideo();
+        isTestPlaying = false;
+        updateTestPlayBtnUI();
+      }
     }
 
     function cycleLoopMode() {
-      if (loopMode === 'off') setLoopMode('single');
-      else if (loopMode === 'single') setLoopMode('playlist');
-      else setLoopMode('off');
+      if (loopMode === 'off') loopMode = 'single';
+      else if (loopMode === 'single') loopMode = 'playlist';
+      else loopMode = 'off';
+
+      localStorage.setItem('skawan_vt_loop_mode', loopMode);
+      updateLoopModeUI();
     }
 
     function updateLoopModeUI() {
@@ -974,58 +875,9 @@
       if (lbl) lbl.innerText = loopMode.toUpperCase();
     }
 
-    function tanganiKlipSelesai() {
-      if (loopMode === 'single') {
-        vtPlaybackState.currentTime = 0;
-        if (isYtReady && audioYtPlayer) {
-          audioYtPlayer.seekTo(0, true);
-          audioYtPlayer.playVideo();
-        }
-        vtPlaybackState.status = 'playing';
-        broadcastVtPlaybackState();
-      } else if (loopMode === 'playlist' && vtPlaylist.length > 0) {
-        let nextIdx = activePlayingIndex + 1;
-        if (nextIdx >= vtPlaylist.length) nextIdx = 0;
-        activeCueIndex = -1;
-        vtPlaybackState.currentTime = 0;
-        muatKlipKePlayer(nextIdx, true);
-        eksekusiRollVt();
-      } else {
-        vtPlaybackState.status = 'paused';
-        vtPlaybackState.currentTime = 0;
-        updatePlaybackBadges();
-        broadcastVtPlaybackState();
-      }
-    }
-
-    function updatePlaybackBadges() {
-      const badgeStatus = document.getElementById('badgeVtOnAirStatus');
-      const isRolling = vtPlaybackState.status === 'playing';
-      if (isRolling) {
-        badgeStatus.className = "font-mono text-[10px] font-black px-2 py-0.5 rounded bg-emerald-600 text-white shadow-md animate-pulse uppercase";
-        badgeStatus.innerText = "ROLLING (ON-AIR)";
-      } else {
-        badgeStatus.className = "font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700 uppercase";
-        badgeStatus.innerText = "STANDBY (PAUSED)";
-      }
-    }
-
-    function broadcastVtPlaybackState() {
-      if (isCatchingUp) return;
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-      activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
-        status: vtPlaybackState.status,
-        currentTime: vtPlaybackState.currentTime || 0,
-        totalDuration: vtPlaybackState.totalDuration || 120,
-        title: vtPlaybackState.title || 'VT Playout',
-        sourceType: vtPlaybackState.sourceType || 'youtube',
-        youtubeId: vtPlaybackState.youtubeId || '',
-        url: vtPlaybackState.url || '',
-        updatedAt: Date.now()
-      });
-    }
-
+    // ============================================================
+    // MANAJEMEN PLAYLIST ONLINE (FIREBASE SYNC)
+    // ============================================================
     function renderPlaylistUI() {
       const container = document.getElementById('playlistItemsContainer');
       container.innerHTML = '';
@@ -1034,24 +886,38 @@
       if (vtPlaylist.length === 0) {
         container.innerHTML = `
           <div class="p-4 text-center text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
-            Belum ada video dalam daftar antrean. Masukkan judul & URL di atas.
+            Belum ada klip dalam antrean. Masukkan judul dan link YouTube di atas.
           </div>
         `;
         return;
       }
 
-      vtPlaylist.forEach((item, idx) => {
-        const isPlayingNow = (idx === activePlayingIndex);
-        const isCued = (idx === activeCueIndex);
-        const card = document.createElement('div');
-        
-        let ringStyle = 'border-slate-800 bg-slate-950 hover:border-slate-700';
-        if (isPlayingNow) ringStyle = 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500';
-        else if (isCued) ringStyle = 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500';
+      const onAirYtId = extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url);
 
-        card.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${ringStyle}`;
+      vtPlaylist.forEach((item, idx) => {
+        const itemYtId = extractCleanYtId(item.youtubeId || item.url);
+        const isOnAirNow = (itemYtId === onAirYtId && onAirVtState.status === 'playing');
+        const isCuedNow = (idx === cuedIndex);
+
+        let borderStyle = 'border-slate-800 bg-slate-950 hover:border-slate-700';
+        if (isOnAirNow) borderStyle = 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/60';
+        else if (isCuedNow) borderStyle = 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500/60';
+
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${borderStyle}`;
         card.onclick = () => pilihKlipPlaylist(idx);
-        
+
+        let badgeLabel = item.sourceType ? item.sourceType.toUpperCase() : 'YT';
+        let badgeStyle = 'bg-slate-800 text-slate-400';
+
+        if (isOnAirNow) {
+          badgeLabel = '● ON-AIR';
+          badgeStyle = 'bg-emerald-600 text-white animate-pulse font-black';
+        } else if (isCuedNow) {
+          badgeLabel = 'CUE READY';
+          badgeStyle = 'bg-amber-500 text-black font-black';
+        }
+
         card.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0">
             <span class="w-5 h-5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-mono text-[10px] font-bold text-slate-400 shrink-0">${idx + 1}</span>
@@ -1061,10 +927,8 @@
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${isPlayingNow ? 'bg-emerald-600 text-white animate-pulse' : (isCued ? 'bg-amber-500 text-black font-black' : 'bg-slate-800 text-slate-400')}">
-              ${isPlayingNow ? 'ON-AIR' : (isCued ? 'CUE' : item.sourceType.toUpperCase())}
-            </span>
-            <button onclick="hapusKlipDariPlaylist(event, ${idx})" class="deck-btn w-6 h-6 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-xs transition" title="Hapus klip ini">
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${badgeStyle}">${badgeLabel}</span>
+            <button onclick="hapusKlipDariFirebase(event, ${idx})" class="deck-btn w-6 h-6 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-xs transition" title="Hapus klip ini">
               ✕
             </button>
           </div>
@@ -1073,49 +937,63 @@
       });
     }
 
-    function hapusKlipDariPlaylist(e, idx) {
-      e.stopPropagation();
-      const removed = vtPlaylist[idx];
-      vtPlaylist.splice(idx, 1);
-      if (activePlayingIndex >= vtPlaylist.length) activePlayingIndex = vtPlaylist.length - 1;
-      if (activeCueIndex === idx) activeCueIndex = -1;
-
-      simpanDanSinkronkanPlaylist();
-      renderPlaylistUI();
-      showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus secara permanen.`, true);
-    }
-
-    function kosongkanPlaylistManual() {
-      if (!confirm("Kosongkan seluruh daftar playlist?")) return;
-      vtPlaylist = [];
-      activePlayingIndex = -1;
-      activeCueIndex = -1;
-      simpanDanSinkronkanPlaylist();
-      renderPlaylistUI();
-    }
-
     function eksekusiQuickAdd() {
       const titleInput = document.getElementById('quickAddTitle');
       const urlInput = document.getElementById('quickAddUrl');
-      const title = titleInput.value.trim() || 'Klip Baru';
+      const title = titleInput.value.trim() || 'Klip Segmen';
       const rawUrl = urlInput.value.trim();
       if (!rawUrl) return;
 
-      vtPlaylist.push({
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const newItem = {
         id: `vt_${Date.now()}`,
         title: title,
         sourceType: 'youtube',
         youtubeId: extractCleanYtId(rawUrl),
         url: rawUrl,
         durationSec: 120
+      };
+
+      const updatedPlaylist = [...vtPlaylist, newItem];
+      activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(updatedPlaylist).then(() => {
+        titleInput.value = '';
+        urlInput.value = '';
       });
-      simpanDanSinkronkanPlaylist();
-      titleInput.value = '';
-      urlInput.value = '';
-      renderPlaylistUI();
     }
 
-    // UPDATE MONITOR PGM RETURN DARI SUMBER INDEX.HTML SECARA PERSIS
+    function hapusKlipDariFirebase(e, idx) {
+      e.stopPropagation();
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const removed = vtPlaylist[idx];
+      const updatedPlaylist = vtPlaylist.filter((_, i) => i !== idx);
+
+      activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(updatedPlaylist).then(() => {
+        if (cuedIndex === idx) {
+          cuedIndex = -1;
+          cuedClip = null;
+        }
+        showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus dari Firebase.`, true);
+      });
+    }
+
+    function kosongkanPlaylistManual() {
+      if (!confirm("Kosongkan seluruh daftar playlist di Firebase?")) return;
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set([]).then(() => {
+        cuedIndex = -1;
+        cuedClip = null;
+      });
+    }
+
+    // ============================================================
+    // MONITOR RETURN PGM (PASIF - CERMIN DARI INDEX.HTML)
+    // ============================================================
     function updatePgmReturnMonitor() {
       const activeSrc = liveState.programSource || 'cam_1';
       document.getElementById('badgeActivePgmSource').innerText = activeSrc.toUpperCase();
@@ -1137,9 +1015,9 @@
           pgmVtWrap.classList.add('opacity-100');
         }
 
-        const yId = extractCleanYtId(vtPlaybackState.youtubeId || vtPlaybackState.url);
-        if (yId && pgmYtIframe && (!pgmYtIframe.src || !pgmYtIframe.src.includes(yId))) {
-          pgmYtIframe.src = `https://www.youtube-nocookie.com/embed/${yId}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${yId}&playsinline=1`;
+        const onAirYtId = extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url);
+        if (onAirYtId && pgmYtIframe && (!pgmYtIframe.src || !pgmYtIframe.src.includes(onAirYtId))) {
+          pgmYtIframe.src = `https://www.youtube-nocookie.com/embed/${onAirYtId}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${onAirYtId}&playsinline=1&modestbranding=1&iv_load_policy=3&disablekb=1`;
         }
       } else {
         if (pgmVtWrap) {
@@ -1165,9 +1043,9 @@
       }
     }
 
-    // ========================================================
-    // BROADCAST AUDIO CONSOLE & WEB AUDIO API ENGINE
-    // ========================================================
+    // ============================================================
+    // AUDIO CONSOLE, HARDWARE MIC & REALTIME MONITORING
+    // ============================================================
     function gantiPatchSource(ch, newSrc) {
       audioMixerState[ch].source = newSrc;
       updateAudioFaderVolume();
@@ -1194,8 +1072,8 @@
 
     function updateAudioFaderVolume() {
       const masterFactor = audioMixerState.master.isMuted ? 0 : (audioMixerState.master.fader / 100);
-      
-      // Temukan channel mana yang sedang dipetakan ke VT Audio
+
+      // Volume CUE Player
       let vtFaderVal = 0;
       ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
         if (audioMixerState[ch].source === 'vt_audio' && !audioMixerState[ch].isMuted) {
@@ -1204,18 +1082,13 @@
       });
 
       const finalVolume = Math.round(masterFactor * (vtFaderVal / 100) * 100);
-
-      // Kontrol volume player VT lokal (Confidence Monitor)
-      if (isYtReady && audioYtPlayer && typeof audioYtPlayer.setVolume === 'function') {
-        audioYtPlayer.setVolume(finalVolume);
-        if (isHeadphoneMonitorOn && finalVolume > 0) {
-          audioYtPlayer.unMute();
-        } else if (!isHeadphoneMonitorOn) {
-          audioYtPlayer.mute();
-        }
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.setVolume === 'function') {
+        cueYtPlayer.setVolume(finalVolume);
+        if (isHeadphoneMonitorOn && finalVolume > 0) cueYtPlayer.unMute();
+        else cueYtPlayer.mute();
       }
 
-      // Kontrol penguatan headphone untuk Mic Fisik
+      // Gain Mikrofon Fisik ke Headphone
       if (headphoneMonitorGain) {
         let micFaderVal = 0;
         ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
@@ -1228,7 +1101,6 @@
       }
     }
 
-    // Sakelar Headphone Confidence Monitoring
     function toggleHeadphoneMonitoring() {
       isHeadphoneMonitorOn = !isHeadphoneMonitorOn;
       const btn = document.getElementById('btnHeadphoneMonitor');
@@ -1245,12 +1117,9 @@
       updateAudioFaderVolume();
     }
 
-    // Sambungkan Mikrofon Fisik / Line-In
     async function toggleHardwareInputAudio() {
       if (isHardwareMicConnected) {
-        if (micMediaStream) {
-          micMediaStream.getTracks().forEach(t => t.stop());
-        }
+        if (micMediaStream) micMediaStream.getTracks().forEach(t => t.stop());
         isHardwareMicConnected = false;
         document.getElementById('lblHardwareMic').innerText = "Sambungkan Mic / Line-In Fisik";
         document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-amber-600/60 bg-amber-950/40 hover:bg-amber-900 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition";
@@ -1258,12 +1127,8 @@
       }
 
       try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-          await audioCtx.resume();
-        }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
 
         micMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         micSourceNode = audioCtx.createMediaStreamSource(micMediaStream);
@@ -1271,7 +1136,7 @@
         micAnalyserNode.fftSize = 64;
 
         headphoneMonitorGain = audioCtx.createGain();
-        headphoneMonitorGain.gain.value = 0; // Default off agar tidak feedback
+        headphoneMonitorGain.gain.value = 0;
 
         micSourceNode.connect(micAnalyserNode);
         micSourceNode.connect(headphoneMonitorGain);
@@ -1280,16 +1145,14 @@
         isHardwareMicConnected = true;
         document.getElementById('lblHardwareMic').innerText = "Mic Fisik: Terhubung (Live)";
         document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md";
-        
+
         updateAudioFaderVolume();
-        showNotice("Mic Fisik Terhubung", "Mikrofon perangkat aktif dan terpetakan ke konsol audio.", true);
+        showNotice("Mic Fisik Terhubung", "Mikrofon / Line-in terdeteksi dan terpetakan ke mixer audio.", true);
       } catch (err) {
-        console.warn("Izin mikrofon ditolak:", err);
-        showNotice("Gagal Membuka Mic", "Pastikan izin akses mikrofon telah diberikan pada peramban Anda.", false);
+        showNotice("Gagal Membuka Mic", "Izin mikrofon ditolak oleh browser.", false);
       }
     }
 
-    // VU Meter Real-Time Engine (Membaca Analyser Nyata)
     function startVuMeterRealtimeEngine() {
       const micBuffer = new Uint8Array(32);
 
@@ -1302,7 +1165,7 @@
           realMicLevel = Math.min(100, Math.round((sum / micBuffer.length) * 1.5));
         }
 
-        const isVtPlaying = vtPlaybackState.status === 'playing';
+        const isVtPlayingOnAir = onAirVtState.status === 'playing';
 
         ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
           const cfg = audioMixerState[ch];
@@ -1310,22 +1173,16 @@
           if (!bar) return;
 
           let rawSignal = 0;
-          if (cfg.isMuted) {
-            rawSignal = 0;
-          } else if (cfg.source === 'mic_hardware') {
-            rawSignal = realMicLevel;
-          } else if (cfg.source === 'vt_audio') {
-            rawSignal = isVtPlaying ? (65 + Math.random() * 25) : 0;
-          } else {
-            rawSignal = (cfg.fader > 0) ? (35 + Math.random() * 20) : 0;
-          }
+          if (cfg.isMuted) rawSignal = 0;
+          else if (cfg.source === 'mic_hardware') rawSignal = realMicLevel;
+          else if (cfg.source === 'vt_audio') rawSignal = isVtPlayingOnAir ? (65 + Math.random() * 25) : 0;
+          else rawSignal = (cfg.fader > 0) ? (35 + Math.random() * 20) : 0;
 
           const targetHeight = Math.min(100, Math.round(rawSignal * (cfg.fader / 100)));
           bar.style.height = `${targetHeight}%`;
         });
 
-        // Master Meter
-        const masterBar = document.getElementById('vu-bar-master');
+        const masterBar = document.getElementById(`vu-bar-master`);
         if (masterBar) {
           const masterCfg = audioMixerState.master;
           let combined = 0;
@@ -1333,10 +1190,8 @@
             ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
               if (!audioMixerState[ch].isMuted) combined = Math.max(combined, audioMixerState[ch].fader);
             });
-            if (isVtPlaying || realMicLevel > 0) {
+            if (isVtPlayingOnAir || realMicLevel > 0) {
               combined = Math.min(100, Math.round(combined * (masterCfg.fader / 100) * 0.95));
-            } else {
-              combined = 0;
             }
           }
           masterBar.style.height = `${combined}%`;
@@ -1346,11 +1201,10 @@
 
     function startStudioTimecodeTicker() {
       setInterval(() => {
-        if (isYtReady && audioYtPlayer && typeof audioYtPlayer.getCurrentTime === 'function') {
-          const curTime = audioYtPlayer.getCurrentTime() || 0;
-          const totalD = audioYtPlayer.getDuration() || vtPlaybackState.totalDuration || 120;
-          vtPlaybackState.currentTime = curTime;
-          vtPlaybackState.totalDuration = totalD;
+        if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.getCurrentTime === 'function') {
+          const curTime = cueYtPlayer.getCurrentTime() || 0;
+          const totalD = cueYtPlayer.getDuration() || (cuedClip ? cuedClip.durationSec : 120);
+
           document.getElementById('lblTimecodeCurrent').innerText = formatTimecode(curTime);
           document.getElementById('lblTimecodeTotal').innerText = formatTimecode(totalD);
           document.getElementById('sliderVtProgress').max = Math.floor(totalD);
@@ -1369,25 +1223,28 @@
       document.getElementById('modalTambahKlip').classList.add('hidden');
     }
     function eksekusiModalTambahKlip() {
-      const title = document.getElementById('modalInputClipTitle').value.trim() || 'Klip Baru';
+      const title = document.getElementById('modalInputClipTitle').value.trim() || 'Klip Segmen';
       const url = document.getElementById('modalInputClipUrl').value.trim();
       const dur = parseInt(document.getElementById('modalInputClipDuration').value) || 120;
       const type = document.getElementById('modalSelectSourceType').value;
 
       if (!url) return;
 
-      vtPlaylist.push({
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const newItem = {
         id: `vt_${Date.now()}`,
         title: title,
         sourceType: type,
         youtubeId: extractCleanYtId(url),
         url: url,
         durationSec: dur
-      });
+      };
 
-      simpanDanSinkronkanPlaylist();
-      renderPlaylistUI();
-      tutupModalTambahKlip();
+      activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set([...vtPlaylist, newItem]).then(() => {
+        tutupModalTambahKlip();
+      });
     }
 
     function bukaModalKeluar() {
