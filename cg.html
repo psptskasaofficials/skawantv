@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Graphic Operator (CG) | SKAWAN TV</title>
-  
+  <title>Character Generator (CG) Console | SKAWAN TV</title>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
+  <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
 
   <script>
     tailwind.config = {
@@ -24,13 +27,16 @@
           },
           colors: {
             skawan: {
+              orange: '#EA580C',
+              orangeHover: '#C2410C',
+              navy: '#1B365D',
+              navyDark: '#0F2537',
               red: '#E50914',
               redHover: '#C70812',
-              darkBg: '#090D14',
-              cardDark: '#121824',
+              darkBg: '#080C14',
+              cardDark: '#0F172A',
               borderDark: '#1E293B',
-              accentBlue: '#3B82F6',
-              warningAmber: '#F59E0B'
+              cyanCue: '#06B6D4'
             }
           }
         }
@@ -43,346 +49,632 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
-  <!-- Native WebRTC Streamer & YouTube API -->
+  <script>
+    (function ensureFirebaseConnection() {
+      const config = {
+        apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
+        authDomain: "skawan-tv.firebaseapp.com",
+        databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "skawan-tv",
+        storageBucket: "skawan-tv.firebasestorage.app",
+        messagingSenderId: "501619282826",
+        appId: "1:501619282826:web:81e624ac35e9798062ae73"
+      };
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || !firebase.apps.length) {
+          try { firebase.initializeApp(config); } catch (e) {}
+        }
+        if (!window.db && firebase.database) {
+          window.db = firebase.database();
+        }
+      }
+    })();
+  </script>
+
+  <!-- Native WebRTC Streamer & YouTube API Resmi -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    /* Akselerasi Grafis Digital Halus Tanpa Garis */
-    video, iframe, #cgLiveVtYtWrap iframe {
+    video, iframe, #pgmVtWrapper, #pgmCamVideo {
       transform: translateZ(0);
       backface-visibility: hidden;
       -webkit-font-smoothing: antialiased;
     }
-    @keyframes marquee {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
+    .broadcast-dissolve {
+      transition: opacity 800ms cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .animate-ticker {
-      display: inline-block;
-      white-space: nowrap;
-      animation: marquee 16s linear infinite;
-    }
-    .deck-btn {
+    .cg-btn {
       transition: all 0.12s ease;
+      user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
-    .deck-btn:active {
-      transform: scale(0.97);
+    .cg-btn:active {
+      transform: scale(0.96);
     }
-    iframe.video-fit {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      pointer-events: none;
+    @keyframes director-ping {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.02); opacity: 0.9; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .cue-alert-active {
+      animation: director-ping 1s ease-in-out infinite;
     }
   </style>
-</head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-blue-600 selection:text-white pb-6">
 
-  <!-- ============================================== -->
-  <!-- HEADER & NAVIGASI GRAPHIC OPERATOR            -->
-  <!-- ============================================== -->
-  <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+  <script>
+    function handleNavLogoFallback(imgEl) {
+      if (imgEl.src.indexOf('assets/img/') !== -1) {
+        imgEl.src = 'logo-skawan-full.webp';
+      } else {
+        imgEl.style.display = 'none';
+        const fallback = document.getElementById('navBrandFallback');
+        if (fallback) fallback.classList.remove('hidden');
+      }
+    }
+    function handleBugLogoFallback(imgEl) {
+      if (imgEl.src.indexOf('assets/img/') !== -1) {
+        imgEl.src = 'logo-skawan-icon.webp';
+      } else {
+        imgEl.style.display = 'none';
+        const textFallback = document.getElementById('cgBugLogoTextFallback');
+        if (textFallback) textFallback.classList.remove('hidden');
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black pb-6">
+
+  <!-- TOP NAVIGATION BAR (Z-50) -->
+  <nav id="liveNavBar" class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="index.html" class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-md shadow-blue-600/30">
-            CG
-          </div>
-          <div>
-            <div class="flex items-center gap-1.5">
-              <span class="font-brand font-black tracking-wide text-white text-lg leading-none">SKAWAN</span>
-              <span class="font-brand font-black text-blue-500 text-lg leading-none">TV</span>
+          <img
+            id="navBrandImg"
+            src="assets/img/logo-skawan-full.webp"
+            alt="SKAWAN TV | SKASA WAHANA TELEVISI"
+            class="h-9 sm:h-11 w-auto max-w-[200px] sm:max-w-[260px] object-contain bg-white rounded-xl px-2 py-1 shadow-sm"
+            onerror="handleNavLogoFallback(this)"
+          >
+          <div id="navBrandFallback" class="hidden items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-600 to-blue-600 flex items-center justify-center font-brand font-black text-base text-white shadow-md">
+              CG
             </div>
-            <span class="text-[10px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Character Generator & Graphics Deck</span>
+            <div>
+              <div class="flex items-center gap-1">
+                <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
+                <span class="font-brand font-black text-cyan-400 text-base leading-none">TV</span>
+              </div>
+              <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Character Generator</span>
+            </div>
           </div>
         </a>
         <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
-        <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-950/80 text-blue-400 border border-blue-800">
-          <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-          Graphic Operator (CG)
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          CG Graphics Operator
         </span>
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
+        <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-amber-400 font-mono font-bold text-xs" id="cgClockWib">
+          00:00:00 WIB
+        </div>
+
         <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
           <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
-          <span id="navDisplayToken" class="font-mono font-bold text-xs text-blue-400">SKASA</span>
+          <span id="navRoomToken" class="font-mono font-bold text-xs text-cyan-400">SKASA</span>
         </div>
-        <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
-          <span>👤</span>
-          <span id="navDisplayUser">CG Operator</span>
-        </div>
-        <!-- Tombol Ganti Peran Cepat -->
-        <button onclick="bukaModalKeluar('ganti')" class="deck-btn text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
-          <span>🔄</span>
-          <span class="hidden sm:inline">Ganti Peran</span>
-        </button>
-        <!-- Tombol Keluar Sesi Cepat -->
-        <button onclick="bukaModalKeluar('keluar')" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar Sesi">
+
+        <a href="login.html" class="cg-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
           <span>🚪</span>
           <span class="hidden sm:inline">Keluar</span>
-        </button>
+        </a>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-1 space-y-5">
-
-    <!-- Banner Intercom Komando Sutradara (PD) -->
-    <div id="directorCueBanner" class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white p-3.5 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-blue-500/30">
-      <div class="flex items-center gap-3">
-        <div class="p-2 rounded-xl bg-white/20 shrink-0">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-        </div>
-        <div>
-          <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-200 block">KOMANDO SUTRADARA (PD):</span>
-          <span id="directorCueMessage" class="text-xs sm:text-sm font-brand font-black">Standby Lower Third Nama Host & Bug Logo</span>
+  <!-- BANNER INTERCOM CUE DARI PROGRAM DIRECTOR -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
+    <div id="bannerDirectorCueBox" class="bg-gradient-to-r from-slate-900 via-cyan-950/60 to-slate-900 p-2.5 sm:p-3 rounded-2xl border border-cyan-900/60 flex items-center justify-between gap-3 shadow-lg transition-all duration-300">
+      <div class="flex items-center gap-2.5 overflow-hidden">
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping shrink-0"></span>
+        <div class="truncate">
+          <span class="text-[9px] font-mono uppercase tracking-wider text-cyan-300 font-bold block">DIRECTOR CUE INTERCOM:</span>
+          <span id="txtDirectorCuePrompt" class="text-xs sm:text-sm font-brand font-black text-white truncate">
+            Menunggu instruksi dari Program Director (PD)...
+          </span>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <span id="directorCueTime" class="text-[11px] font-mono bg-black/40 px-2.5 py-1 rounded-lg font-bold border border-white/10">LIVE</span>
-      </div>
+      <span class="text-[9px] font-mono text-cyan-400 shrink-0 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">
+        AUTO-SYNC
+      </span>
     </div>
+  </div>
 
-    <!-- Banner Krisis Teknis jika disuntikkan Guru -->
-    <div id="crisisAlertBanner" class="hidden p-3.5 rounded-2xl bg-rose-600 text-white shadow-xl flex items-center justify-between animate-pulse border border-rose-400">
-      <div class="flex items-center gap-2.5">
-        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-        <div>
-          <span class="text-[10px] font-black uppercase tracking-wider block">⚠️ KENDALA TEKNIS GRAFIS (CG):</span>
-          <span id="crisisAlertText" class="text-xs font-bold">Sistem CG Crash! Segera bersihkan Lower Third.</span>
-        </div>
-      </div>
-      <span class="text-[10px] font-mono font-bold bg-white/20 px-2.5 py-0.5 rounded">SIMULASI GURU</span>
-    </div>
+  <!-- WORKSPACE UTAMA: DUAL VIEWPORT CG & CONTROL PANEL -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+    <!-- BAGIAN 1: DUAL MONITOR (CUE PREVIEW VS PGM LIVE RETURN) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- ============================================== -->
-      <!-- KOLOM KIRI: LAYAR LIVE PREVIEW PGM (5 Kolom)   -->
-      <!-- ============================================== -->
-      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 flex flex-col justify-between">
-        
-        <div class="space-y-3">
-          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <!-- 1. MONITOR PREVIEW CUE (AKSEN CYAN/BIRU) -->
+      <div class="bg-slate-900 border-2 border-cyan-500/80 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800">
             <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-              <h2 class="font-brand font-black text-xs uppercase tracking-wider text-slate-200">Visual Program Preview (PGM Live)</h2>
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span class="font-brand font-black text-xs uppercase tracking-wider text-cyan-400">CG CUE PREVIEW (STAGING)</span>
             </div>
-            <span id="badgeCgPgmSource" class="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-700 animate-pulse uppercase">
-              CAM 1
+            <span id="badgeCgCuePill" class="font-mono text-xs font-black px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500 uppercase">
+              CUE READY
             </span>
           </div>
 
-          <!-- Layar Simulasi Program On-Air dengan Lapisan CG & Struktur PGM Selaras Index.html -->
-          <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-slate-800 flex items-center justify-center shadow-inner transition-opacity duration-300" id="cgPgmContainer">
-            
-            <!-- Video Kamera WebRTC Live Feed -->
-            <video id="cgLiveCamVideo" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-200 z-10 opacity-0 pointer-events-none" autoplay playsinline muted></video>
+          <!-- Viewport CUE -->
+          <div class="aspect-video bg-black rounded-xl overflow-hidden relative border border-slate-800 shadow-inner flex items-center justify-center select-none" id="cueViewport">
+            <!-- Background Pola Studio Mini -->
+            <div class="absolute inset-0 bg-gradient-to-br from-slate-900 to-black flex items-center justify-center opacity-60">
+              <span class="text-5xl">🎨</span>
+            </div>
 
-            <!-- Video VT Media Live Playback (YouTube Iframe) -->
-            <div id="cgLiveVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center transition-opacity duration-200 z-10 opacity-0 pointer-events-none">
-              <div id="cgLiveVtYtWrap" class="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center overflow-hidden">
-                <iframe
-                  id="cgLiveYtIframe"
-                  class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"
-                  src=""
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  tabindex="-1"
-                ></iframe>
-                <div class="absolute inset-0 z-20 pointer-events-auto bg-transparent cursor-default"></div>
+            <!-- Pratinjau Lower Third CUE (Cyan / Biru) -->
+            <div id="previewCueLowerThirdBox" class="absolute bottom-8 left-3 right-3 sm:left-4 sm:right-4 z-30 transition-all duration-300">
+              <div id="previewCueLtTitle" class="bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-brand font-black text-[11px] sm:text-xs px-3 py-1 rounded-t-lg shadow-lg inline-block tracking-wide">
+                NAMA NARASUMBER
+              </div>
+              <div id="previewCueLtSubtitle" class="bg-slate-950/95 backdrop-blur-md border-l-4 border-cyan-400 text-slate-100 text-[10px] sm:text-[11px] font-medium px-3 py-1 rounded-b-lg shadow-xl flex items-center justify-between">
+                <span id="previewCueLtSubtitleText">Jabatan / Keterangan Narasumber</span>
+                <span class="text-[8px] font-mono text-cyan-300 font-bold ml-2">CUE</span>
               </div>
             </div>
 
-            <!-- Fallback Tampilan Default Jika Belum Ada Sinyal Video -->
-            <div id="cgFallbackScreen" class="text-center space-y-1 relative z-0">
-              <span class="font-brand font-black text-2xl sm:text-3xl text-slate-500 tracking-wider" id="cgFallbackSourceLabel">CAM 1</span>
-              <span class="text-[10px] font-mono text-slate-400 block uppercase" id="cgLiveSourceText">STANDBY / MENUNGGU FEED</span>
+            <!-- Pratinjau Ticker CUE -->
+            <div id="previewCueTickerBox" class="absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-r from-cyan-900 to-blue-900 text-cyan-200 z-30 overflow-hidden flex items-center text-[9px] px-2 font-medium">
+              <span id="previewCueTickerText" class="truncate">Pratinjau Teks Berjalan Running Text</span>
             </div>
 
-            <!-- LAPISAN 1: Bug Logo Transparan (Pojok Kanan Atas) -->
-            <div id="previewBugLogo" class="hidden absolute top-3 right-3 z-30 flex items-center justify-center max-w-[130px] max-h-10 transition-all duration-200">
-              <img id="previewLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-8 w-auto max-w-[120px] object-contain drop-shadow-md">
-              <div id="previewLogoDefaultBadge" class="flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/20 shadow-md">
-                <div class="w-4 h-4 rounded bg-red-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
-                <span class="text-[10px] font-brand font-black text-white tracking-widest uppercase">SKAWAN <span class="text-red-500">TV</span></span>
-              </div>
-            </div>
-
-            <!-- LAPISAN 2: Lower Third Overlay (Nama & Jabatan) -->
-            <div id="previewLowerThird" class="hidden absolute bottom-8 left-4 right-4 z-20 transition-all duration-300 transform translate-y-0">
-              <div class="inline-block bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white font-brand font-black text-xs sm:text-sm px-3.5 py-1 rounded-t-lg shadow-md tracking-wide" id="previewLtTitle">
-                NAMA PRESENTER
-              </div>
-              <div class="bg-slate-950/95 backdrop-blur-sm border-l-4 border-red-500 text-slate-200 text-[11px] font-medium px-3.5 py-1 rounded-b-lg shadow-lg flex items-center justify-between">
-                <span id="previewLtSubtitleText">Pembawa Acara Utama SKAWAN TV</span>
-                <span class="text-[9px] font-mono text-red-400 font-bold ml-2">LIVE</span>
-              </div>
-            </div>
-
-            <!-- LAPISAN 3: Running Text / Ticker Bar di Dasar Layar -->
-            <div id="previewTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 bg-red-700 text-white z-20 overflow-hidden flex items-center border-t border-red-500 shadow-md">
-              <div id="cgTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] uppercase tracking-wider text-amber-400 shrink-0 z-10 border-r border-red-900">
-                00:00 WIB
-              </div>
-              <div class="w-full overflow-hidden text-[10px] font-medium tracking-wide">
-                <span id="previewTickerText" class="animate-ticker">
-                  Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan &bull; SKAWAN TV Siaran Edukasi Digital
-                </span>
-              </div>
-            </div>
-
-            <!-- LAPISAN 4: Lencana LIVE On-Air Bug -->
-            <div id="previewLiveBadge" class="hidden absolute top-3 left-3 bg-red-600 text-white font-brand font-black text-[9px] px-2 py-0.5 rounded shadow-lg flex items-center gap-1 z-30 animate-pulse">
-              <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE
-            </div>
-
-          </div>
-
-          <!-- Status Indikator Lapisan Aktif (4 Kolom) -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center font-mono text-[10px]">
-            <div id="statLtBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
-              <span class="block font-bold">LOWER THIRD</span>
-              <span id="statLtText">OFF</span>
-            </div>
-            <div id="statLogoBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
-              <span class="block font-bold">BUG LOGO</span>
-              <span id="statLogoText">OFF</span>
-            </div>
-            <div id="statLiveBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
-              <span class="block font-bold">LIVE BADGE</span>
-              <span id="statLiveText">OFF</span>
-            </div>
-            <div id="statTickerBadge" class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
-              <span class="block font-bold">RUNNING TEXT</span>
-              <span id="statTickerText">OFF</span>
+            <div class="absolute bottom-2 left-2 bg-cyan-600 text-black font-mono text-[9px] px-2 py-0.5 rounded font-black z-20 shadow">
+              CUE PRESET (NEXT)
             </div>
           </div>
         </div>
 
-        <!-- Tombol Aksi Darurat Bersihkan Semua Grafis -->
-        <button onclick="clearAllGraphics()" class="deck-btn w-full py-2.5 rounded-xl border border-rose-900/60 bg-rose-950/40 hover:bg-rose-900 text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-          <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-          <span>Hapus Semua Grafis dari Layar (CLEAR DSK)</span>
-        </button>
+        <div class="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+          <span>Target Siaran: <strong class="text-cyan-400 font-bold">Terhubung ke Layar PD</strong></span>
+          <span class="text-[10px] text-slate-500">* Periksa ejaan sebelum menekan TAKE</span>
+        </div>
+      </div>
+
+      <!-- 2. MONITOR PGM LIVE RETURN (100% SINKRON DENGAN INDEX.HTML) -->
+      <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
+              <span class="font-brand font-black text-xs uppercase tracking-wider text-red-500">PROGRAM MONITOR (PGM RETURN)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span id="lblPgmSourceTag" class="font-mono text-xs font-black px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 uppercase animate-pulse">
+                CAM 1
+              </span>
+            </div>
+          </div>
+
+          <!-- Viewport PGM (Z-10) -->
+          <div id="pgmViewport" class="aspect-video bg-black rounded-xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl flex items-center justify-center select-none">
+
+            <!-- 1. Layer Bumper -->
+            <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center pointer-events-auto" style="display: flex; opacity: 1;">
+              <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
+                <iframe id="pgmBumperIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="https://www.youtube-nocookie.com/embed/Jnp3esoHb9k?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=Jnp3esoHb9k&playsinline=1&enablejsapi=1&fs=0" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
+              </div>
+            </div>
+
+            <!-- 2. Kartu Standby Overlay (Gladi Bersih) -->
+            <div id="pgmStandbyCardOverlay" class="hidden absolute inset-0 z-25 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 transition-opacity duration-300" style="display: none;">
+              <div class="bg-slate-900/95 border border-amber-500/50 rounded-xl p-4 shadow-2xl max-w-sm w-full space-y-2">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <span>STUDIO STANDBY / GLADI BERSIH</span>
+                </div>
+                <div>
+                  <h2 id="standbyOverlayToken" class="font-brand font-black text-xl text-white tracking-wide">RUANGAN</h2>
+                  <p id="standbyOverlayProgram" class="text-xs text-slate-300 font-medium mt-0.5">Nama Program Siaran</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Video Kamera / Screen PGM -->
+            <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
+
+            <!-- 4. Video VT PGM (Player YouTube Resmi) -->
+            <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 pointer-events-none" style="display: none; opacity: 0;">
+              <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
+              <div id="pgmMasterYtEl" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"></div>
+            </div>
+
+            <!-- 5. CG Bug Logo Watermark (Z-30) -->
+            <div id="cgBugLogo" class="absolute top-2.5 right-2.5 z-30 flex items-center justify-center max-w-[130px] max-h-10 pointer-events-none select-none">
+              <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-6 sm:h-7 w-auto object-contain drop-shadow-md">
+              <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-white/95 rounded-lg px-2 py-0.5 shadow-md backdrop-blur-sm border border-white/20">
+                <img
+                  id="cgBugLogoDefaultImg"
+                  src="assets/img/logo-skawan-icon.webp"
+                  alt="SKAWAN TV"
+                  class="h-6 sm:h-7 w-auto object-contain"
+                  onerror="handleBugLogoFallback(this)"
+                >
+                <div id="cgBugLogoTextFallback" class="hidden items-center gap-1 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded">
+                  <div class="w-3.5 h-3.5 rounded bg-orange-600 flex items-center justify-center text-[8px] font-black text-white">SK</div>
+                  <span class="text-[9px] font-brand font-black text-white uppercase tracking-widest">SKAWAN <span class="text-orange-500">TV</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. CG Lower Third Live (Merah / On-Air) -->
+            <div id="cgLowerThirdBox" class="hidden absolute bottom-8 left-3 right-3 sm:left-4 sm:right-4 z-30 transition-all duration-300">
+              <div id="cgLtTitle" class="bg-gradient-to-r from-red-600 to-orange-600 text-white font-brand font-black text-[11px] sm:text-xs px-3 py-1 rounded-t-lg shadow-lg inline-block tracking-wide">
+                NAMA PRESENTER
+              </div>
+              <div id="cgLtSubtitle" class="bg-slate-950/95 backdrop-blur-md border-l-4 border-red-500 text-slate-100 text-[10px] sm:text-[11px] font-medium px-3 py-1 rounded-b-lg shadow-xl flex items-center justify-between">
+                <span id="cgLtSubtitleText">Keterangan Jabatan</span>
+                <span class="text-[8px] font-mono text-red-400 font-bold ml-2">LIVE</span>
+              </div>
+            </div>
+
+            <!-- 7. CG Ticker Bar -->
+            <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-r from-red-700 to-orange-700 text-white z-30 overflow-hidden flex items-center text-[9px] px-2 font-medium">
+              <span id="cgTickerText" class="truncate">Selamat Datang di SKAWAN TV Studio Siaran</span>
+            </div>
+
+            <div class="absolute bottom-2 left-2 bg-red-600 text-white font-mono text-[9px] px-2 py-0.5 rounded font-black z-20 shadow animate-pulse">
+              ON-AIR (LIVE FEED)
+            </div>
+          </div>
+        </div>
+
+        <div class="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+          <span>Mirroring PGM: <strong class="text-red-400 font-bold">100% Lock Index</strong></span>
+          <button onclick="paksaSinkronKeIndex()" class="cg-btn text-[10px] text-amber-300 hover:text-white bg-slate-800 px-2 py-0.5 rounded border border-amber-600/40">
+            ⚡ Sinkronkan PGM
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BAGIAN 2: KONTROL UTAMA CHARACTER GENERATOR -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- PANEL KIRI: LOWER THIRD PRESET & EDITOR (7 COL) -->
+      <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow"></span>
+            <h3 class="font-brand font-black text-xs sm:text-sm uppercase tracking-wider text-white">Lower Third Preset &amp; Live Staging</h3>
+          </div>
+          <button onclick="bukaModalTambahPreset()" class="cg-btn text-[10px] font-bold bg-cyan-600 hover:bg-cyan-500 text-black px-2.5 py-1 rounded-lg">
+            + Tambah Preset
+          </button>
+        </div>
+
+        <!-- Form Staging Teks Aktif -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[10px] font-mono text-slate-400 font-bold uppercase mb-1">Baris 1: Nama / Topik Headline</label>
+              <input type="text" id="inputCgTitle" oninput="updateLiveCueStaging()" placeholder="Contoh: Drs. Eko Prasetyo, M.T." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400 font-semibold">
+            </div>
+            <div>
+              <label class="block text-[10px] font-mono text-slate-400 font-bold uppercase mb-1">Baris 2: Jabatan / Keterangan</label>
+              <input type="text" id="inputCgSubtitle" oninput="updateLiveCueStaging()" placeholder="Contoh: Kepala Sekolah SMK Negeri 1 Pacitan" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-400">
+            </div>
+          </div>
+
+          <!-- Opsi Timer Auto Fade-Out & Tombol Aksi Cepat -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-mono text-slate-400 font-bold">Auto-Hide:</span>
+              <select id="selectAutoHideSeconds" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-cyan-300 outline-none">
+                <option value="0">Manual (Tetap Tayang)</option>
+                <option value="6" selected>6 Detik (Standar TV)</option>
+                <option value="8">8 Detik</option>
+                <option value="12">12 Detik (Teks Panjang)</option>
+              </select>
+            </div>
+
+            <!-- Tombol Aksi Utama: CUE, TAKE, CLEAR -->
+            <div class="flex items-center gap-2">
+              <button onclick="eksekusiKirimKeCue()" class="cg-btn px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-600/40 text-xs font-bold flex items-center gap-1">
+                <span>👁️</span>
+                <span>CUE</span>
+              </button>
+              <button onclick="eksekusiTakeOnAir()" class="cg-btn px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-brand font-black text-xs shadow-lg shadow-red-600/40 flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>TAKE ON-AIR</span>
+              </button>
+              <button onclick="eksekusiClearLowerThird()" class="cg-btn px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-rose-900/60 border border-rose-800 text-rose-300 hover:text-white text-xs font-bold flex items-center gap-1">
+                <span>✕</span>
+                <span>CLEAR</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daftar Preset Siap Pakai -->
+        <div class="space-y-1.5">
+          <span class="text-[10px] font-mono text-slate-400 font-bold uppercase block">DAFTAR PRESET LOWER THIRD:</span>
+          <div class="space-y-1.5 max-h-[220px] overflow-y-auto pr-1" id="presetListContainer"></div>
+        </div>
+      </div>
+
+      <!-- PANEL KANAN: TICKER, LOGO BUG, & OVERLAYS (5 COL) -->
+      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow"></span>
+            <h3 class="font-brand font-black text-xs sm:text-sm uppercase tracking-wider text-white">Running Text &amp; Station Bug Logo</h3>
+          </div>
+        </div>
+
+        <!-- 1. Running Text (Ticker Bar) -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono font-bold text-orange-400 uppercase">RUNNING TEXT (TICKER BAR)</span>
+            <button onclick="toggleTickerActive()" id="btnToggleTicker" class="cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">
+              OFF
+            </button>
+          </div>
+          <textarea id="inputTickerText" oninput="updateLiveCueStaging()" rows="2" placeholder="Teks berita berjalan di dasar layar..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white outline-none focus:border-orange-500 resize-none"></textarea>
+          <div class="flex items-center justify-between gap-2">
+            <button onclick="setTickerTemplate(1)" class="text-[10px] text-slate-400 hover:text-orange-400 underline">Template 1</button>
+            <button onclick="setTickerTemplate(2)" class="text-[10px] text-slate-400 hover:text-orange-400 underline">Template 2</button>
+            <button onclick="simpanTickerKeFirebase()" class="cg-btn bg-orange-600 hover:bg-orange-500 text-white font-bold px-3 py-1 rounded-lg text-[10px]">
+              Terapkan Ticker
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Station Bug Logo Watermark -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono font-bold text-slate-300 uppercase">STATION BUG LOGO</span>
+            <button onclick="toggleLogoActive()" id="btnToggleLogo" class="cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-600 text-white border border-emerald-500">
+              ON
+            </button>
+          </div>
+          <div>
+            <label class="block text-[9px] font-mono text-slate-500 mb-1">URL Logo Kustom (Kosongkan untuk Logo Default SKAWAN TV):</label>
+            <div class="flex items-center gap-1.5">
+              <input type="text" id="inputCustomLogoUrl" placeholder="https://domain.com/logo.webp" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-cyan-400 font-mono">
+              <button onclick="simpanLogoKeFirebase()" class="cg-btn bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800 px-3 py-1.5 rounded-lg text-xs font-bold">
+                Set
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. LIVE Badge Overlay -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-brand font-bold text-white block">Kotak Merah "LIVE" On-Air</span>
+            <span class="text-[10px] text-slate-400 block">Menampilkan badge merah di kiri atas layar penonton</span>
+          </div>
+          <button onclick="toggleLiveBadgeActive()" id="btnToggleLiveBadge" class="cg-btn px-3 py-1 rounded-xl text-xs font-mono font-bold bg-red-600 text-white border border-red-500 animate-pulse">
+            ON
+          </button>
+        </div>
 
       </div>
 
-      <!-- ============================================== -->
-      <!-- KOLOM KANAN: KONSOL KONTROL CG (7 Kolom)       -->
-      <!-- ============================================== -->
-      <div class="lg:col-span-7 space-y-4">
+    </div>
 
-        <!-- 1. KONTROL LOWER THIRD & MANAJER PRESET -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow"></span>
-              <h3 class="font-brand font-bold text-white text-sm">Lower Third & Manajer Preset</h3>
-            </div>
-            <span class="text-[11px] font-mono text-slate-400">Pilih, Edit, Hapus, atau Tambah Preset</span>
-          </div>
+  </main>
 
-          <div class="space-y-2 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
-            <div class="flex items-center justify-between">
-              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Daftar Preset Tersimpan:</label>
-              <div class="flex items-center gap-1.5">
-                <button onclick="bukaModalTambahPreset()" class="deck-btn px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] flex items-center gap-1 shadow">
-                  <span>+</span>
-                  <span>Tambah Preset</span>
-                </button>
-                <button onclick="simpanInputSebagaiPreset()" class="deck-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold text-[11px]" title="Simpan teks input saat ini menjadi preset baru">
-                  💾 Simpan Input
-                </button>
-              </div>
-            </div>
+  <!-- MODAL TAMBAH PRESET LOWER THIRD -->
+  <div id="modalTambahPreset" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 space-y-4 text-white">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="font-brand font-black text-sm uppercase text-white">Tambah Preset Lower Third Baru</h3>
+        <button onclick="tutupModalTambahPreset()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
 
-            <div class="flex flex-col sm:flex-row gap-2">
-              <select id="selectPresetLt" onchange="terapkanPresetLt()" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                <!-- Diisi dinamis via JS -->
-              </select>
-              
-              <div class="flex items-center gap-1.5 self-end sm:self-center">
-                <button onclick="terapkanPresetLt()" class="deck-btn px-3 py-2 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 text-blue-300 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                  <span>⚡</span>
-                  <span>Gunakan</span>
-                </button>
-                <button onclick="bukaModalEditPreset()" class="deck-btn px-2.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl text-xs font-semibold" title="Edit isi teks preset yang dipilih">
-                  ✏️ Edit
-                </button>
-                <button onclick="hapusPresetTerpilih()" class="deck-btn px-2.5 py-2 bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded-xl text-xs font-bold" title="Hapus preset ini dari daftar">
-                  🗑️ Hapus
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Baris 1: Nama / Topik Utama</label>
-              <input type="text" id="inputLtTitle" placeholder="Contoh: Dimas Pratama" value="Dimas Pratama" oninput="sinkronInputPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Baris 2: Jabatan / Keterangan</label>
-              <input type="text" id="inputLtSubtitle" placeholder="Contoh: Presenter SKAWAN TV" value="Presenter Utama SKAWAN TV" oninput="sinkronInputPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 pt-1">
-            <button id="btnLtIn" onclick="toggleLowerThird(true)" class="deck-btn py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-brand font-black text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-              <span>TAKE IN (ON-AIR)</span>
-            </button>
-            <button id="btnLtOut" onclick="toggleLowerThird(false)" class="deck-btn py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-brand font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
-              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-              <span>TAKE OUT (OFF)</span>
-            </button>
-          </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-400 uppercase mb-1">Nama / Judul:</label>
+          <input type="text" id="modalInputPresetTitle" placeholder="Contoh: Ir. Budi Santoso, M.Kom." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-cyan-400">
         </div>
-
-        <!-- 2. KONTROL BUG LOGO & LENCANA SIARAN LIVE -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Bug Logo SKAWAN TV</span>
-                <span id="logoLivePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                <button id="btnLogoOn" onclick="toggleLogo(true)" class="deck-btn py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700">LOGO ON</button>
-                <button id="btnLogoOff" onclick="toggleLogo(false)" class="deck-btn py-2 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition">LOGO OFF</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Lencana Siaran LIVE</span>
-                <span id="liveBadgePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF (DEFAULT)</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                <button id="btnLiveBadgeOn" onclick="toggleLiveBadge(true)" class="deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition border border-slate-700">🔴 LIVE ON</button>
-                <button id="btnLiveBadgeOff" onclick="toggleLiveBadge(false)" class="deck-btn py-2.5 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs transition">⚪ LIVE OFF</button>
-              </div>
-            </div>
-          </div>
+        <div>
+          <label class="block font-bold text-slate-400 uppercase mb-1">Jabatan / Keterangan:</label>
+          <input type="text" id="modalInputPresetSubtitle" placeholder="Contoh: Guru Produktif Penyiaran & Perfilman" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-cyan-400">
         </div>
+      </div>
 
-        <!-- 3. RUNNING TEXT -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="font-brand font-bold text-white text-xs uppercase tracking-wider">Running Text (Ticker Bar)</span>
-            <div class="flex items-center gap-2">
-              <span id="tickerLivePill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold border border-slate-700">OFF</span>
-              <button id="btnTickerOn" onclick="toggleTicker(true)" class="deck-btn px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700">TICKER ON</button>
-              <button id="btnTickerOff" onclick="toggleTicker(false)" class="deck-btn px-3 py-1 rounded-lg bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 font-semibold text-xs">TICKER OFF</button>
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <input type="text" id="inputTickerContent" value="Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan • SKAWAN TV Siaran Edukasi Digital" oninput="updateTickerContent(this.value)"
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="tutupModalTambahPreset()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Batal</button>
+        <button onclick="eksekusiModalTambahPreset()" class="cg-btn bg-cyan-600 hover:bg-cyan-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">Simpan Preset</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="py-4 text-center text-xs text-slate-500 font-medium border-t border-slate-900">
+    SKAWAN TV &bull; Character Generator Console &copy; 2026 SMK Negeri 1 Pacitan
+  </footer>
+
+  <!-- SCRIPT LOGIKA CHARACTER GENERATOR -->
+  <script>
+    let currentRoomToken = 'SKASA';
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
+
+    let serverClockOffset = 0;
+    const DEFAULT_BUMPER_YT_ID = 'Jnp3esoHb9k';
+
+    let masterPgmYtPlayer = null;
+    let isMasterPgmYtReady = false;
+    let currentPgmActiveYtId = '';
+
+    let autoHideTimerId = null;
+
+    // Status Ruangan Riil
+    let currentRoomMeta = {
+      status: 'live',
+      programName: 'SKASA TV Live Broadcast',
+      episode: 'Siaran Utama'
+    };
+
+    let liveState = {
+      programSource: 'cam_1',
+      previewSource: 'cam_2',
+      tally: { cam_1: 'red', cam_2: 'green', cam_3: 'off', vt: 'off', sharescreen: 'off' }
+    };
+
+    let latestVtState = {
+      status: 'playing',
+      startAt: Date.now(),
+      startOffset: 0,
+      totalDuration: 120,
+      youtubeId: '',
+      url: '',
+      sourceType: 'youtube',
+      loopMode: 'playlist'
+    };
+
+    let cgState = {
+      logoActive: true,
+      logoUrl: '',
+      isLiveBadgeActive: true,
+      lowerThirdActive: false,
+      title: 'Drs. Eko Prasetyo, M.T.',
+      subtitle: 'Kepala Sekolah SMK Negeri 1 Pacitan',
+      cueTitle: 'Drs. Eko Prasetyo, M.T.',
+      cueSubtitle: 'Kepala Sekolah SMK Negeri 1 Pacitan',
+      isCueReady: true,
+      tickerActive: false,
+      tickerText: 'Selamat Datang di Siaran Simulasi Studio TV Edukasi Digital SMK Negeri 1 Pacitan &bull; SKAWAN TV'
+    };
+
+    let cgPresets = [
+      { id: 'p1', title: 'Drs. Eko Prasetyo, M.T.', subtitle: 'Kepala Sekolah SMK Negeri 1 Pacitan' },
+      { id: 'p2', title: 'Siti Aminah, S.Sn.', subtitle: 'Kepala Program Keahlian Broadcasat & Film' },
+      { id: 'p3', title: 'Ahmad Fauzi & Nabila Putri', subtitle: 'News Anchor SKAWAN TV' },
+      { id: 'p4', title: 'PRAKTIK SISWA BROADCAST', subtitle: 'Simulasi Siaran Televisi Mandiri' }
+    ];
+
+    function getDatabase() {
+      return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
+    }
+
+    function extractCleanYtId(raw) {
+      if (!raw) return '';
+      const str = String(raw).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+      const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      return match ? match[1] : '';
+    }
+
+    // ========================================================
+    // KALKULASI WAKTU LINIER MURNI (SINKRON DENGAN INDEX.HTML)
+    // ========================================================
+    function getLinearServerTime(vt) {
+      if (!vt) return 0;
+      const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
+      if (vt.status !== 'playing') return offset;
+
+      const serverNow = Date.now() + serverClockOffset;
+      const baseStart = vt.startAt || vt.updatedAt || serverNow;
+      const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
+      return offset + elapsed;
+    }
+
+    function calculateAbsoluteServerTime(vt) {
+      if (!vt) return 0;
+      const dur = vt.totalDuration || 120;
+      const linearTime = getLinearServerTime(vt);
+      const activeLoop = vt.loopMode || 'playlist';
+
+      if (activeLoop === 'single' && dur > 0) {
+        return linearTime % dur;
+      }
+      return dur > 0 ? Math.min(linearTime, dur) : linearTime;
+    }
+
+    // YOUTUBE API RESMI INITIALIZATION (PGM RETURN)
+    window.onYouTubeIframeAPIReady = () => {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url) || DEFAULT_BUMPER_YT_ID;
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+      initPgmYtPlayer(vidId, targetTime);
+    };
+
+    function initPgmYtPlayer(ytId, initialTime) {
+      if (typeof YT === 'undefined' || !YT.Player) return;
+      if (masterPgmYtPlayer && isMasterPgmYtReady) return;
+
+      currentPgmActiveYtId = ytId;
+      masterPgmYtPlayer = new YT.Player('pgmMasterYtEl', {
+        height: '100%',
+        width: '100%',
+        host: 'https://www.youtube-nocookie.com',
+        videoId: ytId,
+        playerVars: {
+          playsinline: 1,
+          controls: 0,
+          rel: 0,
+          autoplay: 1,
+          mute: 1,
+          modestbranding: 1,
+          iv_load_policy: 3,
+          disablekb: 1,
+          fs: 0,
+          start: Math.floor(initialTime),
+          origin: window.location.origin || 'http://localhost'
+        },
+        events: {
+          onReady: (e) => {
+            isMasterPgmYtReady = true;
+            if (initialTime > 0) e.target.seekTo(initialTime, true);
+            if (latestVtState.status === 'playing') e.target.playVideo();
+            else e.target.pauseVideo();
+            e.target.mute();
+          },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.PLAYING) {
+              const shield = document.getElementById('pgmBlackShield');
+              if (shield) shield.classList.add('opacity-0');
+            }
+          }
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      currentRoomToken = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
+      document.getElementById('navRoomToken').innerText = currentRoomToken;
+
+      try {
+        const storedPresets = localStorage.getItem('skawan_cg_presets');
+        if (storedPresets) cgPresets = JSON.parse(storedPresets);
+      } catch (e) {}
+
+      initCgSystem(currentRoomToken);
+      startMasterWibClock();
+      startPgmDriftAuditor();
+      renderPresetUI();
+      updateLiveCueStaging();
+    });
+
+    function initCgSystem(token) {
+      const activeDb = getDatabase();
+      if (!activeDb) {
+        setTimeout(() => initCgSystem(token), 250);
+        return;
+      }
+
+      activeDb.ref('.info/serverTimeOffset').on('value', snap => {
+        serverClockOffset = snap.val() || 0;
+      });
+
+      //
