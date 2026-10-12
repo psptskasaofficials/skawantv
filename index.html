@@ -64,7 +64,7 @@
           try { firebase.initializeApp(config); } catch (e) {}
         }
         if (!window.db && firebase.database) {
-          try { window.db = firebase.database(); } catch(e) {}
+          try { window.db = firebase.database(); } catch (e) {}
         }
       }
     })();
@@ -173,7 +173,7 @@
   <main class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-5 w-full flex-1 flex flex-col justify-start items-center space-y-4">
     <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl shadow-red-950/40 flex items-center justify-center group select-none">
 
-      <!-- 1. LAYER BUMPER PLAYOUT (LANGSUNG MEMUAT BUMPER SEJAK FRAME AWAL) -->
+      <!-- 1. LAYER BUMPER PLAYOUT (CLEAN NO-ADS PARAMETERS) -->
       <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center pointer-events-auto" style="display: flex; opacity: 1;">
         <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <iframe
@@ -213,10 +213,10 @@
         </div>
       </div>
 
-      <!-- 3. FEED KAMERA WEBRTC -->
+      <!-- 3. FEED KAMERA / SCREEN WEBRTC (MUTED PERMANEN, SUARA MURNI DARI AUDIO-VT) -->
       <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-      <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API RESMI) -->
+      <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API NOCPOKIE) -->
       <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
         <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
         <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
@@ -296,7 +296,7 @@
       </div>
     </div>
 
-    <!-- PANEL DAFTAR RUANGAN SIARAN (URUTAN: SKASA #1 UTAMA, ON-AIR, STANDBY, ENDED) -->
+    <!-- PANEL DAFTAR RUANGAN SIARAN (URUTAN PRIORITAS: SKASA #1 UTAMA, ON-AIR, STANDBY, ENDED) -->
     <div class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
@@ -314,7 +314,7 @@
     SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026 &bull; Siaran Edukasi Digital
   </footer>
 
-  <!-- SCRIPT ENGINE UTAMA -->
+  <!-- SCRIPT LOGIKA ENGINE MASTER PGM -->
   <script>
     let currentRoomToken = 'SKASA';
     let streamerInstance = null;
@@ -334,7 +334,7 @@
     let bumperCountdownTimer = null;
     let bumperProgressInterval = null;
 
-    // Status Ruangan Aktif (Default SKASA selalu Live)
+    // Status Ruangan Aktif
     let currentRoomMeta = {
       status: 'live',
       programName: 'SKASA TV Live Broadcast',
@@ -408,7 +408,9 @@
       }
     }
 
+    // ==============================================================
     // ROUTING AUDIO TERPUSAT (SPLIT AUDIO/VIDEO ARCHITECTURE)
+    // ==============================================================
     function applyAudioState() {
       const bumperIframe = document.getElementById('pgmBumperIframe');
       const studioMicAudio = document.getElementById('masterStudioAudio');
@@ -582,7 +584,7 @@
         return;
       }
 
-      // 2. GLADI BERSIH (STANDBY) -> BUMPER LOOPING & KARTU GLADI
+      // 2. GLADI BERSIH (STANDBY) -> BUMPER IDENT LOOP & KARTU GLADI
       if (effectiveStatus !== 'live') {
         onAirBumperPlayedForCurrentSession = false;
 
@@ -711,8 +713,7 @@
         return;
       }
 
-      // 3. JIKA BELUM ADA KAMERA MAUPUN KLIP VT -> JANGAN BIARKAN HITAM!
-      // OTOMATIS TETAP TAMPILKAN BUMPER IDENT PLAYOUT SECARA ELEGAN
+      // 3. JIKA BELUM ADA KAMERA MAUPUN KLIP VT -> FALLBACK KE BUMPER IDENT PLAYOUT
       if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
       if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
       
@@ -839,7 +840,7 @@
       if (btnKru) btnKru.href = `login.html?room=${currentRoomToken}`;
 
       if (streamerInstance) {
-        try { streamerInstance.destroy(); } catch(e) {}
+        try { streamerInstance.destroy(); } catch (e) {}
         streamerInstance = null;
       }
       remoteCamStreams.clear();
@@ -847,7 +848,7 @@
 
       onAirBumperPlayedForCurrentSession = false;
 
-      // PANGGIL SINKRON LANGSUNG AGAR PGM SEGERA AKTIF TANPA DELAY
+      // Panggil sinkronisasi monitor langsung agar PGM tidak menunggu
       updateMonitors();
 
       const activeDb = getDatabase();
@@ -901,7 +902,7 @@
         updateMonitors();
       });
 
-      // KONEKSI WEBRTC PENERIMA
+      // KONEKSI WEBRTC PENERIMA (VIDEO KAMERA + MASTER MIC DARI MEJA AUDIO-VT)
       if (typeof SkawanStreamer !== 'undefined') {
         try {
           const viewerRole = `viewer_${Math.random().toString(36).substring(2, 7)}`;
@@ -926,7 +927,7 @@
             }
           });
         } catch (e) {
-          console.warn("WebRTC Streamer init warning:", e);
+          console.warn("WebRTC Streamer init notice:", e);
         }
       }
     }
@@ -938,7 +939,7 @@
     }
 
     // ==============================================================
-    // DIREKTORI RUANGAN: INSTANT RENDER + ZERO-WAIT FALLBACK
+    // DIREKTORI RUANGAN: INSTANT RENDER + ZERO-WAIT CACHE
     // ==============================================================
     function renderChannelsGrid(roomsData = {}) {
       const grid = document.getElementById('channelRoomsGrid');
@@ -1044,7 +1045,7 @@
     }
 
     function listenChannelsDirectory() {
-      // 1. RENDER INSTAN DARI CACHE LOKAL (ZERO-DELAY)
+      // 1. RENDER INSTAN DARI CACHE LOKAL
       let cachedRooms = {};
       try {
         const stored = localStorage.getItem('skawan_rooms_cache');
@@ -1052,13 +1053,13 @@
       } catch (e) {}
       renderChannelsGrid(cachedRooms);
 
-      // 2. SINKRONISASI DATA TERBARU FIREBASE
+      // 2. SINKRONISASI DARI FIREBASE
       const activeDb = getDatabase();
       if (!activeDb) return;
 
       activeDb.ref('rooms').on('value', snapshot => {
         const roomsData = (snapshot.exists() ? snapshot.val() : {}) || {};
-        try { localStorage.setItem('skawan_rooms_cache', JSON.stringify(roomsData)); } catch(e) {}
+        try { localStorage.setItem('skawan_rooms_cache', JSON.stringify(roomsData)); } catch (e) {}
         renderChannelsGrid(roomsData);
       }, error => {
         console.warn("Firebase rooms read notice:", error);
@@ -1066,7 +1067,7 @@
     }
 
     // ==============================================================
-    // FALLBACK AUTO-NEXT ENGINE (BERJALAN JIKA BROWSER OPERATOR TUTUP)
+    // FALLBACK AUTO-NEXT ENGINE (JIKA BROWSER OPERATOR DITUTUP)
     // ==============================================================
     let isIndexFallbackNextExecuting = false;
     setInterval(() => {
@@ -1109,6 +1110,12 @@
               clipId: nextClip.id || `vt_${Date.now()}`,
               updatedAt: firebase.database.ServerValue.TIMESTAMP
             });
+          } else if (loop === 'single') {
+            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).update({
+              startAt: firebase.database.ServerValue.TIMESTAMP,
+              startOffset: 0,
+              updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
           }
           setTimeout(() => { isIndexFallbackNextExecuting = false; }, 3000);
         });
@@ -1116,7 +1123,7 @@
     }, 2000);
 
     // ==============================================================
-    // INISIALISASI HALAMAN SAAT DIMUAT
+    // INISIALISASI
     // ==============================================================
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -1129,7 +1136,7 @@
       window.addEventListener('beforeunload', () => {
         detachChannelListeners();
         if (streamerInstance) {
-          try { streamerInstance.destroy(); } catch(e) {}
+          try { streamerInstance.destroy(); } catch (e) {}
           streamerInstance = null;
         }
       });
