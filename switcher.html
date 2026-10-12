@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vision Switcher Console | SKAWAN TV</title>
+  <title>Vision Switcher & Multiview Console | SKAWAN TV</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -70,11 +70,12 @@
     })();
   </script>
 
-  <!-- Native WebRTC Streamer -->
+  <!-- Native WebRTC Streamer & YouTube API Resmi -->
   <script src="js/webrtc-stream.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    video, iframe, #pgmVtWrapper, #pgmCamVideo, #pgmBumperWrapper, #pvwVtWrapper, #pvwCamVideo {
+    video, iframe, #pgmVtWrapper, #pgmCamVideo, #pvwVtWrapper, #pvwCamVideo, .mv-feed {
       transform: translateZ(0);
       backface-visibility: hidden;
       -webkit-font-smoothing: antialiased;
@@ -90,14 +91,12 @@
     .tally-btn:active {
       transform: scale(0.96);
     }
-    @keyframes ticker-anim {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
+    .mv-card {
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
     }
-    .marquee-text {
-      display: inline-block;
-      white-space: nowrap;
-      animation: ticker-anim 16s linear infinite;
+    .mv-card:hover {
+      filter: brightness(1.1);
     }
   </style>
 </head>
@@ -116,7 +115,7 @@
               <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
               <span class="font-brand font-black text-red-500 text-base leading-none">TV</span>
             </div>
-            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Vision Mixer &amp; Switcher Console</span>
+            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Vision Mixer &amp; Multiview Console</span>
           </div>
         </a>
         <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
@@ -127,13 +126,15 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Status Indikator Drift Lock -->
+        <div id="driftLockBadge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-700/60 font-mono text-[10px] font-bold text-emerald-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>PGM SYNC LOCK (0.0s)</span>
+        </div>
+
         <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
           <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
           <span id="navRoomToken" class="font-mono font-bold text-xs text-orange-400">SKASA</span>
-        </div>
-        <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
-          <span>🎬</span>
-          <span id="navUserName">Switcher Operator</span>
         </div>
         <a href="login.html" class="tally-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
           <span>🚪</span>
@@ -143,14 +144,17 @@
     </div>
   </nav>
 
-  <!-- BANNER STATUS INTERCOM / KOMANDO -->
+  <!-- BANNER STATUS KONTROL -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
     <div class="bg-gradient-to-r from-red-950 via-slate-900 to-slate-950 p-2.5 sm:p-3 rounded-2xl border border-red-900/50 flex items-center justify-between gap-3 shadow-lg">
       <div class="flex items-center gap-2.5 overflow-hidden">
         <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0"></span>
         <div class="truncate">
           <span class="text-[9px] font-mono uppercase tracking-wider text-red-400 font-bold block">STATUS KONTROL STUDIO:</span>
-          <span class="text-xs sm:text-sm font-brand font-black text-white truncate">PGM ON-AIR: <span id="bannerPgmLabel" class="text-red-400 uppercase">CAM 1</span> &bull; CUE PREVIEW: <span id="bannerPvwLabel" class="text-emerald-400 uppercase">CAM 2</span></span>
+          <span class="text-xs sm:text-sm font-brand font-black text-white truncate">
+            PGM ON-AIR: <span id="bannerPgmLabel" class="text-red-400 uppercase">CAM 1</span> &bull; 
+            CUE PREVIEW: <span id="bannerPvwLabel" class="text-emerald-400 uppercase">CAM 2</span>
+          </span>
         </div>
       </div>
       <div class="flex items-center gap-2 shrink-0">
@@ -159,10 +163,10 @@
     </div>
   </div>
 
-  <!-- WORKSPACE UTAMA: DUAL BROADCAST VIEWPORT (PREVIEW vs PROGRAM) -->
+  <!-- WORKSPACE UTAMA: DUAL VIEWPORT + MULTIVIEW GRID + BUS CONTROLS -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
 
-    <!-- BARIS 1: DUAL MONITOR (PREVIEW HIJAU vs PROGRAM MERAH) -->
+    <!-- BAGIAN 1: DUAL MONITOR MASTER (PREVIEW HIJAU vs PROGRAM MERAH) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
       <!-- 1. MONITOR PREVIEW (PVW) - TALLY HIJAU -->
@@ -180,12 +184,12 @@
 
           <!-- Viewport PVW -->
           <div id="pvwViewport" class="aspect-video bg-black rounded-xl overflow-hidden relative border border-slate-800 shadow-inner flex items-center justify-center select-none">
-            <!-- Video Kamera PVW -->
+            <!-- Video Kamera / Screen PVW -->
             <video id="pvwCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-            <!-- Video VT PVW -->
-            <div id="pvwVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
-              <iframe id="pvwVtIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
+            <!-- Video VT PVW (YT API Player Resmi) -->
+            <div id="pvwVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 pointer-events-none" style="display: none; opacity: 0;">
+              <div id="pvwMasterYtEl" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"></div>
             </div>
 
             <!-- Fallback Sinyal PVW -->
@@ -205,11 +209,11 @@
 
         <div class="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
           <span>Status Bus: <strong id="lblPvwBusStatus" class="text-emerald-400">Siap Ditransisikan</strong></span>
-          <span class="text-[10px] text-slate-500">Pilih tombol di Preset Bus bawah</span>
+          <span class="text-[10px] text-slate-500">Klik Multiview di bawah untuk CUE</span>
         </div>
       </div>
 
-      <!-- 2. MONITOR PROGRAM (PGM RETURN MIRRORING INDEX.HTML) - TALLY MERAH -->
+      <!-- 2. MONITOR PROGRAM (PGM RETURN) - TALLY MERAH (100% SINKRON INDEX) -->
       <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -222,7 +226,7 @@
             </span>
           </div>
 
-          <!-- Viewport PGM (Struktur Identik dengan index.html) -->
+          <!-- Viewport PGM -->
           <div id="pgmViewport" class="aspect-video bg-black rounded-xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl flex items-center justify-center select-none">
 
             <!-- Layer Bumper (On-Air / Standby Looping) -->
@@ -232,12 +236,12 @@
               </div>
             </div>
 
-            <!-- Kartu Standby Overlay (Hanya Muncul Saat Gladi Bersih) -->
+            <!-- Kartu Standby Overlay (Gladi Bersih) -->
             <div id="pgmStandbyCardOverlay" class="hidden absolute inset-0 z-25 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 transition-opacity duration-300" style="display: none;">
               <div class="bg-slate-900/95 border border-amber-500/50 rounded-xl p-4 shadow-2xl max-w-sm w-full space-y-2">
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold uppercase tracking-wider">
-                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                  <span>STUDIO STANDBY / GLADI BERSIH</span>
+                <div id="standbyBadgeBox" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <span id="standbyDot" class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <span id="standbyBadgeText">STUDIO STANDBY / GLADI BERSIH</span>
                 </div>
                 <div>
                   <h2 id="standbyOverlayToken" class="font-brand font-black text-xl text-white tracking-wide">RUANGAN</h2>
@@ -249,12 +253,13 @@
               </div>
             </div>
 
-            <!-- Video Kamera PGM -->
+            <!-- Video Kamera / Screen PGM -->
             <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-            <!-- Video VT PGM (Clean Embed Nocookie) -->
-            <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
-              <iframe id="pgmYtIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
+            <!-- Video VT PGM (YT API Player Resmi Anti-Drift) -->
+            <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 pointer-events-none" style="display: none; opacity: 0;">
+              <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
+              <div id="pgmMasterYtEl" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"></div>
             </div>
 
             <!-- CG Bug Logo Watermark -->
@@ -283,14 +288,125 @@
         </div>
 
         <div class="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-          <span>Mirroring PGM: <strong class="text-red-400 font-bold">100% Sinkron Index</strong></span>
-          <span class="text-[10px] text-slate-500">* Audio return di-mute untuk mencegah feedback</span>
+          <span>Mirroring PGM: <strong class="text-red-400 font-bold">100% Lock Index</strong></span>
+          <span class="text-[10px] text-slate-500">* Audio Muted mencegah feedback</span>
         </div>
       </div>
 
     </div>
 
-    <!-- BARIS 2: PANEL KONTROL SWITCHER (PROGRAM BUS, PREVIEW BUS, DAN TRANSISI) -->
+    <!-- BAGIAN 2: MULTIVIEW STUDIO PANEL (5 INPUT FEED: CAM 1, CAM 2, CAM 3, VT, SHARESCREEN) -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow"></span>
+          <h3 class="font-brand font-black text-xs sm:text-sm uppercase tracking-wider text-white">Studio Multiview Inputs (Klik Kotak untuk CUE Preview)</h3>
+        </div>
+        <span class="text-[10px] font-mono text-slate-400">5 Channel Matrix</span>
+      </div>
+
+      <!-- 5-Box Grid Multiview -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" id="multiviewGrid">
+        
+        <!-- 1. CAM 1 BOX -->
+        <div onclick="pilihSumberPreview('cam_1')" id="mvBox-cam_1" class="mv-card bg-slate-950 border-2 border-slate-800 rounded-xl p-2 flex flex-col justify-between space-y-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-[10px] font-mono font-bold">
+            <span class="text-white">CAM 1</span>
+            <span id="mvTally-cam_1" class="px-1.5 py-0.2 rounded text-[8px] bg-slate-800 text-slate-400">OFF</span>
+          </div>
+          <div class="aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center border border-slate-800/80">
+            <video id="mvVideo-cam_1" class="w-full h-full object-cover" autoplay playsinline muted></video>
+            <div id="mvFallback-cam_1" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 text-xs font-mono">
+              <span>📹 CAM 1</span>
+              <span class="text-[9px] text-slate-700">Offline</span>
+            </div>
+          </div>
+          <div class="text-[9px] font-mono text-slate-400 flex items-center justify-between">
+            <span>Kamera Studio 1</span>
+            <span id="mvFeedTag-cam_1" class="text-slate-500">OFFLINE</span>
+          </div>
+        </div>
+
+        <!-- 2. CAM 2 BOX -->
+        <div onclick="pilihSumberPreview('cam_2')" id="mvBox-cam_2" class="mv-card bg-slate-950 border-2 border-slate-800 rounded-xl p-2 flex flex-col justify-between space-y-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-[10px] font-mono font-bold">
+            <span class="text-white">CAM 2</span>
+            <span id="mvTally-cam_2" class="px-1.5 py-0.2 rounded text-[8px] bg-slate-800 text-slate-400">OFF</span>
+          </div>
+          <div class="aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center border border-slate-800/80">
+            <video id="mvVideo-cam_2" class="w-full h-full object-cover" autoplay playsinline muted></video>
+            <div id="mvFallback-cam_2" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 text-xs font-mono">
+              <span>📹 CAM 2</span>
+              <span class="text-[9px] text-slate-700">Offline</span>
+            </div>
+          </div>
+          <div class="text-[9px] font-mono text-slate-400 flex items-center justify-between">
+            <span>Kamera Studio 2</span>
+            <span id="mvFeedTag-cam_2" class="text-slate-500">OFFLINE</span>
+          </div>
+        </div>
+
+        <!-- 3. CAM 3 BOX -->
+        <div onclick="pilihSumberPreview('cam_3')" id="mvBox-cam_3" class="mv-card bg-slate-950 border-2 border-slate-800 rounded-xl p-2 flex flex-col justify-between space-y-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-[10px] font-mono font-bold">
+            <span class="text-white">CAM 3</span>
+            <span id="mvTally-cam_3" class="px-1.5 py-0.2 rounded text-[8px] bg-slate-800 text-slate-400">OFF</span>
+          </div>
+          <div class="aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center border border-slate-800/80">
+            <video id="mvVideo-cam_3" class="w-full h-full object-cover" autoplay playsinline muted></video>
+            <div id="mvFallback-cam_3" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 text-xs font-mono">
+              <span>📹 CAM 3</span>
+              <span class="text-[9px] text-slate-700">Offline</span>
+            </div>
+          </div>
+          <div class="text-[9px] font-mono text-slate-400 flex items-center justify-between">
+            <span>Kamera Studio 3</span>
+            <span id="mvFeedTag-cam_3" class="text-slate-500">OFFLINE</span>
+          </div>
+        </div>
+
+        <!-- 4. VT PLAYOUT BOX -->
+        <div onclick="pilihSumberPreview('vt')" id="mvBox-vt" class="mv-card bg-slate-950 border-2 border-slate-800 rounded-xl p-2 flex flex-col justify-between space-y-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-[10px] font-mono font-bold">
+            <span class="text-white">VT MEDIA</span>
+            <span id="mvTally-vt" class="px-1.5 py-0.2 rounded text-[8px] bg-slate-800 text-slate-400">OFF</span>
+          </div>
+          <div class="aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center border border-slate-800/80">
+            <iframe id="mvIframe-vt" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
+            <div id="mvFallback-vt" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 text-xs font-mono pointer-events-none">
+              <span>🎬 VT PLAYOUT</span>
+              <span class="text-[9px] text-slate-700" id="lblMvVtStatus">Standby</span>
+            </div>
+          </div>
+          <div class="text-[9px] font-mono text-slate-400 flex items-center justify-between truncate">
+            <span id="lblMvVtTitle" class="truncate max-w-[110px]">Klip VT</span>
+            <span class="text-emerald-400">SYNC</span>
+          </div>
+        </div>
+
+        <!-- 5. SHARESCREEN BOX -->
+        <div onclick="pilihSumberPreview('sharescreen')" id="mvBox-sharescreen" class="mv-card bg-slate-950 border-2 border-slate-800 rounded-xl p-2 flex flex-col justify-between space-y-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-[10px] font-mono font-bold">
+            <span class="text-white">SHARESCREEN</span>
+            <span id="mvTally-sharescreen" class="px-1.5 py-0.2 rounded text-[8px] bg-slate-800 text-slate-400">OFF</span>
+          </div>
+          <div class="aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center border border-slate-800/80">
+            <video id="mvVideo-sharescreen" class="w-full h-full object-contain" autoplay playsinline muted></video>
+            <div id="mvFallback-sharescreen" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 text-xs font-mono">
+              <span>🖥️ SCREEN</span>
+              <span class="text-[9px] text-slate-700">Offline</span>
+            </div>
+          </div>
+          <div class="text-[9px] font-mono text-slate-400 flex items-center justify-between">
+            <span>Layar Presentasi</span>
+            <span id="mvFeedTag-sharescreen" class="text-slate-500">OFFLINE</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BAGIAN 3: PANEL KONTROL SWITCHER (PROGRAM BUS, PREVIEW BUS, DAN TRANSISI) -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-5">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div class="flex items-center gap-2">
@@ -318,22 +434,26 @@
               </span>
               <span class="text-[10px] font-mono text-slate-500">Tombol Merah = Sedang Mengudara</span>
             </div>
-            <div class="grid grid-cols-4 gap-2 sm:gap-3" id="pgmBusButtons">
-              <button onclick="pilihSumberProgramLangsung('cam_1')" id="btnPgm-cam_1" class="tally-btn py-3 sm:py-3.5 rounded-xl border font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md">
+            <div class="grid grid-cols-5 gap-2" id="pgmBusButtons">
+              <button onclick="pilihSumberProgramLangsung('cam_1')" id="btnPgm-cam_1" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
                 <span>CAM 1</span>
-                <span class="text-[9px] font-mono opacity-80" id="feedStatusPgm-cam_1">Offline</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPgm-cam_1">Offline</span>
               </button>
-              <button onclick="pilihSumberProgramLangsung('cam_2')" id="btnPgm-cam_2" class="tally-btn py-3 sm:py-3.5 rounded-xl border font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md">
+              <button onclick="pilihSumberProgramLangsung('cam_2')" id="btnPgm-cam_2" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
                 <span>CAM 2</span>
-                <span class="text-[9px] font-mono opacity-80" id="feedStatusPgm-cam_2">Offline</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPgm-cam_2">Offline</span>
               </button>
-              <button onclick="pilihSumberProgramLangsung('cam_3')" id="btnPgm-cam_3" class="tally-btn py-3 sm:py-3.5 rounded-xl border font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md">
+              <button onclick="pilihSumberProgramLangsung('cam_3')" id="btnPgm-cam_3" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
                 <span>CAM 3</span>
-                <span class="text-[9px] font-mono opacity-80" id="feedStatusPgm-cam_3">Offline</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPgm-cam_3">Offline</span>
               </button>
-              <button onclick="pilihSumberProgramLangsung('vt')" id="btnPgm-vt" class="tally-btn py-3 sm:py-3.5 rounded-xl border font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md">
-                <span>VT PLAYOUT</span>
-                <span class="text-[9px] font-mono opacity-80" id="feedStatusPgm-vt">Online</span>
+              <button onclick="pilihSumberProgramLangsung('vt')" id="btnPgm-vt" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
+                <span>VT MEDIA</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPgm-vt">Online</span>
+              </button>
+              <button onclick="pilihSumberProgramLangsung('sharescreen')" id="btnPgm-sharescreen" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
+                <span>SCREEN</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPgm-sharescreen">Offline</span>
               </button>
             </div>
           </div>
@@ -343,26 +463,30 @@
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                PREVIEW / PRESET BUS (CUE)
+                PREVIEW / PRESET BUS (CUE NEXT)
               </span>
               <span class="text-[10px] font-mono text-slate-500">Tombol Hijau = Siap Ditransisikan</span>
             </div>
-            <div class="grid grid-cols-4 gap-2 sm:gap-3" id="pvwBusButtons">
-              <button onclick="pilihSumberPreview('cam_1')" id="btnPvw-cam_1" class="tally-btn py-3 sm:py-3.5 rounded-xl border font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md">
+            <div class="grid grid-cols-5 gap-2" id="pvwBusButtons">
+              <button onclick="pilihSumberPreview('cam_1')" id="btnPvw-cam_1" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
                 <span>CAM 1</span>
-                <span class="text-[9px] font-mono opacity-80" id="feedStatusPvw-cam_1">Offline</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPvw-cam_1">Offline</span>
               </button>
-              <button onclick="pilihSumberPreview('cam_2')" id="btnPvw-cam_2" class="tally-btn py-3 sm:py-3.5 rounded-xl border font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md">
+              <button onclick="pilihSumberPreview('cam_2')" id="btnPvw-cam_2" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
                 <span>CAM 2</span>
-                <span class="text-[9px] font-mono opacity-80" id="feedStatusPvw-cam_2">Offline</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPvw-cam_2">Offline</span>
               </button>
-              <button onclick="pilihSumberPreview('cam_3')" id="btnPvw-cam_3" class="tally-btn py-3 sm:py-3.5 rounded-xl border font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md">
+              <button onclick="pilihSumberPreview('cam_3')" id="btnPvw-cam_3" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
                 <span>CAM 3</span>
-                <span class="text-[9px] font-mono opacity-80" id="feedStatusPvw-cam_3">Offline</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPvw-cam_3">Offline</span>
               </button>
-              <button onclick="pilihSumberPreview('vt')" id="btnPvw-vt" class="tally-btn py-3 sm:py-3.5 rounded-xl border font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md">
-                <span>VT PLAYOUT</span>
-                <span class="text-[9px] font-mono opacity-80" id="feedStatusPvw-vt">Online</span>
+              <button onclick="pilihSumberPreview('vt')" id="btnPvw-vt" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
+                <span>VT MEDIA</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPvw-vt">Online</span>
+              </button>
+              <button onclick="pilihSumberPreview('sharescreen')" id="btnPvw-sharescreen" class="tally-btn py-3 rounded-xl border font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md">
+                <span>SCREEN</span>
+                <span class="text-[8px] font-mono opacity-80" id="feedStatusPvw-sharescreen">Offline</span>
               </button>
             </div>
           </div>
@@ -374,20 +498,17 @@
           <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block text-center">TRANSITION BLOCK</span>
 
           <div class="grid grid-cols-2 gap-3">
-            <!-- TOMBOL CUT INSTAN -->
             <button onclick="eksekusiCutTransition()" id="btnActionCut" class="tally-btn py-4 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white font-brand font-black text-base border border-slate-700 flex flex-col items-center justify-center gap-1 shadow-lg active:ring-2 active:ring-red-500">
               <span>⚡ CUT</span>
               <span class="text-[9px] font-mono text-slate-400 font-normal">Tukar Instan</span>
             </button>
 
-            <!-- TOMBOL AUTO TRANSITION -->
             <button onclick="eksekusiAutoTransition()" id="btnActionAuto" class="tally-btn py-4 rounded-xl bg-gradient-to-r from-red-600 via-orange-600 to-red-600 hover:from-red-500 hover:to-orange-500 text-white font-brand font-black text-base shadow-lg shadow-red-600/30 flex flex-col items-center justify-center gap-1">
               <span>🔄 AUTO</span>
               <span class="text-[9px] font-mono text-red-200 font-normal">Mix Dissolve</span>
             </button>
           </div>
 
-          <!-- Pilihan Durasi Mix -->
           <div class="flex items-center justify-between text-xs font-mono text-slate-400 pt-1">
             <span>Durasi Mix:</span>
             <div class="flex items-center gap-1">
@@ -407,7 +528,7 @@
     SKAWAN TV &bull; Vision Mixer Console &copy; 2026 SMK Negeri 1 Pacitan
   </footer>
 
-  <!-- SCRIPT LOGIKA ENGINE VISION MIXER -->
+  <!-- SCRIPT LOGIKA UTAMA VISION MIXER & MULTIVIEW -->
   <script>
     let currentRoomToken = 'SKASA';
     let streamerInstance = null;
@@ -419,18 +540,26 @@
 
     const DEFAULT_BUMPER_YT_ID = 'Jnp3esoHb9k';
 
-    // Status Ruangan Riil (Mirroring Index.html)
+    // Instance YouTube API Resmi (Anti-Drift)
+    let masterPgmYtPlayer = null;
+    let isMasterPgmYtReady = false;
+    let currentPgmActiveYtId = '';
+
+    let masterPvwYtPlayer = null;
+    let isMasterPvwYtReady = false;
+    let currentPvwActiveYtId = '';
+
+    // Status Ruangan Riil (Identik dengan index.html)
     let currentRoomMeta = {
       status: 'live',
       programName: 'SKASA TV Live Broadcast',
       episode: 'Siaran Utama'
     };
 
-    // State Switching Aktif
     let liveState = {
       programSource: 'cam_1',
       previewSource: 'cam_2',
-      tally: { cam_1: 'red', cam_2: 'green', cam_3: 'off', vt: 'off' }
+      tally: { cam_1: 'red', cam_2: 'green', cam_3: 'off', vt: 'off', sharescreen: 'off' }
     };
 
     let latestVtState = {
@@ -450,9 +579,6 @@
       lowerThirdActive: false,
       tickerActive: false
     };
-
-    let currentPgmActiveYtId = '';
-    let lastPgmKnownVtTime = 0;
 
     function getDatabase() {
       return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
@@ -494,7 +620,91 @@
       });
     }
 
-    // INIT DAN LISTENER SWITCHER
+    // YOUTUBE API RESMI READY
+    window.onYouTubeIframeAPIReady = () => {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url) || DEFAULT_BUMPER_YT_ID;
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+      initPgmYtPlayer(vidId, targetTime);
+      initPvwYtPlayer(vidId, targetTime);
+    };
+
+    function initPgmYtPlayer(ytId, initialTime) {
+      if (typeof YT === 'undefined' || !YT.Player) return;
+      if (masterPgmYtPlayer && isMasterPgmYtReady) return;
+
+      currentPgmActiveYtId = ytId;
+      masterPgmYtPlayer = new YT.Player('pgmMasterYtEl', {
+        height: '100%',
+        width: '100%',
+        host: 'https://www.youtube-nocookie.com',
+        videoId: ytId,
+        playerVars: {
+          playsinline: 1,
+          controls: 0,
+          rel: 0,
+          autoplay: 1,
+          mute: 1, // Kunci mute permanen di switcher agar tidak feedback
+          modestbranding: 1,
+          iv_load_policy: 3,
+          disablekb: 1,
+          fs: 0,
+          start: Math.floor(initialTime),
+          origin: window.location.origin || 'http://localhost'
+        },
+        events: {
+          onReady: (e) => {
+            isMasterPgmYtReady = true;
+            if (initialTime > 0) e.target.seekTo(initialTime, true);
+            if (latestVtState.status === 'playing') e.target.playVideo();
+            else e.target.pauseVideo();
+            e.target.mute();
+          },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.PLAYING) {
+              const shield = document.getElementById('pgmBlackShield');
+              if (shield) shield.classList.add('opacity-0');
+            }
+          }
+        }
+      });
+    }
+
+    function initPvwYtPlayer(ytId, initialTime) {
+      if (typeof YT === 'undefined' || !YT.Player) return;
+      if (masterPvwYtPlayer && isMasterPvwYtReady) return;
+
+      currentPvwActiveYtId = ytId;
+      masterPvwYtPlayer = new YT.Player('pvwMasterYtEl', {
+        height: '100%',
+        width: '100%',
+        host: 'https://www.youtube-nocookie.com',
+        videoId: ytId,
+        playerVars: {
+          playsinline: 1,
+          controls: 0,
+          rel: 0,
+          autoplay: 1,
+          mute: 1,
+          modestbranding: 1,
+          iv_load_policy: 3,
+          disablekb: 1,
+          fs: 0,
+          start: Math.floor(initialTime),
+          origin: window.location.origin || 'http://localhost'
+        },
+        events: {
+          onReady: (e) => {
+            isMasterPvwYtReady = true;
+            if (initialTime > 0) e.target.seekTo(initialTime, true);
+            if (latestVtState.status === 'playing') e.target.playVideo();
+            else e.target.pauseVideo();
+            e.target.mute();
+          }
+        }
+      });
+    }
+
+    // INIT UTAMA
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       currentRoomToken = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
@@ -502,6 +712,7 @@
 
       initSwitcherEngine(currentRoomToken);
       setupKeyboardShortcuts();
+      startActiveDriftAuditor();
     });
 
     function initSwitcherEngine(token) {
@@ -515,7 +726,7 @@
         serverClockOffset = snap.val() || 0;
       });
 
-      // 1. DENGARKAN ROOT ROOM (MIRRORING STATUS DAN META)
+      // 1. DENGARKAN ROOT ROOM (IDENTIK DENGAN INDEX.HTML)
       activeDb.ref(`rooms/${token}`).on('value', snapshot => {
         if (!snapshot.exists()) {
           if (token === 'SKASA') {
@@ -560,15 +771,31 @@
         updateAllMonitors();
       });
 
-      // 2. WEBRTC STREAMER UNTUK MULTI-KAMERA (CAM 1, CAM 2, CAM 3)
+      // 2. WEBRTC STREAMER UNTUK MULTI-KAMERA & SHARESCREEN
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
           roleKey: 'switcher_operator',
           onRemoteStream: (camKey, stream) => {
-            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+            const normKey = camKey.includes('_') ? camKey : (camKey === 'sharescreen' ? 'sharescreen' : camKey.replace('cam', 'cam_'));
             remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
+
+            // Pasang stream ke kotak Multiview langsung
+            const mvVideo = document.getElementById(`mvVideo-${normKey}`);
+            const mvFallback = document.getElementById(`mvFallback-${normKey}`);
+            const mvFeedTag = document.getElementById(`mvFeedTag-${normKey}`);
+
+            if (mvVideo) {
+              if (mvVideo.srcObject !== stream) mvVideo.srcObject = stream;
+              mvVideo.play().catch(() => {});
+            }
+            if (mvFallback) mvFallback.style.display = 'none';
+            if (mvFeedTag) {
+              mvFeedTag.innerText = "ONLINE";
+              mvFeedTag.className = "text-emerald-400 font-bold";
+            }
+
             updateFeedBadges();
             updateAllMonitors();
           }
@@ -577,7 +804,7 @@
     }
 
     function updateFeedBadges() {
-      ['cam_1', 'cam_2', 'cam_3'].forEach(cam => {
+      ['cam_1', 'cam_2', 'cam_3', 'sharescreen'].forEach(cam => {
         const isOnline = remoteCamStreams.has(cam) && remoteCamStreams.get(cam) !== null;
         const statusText = isOnline ? 'Online' : 'Offline';
         const pgmEl = document.getElementById(`feedStatusPgm-${cam}`);
@@ -595,35 +822,99 @@
       return null;
     }
 
-    // UPDATE SEMUA TAMPILAN MONITOR DAN TOMBOL BUS TALLY
-    function updateAllMonitors() {
-      updateTallyBusButtons();
-      updatePvwMonitor();
-      updatePgmReturnMonitor();
-    }
+    // ==========================================
+    // MESIN PENYELARAS DRIFT AKTIF (SETIAP 3 DETIK)
+    // ==========================================
+    function startActiveDriftAuditor() {
+      setInterval(() => {
+        const targetServerTime = calculateAbsoluteServerTime(latestVtState);
+        const isPlaying = latestVtState.status === 'playing';
 
-    // UPDATE TALLY BUTTONS (PGM = MERAH, PVW = HIJAU)
-    function updateTallyBusButtons() {
-      const pgmSrc = liveState.programSource || 'cam_1';
-      const pvwSrc = liveState.previewSource || 'cam_2';
+        // 1. Audit PGM Player
+        if (isMasterPgmYtReady && masterPgmYtPlayer && typeof masterPgmYtPlayer.getCurrentTime === 'function') {
+          const actualPgmTime = masterPgmYtPlayer.getCurrentTime() || 0;
+          const drift = Math.abs(actualPgmTime - targetServerTime);
 
-      ['cam_1', 'cam_2', 'cam_3', 'vt'].forEach(src => {
-        const btnPgm = document.getElementById(`btnPgm-${src}`);
-        const btnPvw = document.getElementById(`btnPvw-${src}`);
+          const badge = document.getElementById('driftLockBadge');
+          if (badge) {
+            badge.innerText = `PGM SYNC LOCK (${drift.toFixed(1)}s)`;
+            if (drift > 2.0) badge.className = "hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/80 border border-amber-700/60 font-mono text-[10px] font-bold text-amber-300";
+            else badge.className = "hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-700/60 font-mono text-[10px] font-bold text-emerald-300";
+          }
 
-        if (btnPgm) {
-          if (src === pgmSrc) {
-            btnPgm.className = "tally-btn py-3 sm:py-3.5 rounded-xl border border-red-500 bg-red-600 text-white font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-red-600/40 ring-2 ring-red-400";
-          } else {
-            btnPgm.className = "tally-btn py-3 sm:py-3.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:bg-slate-900 font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md";
+          // Jika tertinggal di atas 2 detik, paksa lompat ke jam server
+          if (drift > 2.0) {
+            masterPgmYtPlayer.seekTo(targetServerTime, true);
+            if (isPlaying) masterPgmYtPlayer.playVideo();
           }
         }
 
-        if (btnPvw) {
-          if (src === pvwSrc) {
-            btnPvw.className = "tally-btn py-3 sm:py-3.5 rounded-xl border border-emerald-500 bg-emerald-600 text-black font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-emerald-600/40 ring-2 ring-emerald-300";
+        // 2. Audit PVW Player (Agar Preview Juga 100% Berputar di Detik yang Sama)
+        if (isMasterPvwYtReady && masterPvwYtPlayer && typeof masterPvwYtPlayer.getCurrentTime === 'function') {
+          const actualPvwTime = masterPvwYtPlayer.getCurrentTime() || 0;
+          const pvwDrift = Math.abs(actualPvwTime - targetServerTime);
+          if (pvwDrift > 2.0) {
+            masterPvwYtPlayer.seekTo(targetServerTime, true);
+            if (isPlaying) masterPvwYtPlayer.playVideo();
+          }
+        }
+      }, 3000);
+    }
+
+    // UPDATE SEMUA TAMPILAN MONITOR & MULTIVIEW
+    function updateAllMonitors() {
+      updateTallyBusAndMultiview();
+      updatePvwMonitor();
+      updatePgmReturnMonitor();
+      syncVtPlayoutSources();
+    }
+
+    // UPDATE TALLY (MERAH: PGM, HIJAU: PVW, ABU-ABU: OFF)
+    function updateTallyBusAndMultiview() {
+      const pgmSrc = liveState.programSource || 'cam_1';
+      const pvwSrc = liveState.previewSource || 'cam_2';
+
+      ['cam_1', 'cam_2', 'cam_3', 'vt', 'sharescreen'].forEach(src => {
+        const btnPgm = document.getElementById(`btnPgm-${src}`);
+        const btnPvw = document.getElementById(`btnPvw-${src}`);
+        const mvBox = document.getElementById(`mvBox-${src}`);
+        const mvTally = document.getElementById(`mvTally-${src}`);
+
+        const isPgm = (src === pgmSrc);
+        const isPvw = (src === pvwSrc);
+
+        // Update Tombol PGM Bus
+        if (btnPgm) {
+          if (isPgm) {
+            btnPgm.className = "tally-btn py-3 rounded-xl border border-red-500 bg-red-600 text-white font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-red-600/40 ring-2 ring-red-400";
           } else {
-            btnPvw.className = "tally-btn py-3 sm:py-3.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:bg-slate-900 font-brand font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 shadow-md";
+            btnPgm.className = "tally-btn py-3 rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:bg-slate-900 font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md";
+          }
+        }
+
+        // Update Tombol PVW Bus
+        if (btnPvw) {
+          if (isPvw) {
+            btnPvw.className = "tally-btn py-3 rounded-xl border border-emerald-500 bg-emerald-600 text-black font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-lg shadow-emerald-600/40 ring-2 ring-emerald-300";
+          } else {
+            btnPvw.className = "tally-btn py-3 rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:bg-slate-900 font-brand font-black text-xs flex flex-col items-center justify-center gap-0.5 shadow-md";
+          }
+        }
+
+        // Update Kotak Multiview Tally
+        if (mvBox && mvTally) {
+          if (isPgm) {
+            mvBox.className = "mv-card bg-slate-950 border-2 border-red-600 shadow-lg shadow-red-950/60 rounded-xl p-2 flex flex-col justify-between space-y-2 relative overflow-hidden ring-1 ring-red-500";
+            mvTally.className = "px-1.5 py-0.2 rounded text-[8px] bg-red-600 text-white font-black animate-pulse";
+            mvTally.innerText = "PGM (LIVE)";
+          } else if (isPvw) {
+            mvBox.className = "mv-card bg-slate-950 border-2 border-emerald-500 shadow-lg shadow-emerald-950/60 rounded-xl p-2 flex flex-col justify-between space-y-2 relative overflow-hidden ring-1 ring-emerald-400";
+            mvTally.className = "px-1.5 py-0.2 rounded text-[8px] bg-emerald-500 text-black font-black";
+            mvTally.innerText = "PVW (CUE)";
+          } else {
+            mvBox.className = "mv-card bg-slate-950 border-2 border-slate-800 rounded-xl p-2 flex flex-col justify-between space-y-2 relative overflow-hidden";
+            mvTally.className = "px-1.5 py-0.2 rounded text-[8px] bg-slate-800 text-slate-400 font-bold";
+            mvTally.innerText = "OFF";
           }
         }
       });
@@ -635,12 +926,58 @@
       document.getElementById('lblPvwSourceTag').innerText = pvwSrc.toUpperCase().replace('_', ' ');
     }
 
+    // SINKRONISASI VIDEO VT PADA PREVIEW DAN PROGRAM
+    function syncVtPlayoutSources() {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+      const isPlaying = latestVtState.status === 'playing';
+
+      // Update info pada Multiview VT Box
+      const lblMvTitle = document.getElementById('lblMvVtTitle');
+      const lblMvStatus = document.getElementById('lblMvVtStatus');
+      const fallbackVt = document.getElementById('mvFallback-vt');
+      const iframeMvVt = document.getElementById('mvIframe-vt');
+
+      if (lblMvTitle) lblMvTitle.innerText = latestVtState.title || "Klip VT";
+      if (lblMvStatus) lblMvStatus.innerText = isPlaying ? "Playing" : "Paused";
+
+      if (vidId) {
+        if (fallbackVt) fallbackVt.style.display = 'none';
+        const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+        const desiredMvSrc = `https://www.youtube-nocookie.com/embed/${vidId}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&enablejsapi=1&start=${Math.floor(targetTime)}${originParam}`;
+        if (iframeMvVt && (!iframeMvVt.src || !iframeMvVt.src.includes(vidId))) {
+          iframeMvVt.src = desiredMvSrc;
+        }
+      }
+
+      // Update PGM Player Resmi
+      if (isMasterPgmYtReady && masterPgmYtPlayer) {
+        if (vidId && currentPgmActiveYtId !== vidId) {
+          currentPgmActiveYtId = vidId;
+          const shield = document.getElementById('pgmBlackShield');
+          if (shield) shield.classList.remove('opacity-0');
+          masterPgmYtPlayer.loadVideoById({ videoId: vidId, startSeconds: Math.floor(targetTime) });
+          if (isPlaying) masterPgmYtPlayer.playVideo();
+          else masterPgmYtPlayer.pauseVideo();
+        }
+      }
+
+      // Update PVW Player Resmi
+      if (isMasterPvwYtReady && masterPvwYtPlayer) {
+        if (vidId && currentPvwActiveYtId !== vidId) {
+          currentPvwActiveYtId = vidId;
+          masterPvwYtPlayer.loadVideoById({ videoId: vidId, startSeconds: Math.floor(targetTime) });
+          if (isPlaying) masterPvwYtPlayer.playVideo();
+          else masterPvwYtPlayer.pauseVideo();
+        }
+      }
+    }
+
     // UPDATE MONITOR PREVIEW (PVW)
     function updatePvwMonitor() {
       const pvwSrc = liveState.previewSource || 'cam_2';
       const pvwVideo = document.getElementById('pvwCamVideo');
       const pvwVtWrap = document.getElementById('pvwVtWrapper');
-      const pvwVtIframe = document.getElementById('pvwVtIframe');
       const pvwFallback = document.getElementById('pvwFallbackBox');
       const screenLabel = document.getElementById('pvwScreenLabel');
       const descLabel = document.getElementById('pvwFallbackDesc');
@@ -654,21 +991,12 @@
           pvwVtWrap.style.display = 'flex';
           pvwVtWrap.style.opacity = '1';
         }
-
-        const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-        if (ytId) {
-          const targetTime = calculateAbsoluteServerTime(latestVtState);
-          const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-          pvwVtIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&enablejsapi=1&start=${Math.floor(targetTime)}${originParam}`;
-        }
         return;
       }
 
-      // Jika PVW adalah kamera
       if (pvwVtWrap) {
         pvwVtWrap.style.display = 'none';
         pvwVtWrap.style.opacity = '0';
-        pvwVtIframe.src = 'about:blank';
       }
 
       const stream = getCameraStream(pvwSrc);
@@ -681,11 +1009,11 @@
       } else {
         if (pvwVideo) { pvwVideo.style.display = 'none'; pvwVideo.style.opacity = '0'; }
         if (pvwFallback) pvwFallback.style.display = 'block';
-        descLabel.innerText = "KAMERA OFFLINE (MENUNGGU WEBRTC)";
+        descLabel.innerText = pvwSrc === 'sharescreen' ? "SHARESCREEN OFFLINE" : "KAMERA OFFLINE (WEBRTC)";
       }
     }
 
-    // UPDATE MONITOR PGM RETURN (MIRRORING IDENTIK DENGAN INDEX.HTML)
+    // UPDATE MONITOR PGM RETURN (IDENTIK DENGAN INDEX.HTML)
     function updatePgmReturnMonitor() {
       const pgmViewport = document.getElementById('pgmViewport');
       const bumperWrap = document.getElementById('pgmBumperWrapper');
@@ -693,12 +1021,11 @@
       const standbyOverlay = document.getElementById('pgmStandbyCardOverlay');
       const pgmVideo = document.getElementById('pgmCamVideo');
       const pgmVtWrap = document.getElementById('pgmVtWrapper');
-      const pgmYtIframe = document.getElementById('pgmYtIframe');
 
       const effectiveStatus = (currentRoomToken === 'SKASA') ? 'live' : (currentRoomMeta.status || 'standby');
       const badgePill = document.getElementById('badgeRoomStatusPill');
 
-      // 1. KONDISI STANDBY -> BUMPER LOOPING & KARTU GLADI BERSIH
+      // 1. KONDISI STANDBY -> BUMPER IDENT LOOP & KARTU GLADI BERSIH
       if (effectiveStatus !== 'live') {
         pgmViewport.style.borderColor = '#d97706';
         if (badgePill) {
@@ -735,7 +1062,7 @@
 
       const activeSrc = liveState.programSource || 'cam_1';
       const stream = getCameraStream(activeSrc);
-      const isVt = (activeSrc === 'vt' || activeSrc === 'sharescreen');
+      const isVt = (activeSrc === 'vt');
 
       if (isVt) {
         if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
@@ -744,18 +1071,9 @@
           pgmVtWrap.style.display = 'flex';
           pgmVtWrap.style.opacity = '1';
         }
-
-        const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-        if (ytId && currentPgmActiveYtId !== ytId) {
-          currentPgmActiveYtId = ytId;
-          const targetTime = calculateAbsoluteServerTime(latestVtState);
-          const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-          pgmYtIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&controls=0&rel=0&playlist=${ytId}&playsinline=1&enablejsapi=1&fs=0&start=${Math.floor(targetTime)}${originParam}`;
-        }
         return;
       }
 
-      // Jika Sumber Program adalah Kamera
       if (pgmVtWrap) {
         pgmVtWrap.style.display = 'none';
         pgmVtWrap.style.opacity = '0';
@@ -768,7 +1086,6 @@
         pgmVideo.style.opacity = '1';
         pgmVideo.play().catch(() => {});
       } else {
-        // Fallback jika belum ada sinyal kamera -> Bumper Idle On-Air
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
         if (bumperWrap) {
           bumperWrap.style.display = 'flex';
@@ -797,9 +1114,8 @@
     }
 
     // ==========================================
-    // AKSI OPERASIONAL SWITCHER (CUT & AUTO TAKE)
+    // OPERASIONAL TRANSISI CUT & AUTO TAKE
     // ==========================================
-
     function pilihSumberPreview(srcKey) {
       if (isTransitionInProgress) return;
       liveState.previewSource = srcKey;
@@ -815,14 +1131,22 @@
       if (isTransitionInProgress) return;
       const oldProgram = liveState.programSource;
       liveState.programSource = srcKey;
-      // Otomatis arahkan Preview ke sumber program sebelumnya (flip-flop)
       liveState.previewSource = oldProgram;
 
+      alignPgmToExactServerTime();
       updateAllMonitors();
       commitLiveStateToFirebase();
     }
 
-    // EKSEKUSI CUT (INSTANT SWITCH / FLIP-FLOP)
+    // KUNCI SINKRONISASI DETIK SAAT TRANSISI
+    function alignPgmToExactServerTime() {
+      if (liveState.programSource === 'vt' && isMasterPgmYtReady && masterPgmYtPlayer) {
+        const targetServerTime = calculateAbsoluteServerTime(latestVtState);
+        masterPgmYtPlayer.seekTo(targetServerTime, true);
+        if (latestVtState.status === 'playing') masterPgmYtPlayer.playVideo();
+      }
+    }
+
     function eksekusiCutTransition() {
       if (isTransitionInProgress) return;
       const nextProgram = liveState.previewSource;
@@ -831,11 +1155,11 @@
       liveState.programSource = nextProgram;
       liveState.previewSource = nextPreview;
 
+      alignPgmToExactServerTime();
       updateAllMonitors();
       commitLiveStateToFirebase();
     }
 
-    // EKSEKUSI AUTO (MIX DISSOLVE DENGAN TIMER)
     function eksekusiAutoTransition() {
       if (isTransitionInProgress) return;
       isTransitionInProgress = true;
@@ -853,6 +1177,7 @@
         liveState.programSource = nextProgram;
         liveState.previewSource = nextPreview;
 
+        alignPgmToExactServerTime();
         updateAllMonitors();
         commitLiveStateToFirebase();
 
@@ -868,7 +1193,7 @@
       const pgmSrc = liveState.programSource;
       const pvwSrc = liveState.previewSource;
 
-      const tallyObj = { cam_1: 'off', cam_2: 'off', cam_3: 'off', vt: 'off' };
+      const tallyObj = { cam_1: 'off', cam_2: 'off', cam_3: 'off', vt: 'off', sharescreen: 'off' };
       if (tallyObj.hasOwnProperty(pgmSrc)) tallyObj[pgmSrc] = 'red';
       if (tallyObj.hasOwnProperty(pvwSrc)) tallyObj[pvwSrc] = 'green';
 
@@ -880,7 +1205,6 @@
       });
     }
 
-    // SHORTCUT KEYBOARD STUDIO (SPACE = CUT, ENTER = AUTO, 1-4 = PREVIEW)
     function setupKeyboardShortcuts() {
       window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -899,6 +1223,8 @@
           pilihSumberPreview('cam_3');
         } else if (e.key === '4') {
           pilihSumberPreview('vt');
+        } else if (e.key === '5') {
+          pilihSumberPreview('sharescreen');
         }
       });
     }
