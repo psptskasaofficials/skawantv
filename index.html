@@ -64,7 +64,7 @@
           try { firebase.initializeApp(config); } catch (e) {}
         }
         if (!window.db && firebase.database) {
-          try { window.db = firebase.database(); } catch (e) {}
+          try { window.db = firebase.database(); } catch(e) {}
         }
       }
     })();
@@ -122,7 +122,7 @@
   <!-- ELEMEN AUDIO PENERIMA STREAM DARI MEJA AUDIO-VT -->
   <audio id="masterStudioAudio" autoplay playsinline></audio>
 
-  <!-- NAVBAR: Z-50 (SELALU DI ATAS SAAT SCROLL) -->
+  <!-- NAVBAR: Z-50 -->
   <nav id="liveNavBar" class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -169,17 +169,17 @@
     </div>
   </nav>
 
-  <!-- VIEWPORT PROGRAM UTAMA (Z-10: MELUNCUR DI BAWAH NAVBAR SAAT SCROLL) -->
+  <!-- VIEWPORT PROGRAM UTAMA -->
   <main class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-5 w-full flex-1 flex flex-col justify-start items-center space-y-4">
     <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl shadow-red-950/40 flex items-center justify-center group select-none">
 
-      <!-- 1. LAYER BUMPER PLAYOUT (CLEAN NO-ADS PARAMETERS) -->
+      <!-- 1. LAYER BUMPER PLAYOUT -->
       <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center pointer-events-auto" style="display: flex; opacity: 1;">
         <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <iframe
             id="pgmBumperIframe"
             class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"
-            src="https://www.youtube-nocookie.com/embed/Jnp3esoHb9k?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=Jnp3esoHb9k&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0"
+            src=""
             allow="autoplay; encrypted-media; picture-in-picture"
             tabindex="-1"
           ></iframe>
@@ -197,7 +197,7 @@
       </div>
 
       <!-- 2. KARTU IDENTITAS STANDBY (OVERLAY SAAT GLADI BERSIH) -->
-      <div id="pgmStandbyCardOverlay" class="hidden absolute inset-0 z-25 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 transition-opacity duration-300" style="display: none;">
+      <div id="pgmStandbyCardOverlay" class="absolute inset-0 z-25 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 transition-opacity duration-300" style="display: none;">
         <div class="bg-slate-900/95 border border-amber-500/50 rounded-2xl p-6 shadow-2xl max-w-md w-full space-y-3">
           <div id="standbyBadgeBox" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold uppercase tracking-wider">
             <span id="standbyDot" class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
@@ -213,10 +213,10 @@
         </div>
       </div>
 
-      <!-- 3. FEED KAMERA / SCREEN WEBRTC (MUTED PERMANEN, SUARA MURNI DARI AUDIO-VT) -->
+      <!-- 3. FEED KAMERA / SCREEN WEBRTC -->
       <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-      <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API NOCPOKIE) -->
+      <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API NOCOOKIE) -->
       <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
         <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
         <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
@@ -225,7 +225,7 @@
         </div>
       </div>
 
-      <!-- 5. CG BUG LOGO (WATERMARK DI DEPAN VIDEO, TERISOLASI DI DALAM VIEWPORT) -->
+      <!-- 5. CG BUG LOGO -->
       <div id="cgBugLogo" class="absolute top-3 sm:top-4 right-3 sm:right-4 z-30 flex items-center justify-center max-w-[140px] max-h-12 transition-all duration-200 pointer-events-none select-none">
         <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-9 w-auto max-w-[130px] object-contain drop-shadow-md">
         <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-white/95 rounded-xl px-2 py-1 shadow-lg backdrop-blur-sm border border-white/20">
@@ -296,7 +296,7 @@
       </div>
     </div>
 
-    <!-- PANEL DAFTAR RUANGAN SIARAN (URUTAN PRIORITAS: SKASA #1 UTAMA, ON-AIR, STANDBY, ENDED) -->
+    <!-- PANEL DAFTAR RUANGAN SIARAN -->
     <div class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
@@ -368,7 +368,7 @@
 
     function getDatabase() {
       if (window.db) return window.db;
-      if (typeof firebase !== 'undefined') {
+      if (typeof firebase !== 'undefined' && firebase.database) {
         if (!firebase.apps || !firebase.apps.length) {
           try {
             firebase.initializeApp({
@@ -409,7 +409,7 @@
     }
 
     // ==============================================================
-    // ROUTING AUDIO TERPUSAT (SPLIT AUDIO/VIDEO ARCHITECTURE)
+    // ROUTING AUDIO TERPUSAT
     // ==============================================================
     function applyAudioState() {
       const bumperIframe = document.getElementById('pgmBumperIframe');
@@ -417,20 +417,15 @@
       const activeSrc = liveState.programSource || 'cam_1';
 
       if (isAudioUnmuted) {
-        // 1. Audio Mic Presenter dari Meja Audio-VT (Selalu Unmute ke Penonton)
         if (studioMicAudio) studioMicAudio.muted = false;
-
-        // 2. Audio Bumper Ident
         sendCommandToIframe(bumperIframe, 'unMute');
         sendCommandToIframe(bumperIframe, 'setVolume', [100]);
 
-        // 3. Audio VT YouTube: HANYA BERBUNYI JIKA SUMBER PROGRAM ADALAH VT
         if (masterYtPlayer && typeof masterYtPlayer.unMute === 'function') {
           if (activeSrc === 'vt') {
             masterYtPlayer.unMute();
             masterYtPlayer.setVolume(100);
           } else {
-            // MUTE TOTAL YOUTUBE KETIKA PROGRAM BERALIH KE KAMERA / SHARESCREEN
             masterYtPlayer.mute();
           }
         }
@@ -450,24 +445,33 @@
       applyAudioState();
     }
 
+    // ==============================================================
+    // KALKULASI WAKTU LINIER MURNI
+    // ==============================================================
+    function getLinearServerTime(vt) {
+      if (!vt) return 0;
+      const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
+      if (vt.status !== 'playing') return offset;
+
+      const serverNow = Date.now() + serverClockOffset;
+      const baseStart = vt.startAt || vt.updatedAt || serverNow;
+      const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
+      return offset + elapsed;
+    }
+
     function calculateAbsoluteServerTime(vt) {
       if (!vt) return 0;
       const dur = (masterYtPlayer && typeof masterYtPlayer.getDuration === 'function' && masterYtPlayer.getDuration() > 0)
         ? masterYtPlayer.getDuration()
         : (vt.totalDuration || 0);
 
-      const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
+      const linearTime = getLinearServerTime(vt);
+      const activeLoop = vt.loopMode || 'playlist';
 
-      if (vt.status !== 'playing') {
-        return dur > 0 ? (offset % dur) : offset;
+      if (activeLoop === 'single' && dur > 0) {
+        return linearTime % dur;
       }
-
-      const serverNow = Date.now() + serverClockOffset;
-      const baseStart = vt.startAt || vt.updatedAt || serverNow;
-      const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
-      const target = offset + elapsed;
-
-      return (dur > 0) ? (target % dur) : target;
+      return dur > 0 ? Math.min(linearTime, dur) : linearTime;
     }
 
     function startWibLiveClock() {
@@ -537,7 +541,7 @@
     };
 
     // ==============================================================
-    // LOGIKA RENDER MONITOR UTAMA (PGM) - ANTI BLACK-SCREEN
+    // LOGIKA RENDER MONITOR UTAMA (PGM)
     // ==============================================================
     function updateMonitors() {
       const pgmViewport = document.getElementById('pgmViewport');
@@ -554,7 +558,6 @@
       const lblBroadcast = document.getElementById('lblBroadcastStatus');
       const lblActiveSrc = document.getElementById('lblActivePgmSource');
 
-      // KUNCI KHUSUS SKASA SELALU 'live' (ON AIR)
       const effectiveStatus = (currentRoomToken === 'SKASA') ? 'live' : (currentRoomMeta.status || 'standby');
 
       // 1. SESI SELESAI (OFF-AIR)
@@ -584,7 +587,7 @@
         return;
       }
 
-      // 2. GLADI BERSIH (STANDBY) -> BUMPER IDENT LOOP & KARTU GLADI
+      // 2. GLADI BERSIH (STANDBY)
       if (effectiveStatus !== 'live') {
         onAirBumperPlayedForCurrentSession = false;
 
@@ -621,7 +624,7 @@
         return;
       }
 
-      // 3. ON-AIR LIVE (MUTLAK UNTUK SKASA)
+      // 3. ON-AIR LIVE
       pgmViewport.style.borderColor = '#dc2626';
       navBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-950/70 text-orange-400 border border-orange-800";
       navDot.className = "w-2 h-2 rounded-full bg-orange-500 animate-pulse";
@@ -638,7 +641,7 @@
       const isVtActive = (activeSrc === 'vt' && vtVidId !== '');
       const isCamActive = (stream !== null);
 
-      // KASUS 3A: BELUM PERNAH MEMUTAR BUMPER 7 DETIK SAAT LIVE DIMULAI
+      // KASUS 3A: OPENING IDENT 7 DETIK PERTAMA KALI
       if (!onAirBumperPlayedForCurrentSession) {
         onAirBumperPlayedForCurrentSession = true;
         lblActiveSrc.innerText = "OPENING IDENT (7s)";
@@ -681,8 +684,8 @@
         return;
       }
 
-      // KASUS 3B: BUMPER OPENING SUDAH SELESAI
-      // 1. JIKA ADA KLIP VT ON-AIR
+      // KASUS 3B: SETELAH BUMPER OPENING SELESAI
+      // 1. UMPAN VT AKTIF
       if (isVtActive) {
         bumperWrap.style.opacity = '0';
         setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
@@ -698,13 +701,17 @@
         return;
       }
 
-      // 2. JIKA ADA UMPAN KAMERA WEBRTC AKTIF
+      // 2. UMPAN KAMERA / SHARESCREEN WEBRTC AKTIF
       if (isCamActive && pgmVideo) {
         bumperWrap.style.opacity = '0';
         setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
 
         if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
         if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+        
+        // Atur object-contain untuk presentasi sharescreen agar teks tidak terpotong
+        pgmVideo.style.objectFit = (activeSrc === 'sharescreen') ? 'contain' : 'cover';
+        
         pgmVideo.style.display = 'block';
         pgmVideo.style.opacity = '1';
         pgmVideo.play().catch(() => {});
@@ -713,7 +720,7 @@
         return;
       }
 
-      // 3. JIKA BELUM ADA KAMERA MAUPUN KLIP VT -> FALLBACK KE BUMPER IDENT PLAYOUT
+      // 3. JIKA BELUM ADA KAMERA / VT AKTIF -> BUMPER IDENT STANDBY
       if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
       if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
       
@@ -832,6 +839,9 @@
       if (roomRef) { roomRef.off(); roomRef = null; }
     }
 
+    // ==============================================================
+    // KONEKSI ROOM DENGAN RETRY POLLING OTOMATIS
+    // ==============================================================
     function connectChannel(token) {
       currentRoomToken = token.toUpperCase();
       document.getElementById('navRoomToken').innerText = currentRoomToken;
@@ -847,12 +857,13 @@
       detachChannelListeners();
 
       onAirBumperPlayedForCurrentSession = false;
-
-      // Panggil sinkronisasi monitor langsung agar PGM tidak menunggu
       updateMonitors();
 
       const activeDb = getDatabase();
-      if (!activeDb) return;
+      if (!activeDb) {
+        setTimeout(() => connectChannel(token), 300);
+        return;
+      }
 
       activeDb.ref('.info/serverTimeOffset').on('value', snap => {
         serverClockOffset = snap.val() || 0;
@@ -902,7 +913,6 @@
         updateMonitors();
       });
 
-      // KONEKSI WEBRTC PENERIMA (VIDEO KAMERA + MASTER MIC DARI MEJA AUDIO-VT)
       if (typeof SkawanStreamer !== 'undefined') {
         try {
           const viewerRole = `viewer_${Math.random().toString(36).substring(2, 7)}`;
@@ -920,7 +930,7 @@
                 return;
               }
 
-              const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+              const normKey = camKey.includes('_') ? camKey : (camKey === 'sharescreen' ? 'sharescreen' : camKey.replace('cam', 'cam_'));
               remoteCamStreams.set(normKey, stream);
               remoteCamStreams.set(camKey, stream);
               updateMonitors();
@@ -939,7 +949,63 @@
     }
 
     // ==============================================================
-    // DIREKTORI RUANGAN: INSTANT RENDER + ZERO-WAIT CACHE
+    // FALLBACK AUTO-NEXT ENGINE
+    // ==============================================================
+    let isIndexFallbackNextExecuting = false;
+    setInterval(() => {
+      if (isIndexFallbackNextExecuting) return;
+      if (liveState.programSource !== 'vt' || latestVtState.status !== 'playing') return;
+
+      const dur = latestVtState.totalDuration || 120;
+      const rawElapsed = getLinearServerTime(latestVtState);
+
+      if (dur > 0 && rawElapsed >= (dur + 1.5)) {
+        isIndexFallbackNextExecuting = true;
+        const activeDb = getDatabase();
+        if (!activeDb) return;
+
+        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).once('value', snap => {
+          if (!snap.exists()) {
+            isIndexFallbackNextExecuting = false;
+            return;
+          }
+          const list = Object.values(snap.val() || {});
+          const currentVidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+          const curIdx = list.findIndex(it => (it.youtubeId || extractCleanYtId(it.url)) === currentVidId);
+
+          const loop = latestVtState.loopMode || 'playlist';
+          if (loop === 'playlist' && list.length > 0) {
+            let nextIdx = curIdx + 1;
+            if (nextIdx >= list.length) nextIdx = 0;
+            const nextClip = list[nextIdx];
+
+            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
+              status: 'playing',
+              startAt: firebase.database.ServerValue.TIMESTAMP,
+              startOffset: 0,
+              totalDuration: nextClip.durationSec || 120,
+              title: nextClip.title || 'VT Playout',
+              sourceType: 'youtube',
+              youtubeId: nextClip.youtubeId || extractCleanYtId(nextClip.url),
+              url: nextClip.url || '',
+              loopMode: 'playlist',
+              clipId: nextClip.id || `vt_${Date.now()}`,
+              updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          } else if (loop === 'single') {
+            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).update({
+              startAt: firebase.database.ServerValue.TIMESTAMP,
+              startOffset: 0,
+              updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+          setTimeout(() => { isIndexFallbackNextExecuting = false; }, 3000);
+        });
+      }
+    }, 2000);
+
+    // ==============================================================
+    // DIREKTORI RUANGAN DENGAN RETRY POLLING
     // ==============================================================
     function renderChannelsGrid(roomsData = {}) {
       const grid = document.getElementById('channelRoomsGrid');
@@ -968,7 +1034,6 @@
         return (rObj.meta && rObj.meta.programName) || rObj.programName || `Studio ${token}`;
       }
 
-      // Prioritas urutan: SKASA No 1 (Utama) -> Live -> Standby -> Ended
       roomTokens.sort((a, b) => {
         if (a === 'SKASA') return -1;
         if (b === 'SKASA') return 1;
@@ -1045,7 +1110,6 @@
     }
 
     function listenChannelsDirectory() {
-      // 1. RENDER INSTAN DARI CACHE LOKAL
       let cachedRooms = {};
       try {
         const stored = localStorage.getItem('skawan_rooms_cache');
@@ -1053,74 +1117,20 @@
       } catch (e) {}
       renderChannelsGrid(cachedRooms);
 
-      // 2. SINKRONISASI DARI FIREBASE
       const activeDb = getDatabase();
-      if (!activeDb) return;
+      if (!activeDb) {
+        setTimeout(listenChannelsDirectory, 300);
+        return;
+      }
 
       activeDb.ref('rooms').on('value', snapshot => {
         const roomsData = (snapshot.exists() ? snapshot.val() : {}) || {};
-        try { localStorage.setItem('skawan_rooms_cache', JSON.stringify(roomsData)); } catch (e) {}
+        try { localStorage.setItem('skawan_rooms_cache', JSON.stringify(roomsData)); } catch(e) {}
         renderChannelsGrid(roomsData);
       }, error => {
         console.warn("Firebase rooms read notice:", error);
       });
     }
-
-    // ==============================================================
-    // FALLBACK AUTO-NEXT ENGINE (JIKA BROWSER OPERATOR DITUTUP)
-    // ==============================================================
-    let isIndexFallbackNextExecuting = false;
-    setInterval(() => {
-      if (isIndexFallbackNextExecuting) return;
-      if (liveState.programSource !== 'vt' || latestVtState.status !== 'playing') return;
-
-      const dur = latestVtState.totalDuration || 120;
-      const elapsed = calculateAbsoluteServerTime(latestVtState);
-
-      if (elapsed >= (dur + 2)) {
-        isIndexFallbackNextExecuting = true;
-        const activeDb = getDatabase();
-        if (!activeDb) return;
-
-        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).once('value', snap => {
-          if (!snap.exists()) {
-            isIndexFallbackNextExecuting = false;
-            return;
-          }
-          const list = Object.values(snap.val() || {});
-          const currentVidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-          const curIdx = list.findIndex(it => (it.youtubeId || extractCleanYtId(it.url)) === currentVidId);
-
-          const loop = latestVtState.loopMode || 'playlist';
-          if (loop === 'playlist' && list.length > 0) {
-            let nextIdx = curIdx + 1;
-            if (nextIdx >= list.length) nextIdx = 0;
-            const nextClip = list[nextIdx];
-
-            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
-              status: 'playing',
-              startAt: firebase.database.ServerValue.TIMESTAMP,
-              startOffset: 0,
-              totalDuration: nextClip.durationSec || 120,
-              title: nextClip.title || 'VT Playout',
-              sourceType: 'youtube',
-              youtubeId: nextClip.youtubeId || extractCleanYtId(nextClip.url),
-              url: nextClip.url || '',
-              loopMode: 'playlist',
-              clipId: nextClip.id || `vt_${Date.now()}`,
-              updatedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-          } else if (loop === 'single') {
-            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).update({
-              startAt: firebase.database.ServerValue.TIMESTAMP,
-              startOffset: 0,
-              updatedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-          }
-          setTimeout(() => { isIndexFallbackNextExecuting = false; }, 3000);
-        });
-      }
-    }, 2000);
 
     // ==============================================================
     // INISIALISASI
