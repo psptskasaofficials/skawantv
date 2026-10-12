@@ -167,6 +167,12 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Status Firebase Persistence Cloud Pill -->
+        <div id="firebaseSyncIndicator" class="hidden sm:flex items-center gap-1.5 bg-slate-900 border border-emerald-700/60 px-2.5 py-1 rounded-lg text-emerald-400 font-mono text-[10px] font-bold">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>FIREBASE SYNC: ON</span>
+        </div>
+
         <div class="hidden md:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-amber-400 font-mono font-bold text-xs" id="cgClockWib">
           00:00:00 WIB
         </div>
@@ -250,8 +256,8 @@
         </div>
 
         <div class="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-          <span>Target Siaran: <strong class="text-cyan-400 font-bold">Terhubung ke Layar PD</strong></span>
-          <span class="text-[10px] text-slate-500">* Periksa ejaan sebelum menekan TAKE</span>
+          <span>Staging: <strong class="text-cyan-400 font-bold">Sinkron ke Preview PD</strong></span>
+          <span class="text-[10px] text-slate-500">* Tersimpan otomatis di Firebase</span>
         </div>
       </div>
 
@@ -270,7 +276,7 @@
             </div>
           </div>
 
-          <!-- Viewport PGM (Struktur Persis Sama Seperti index.html) -->
+          <!-- Viewport PGM (Kembaran Identik index.html) -->
           <div id="pgmViewport" class="aspect-video bg-black rounded-xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl flex items-center justify-center select-none">
 
             <!-- 1. Layer Bumper Playout -->
@@ -326,7 +332,7 @@
                 <img
                   id="cgBugLogoDefaultImg"
                   src="assets/img/logo-skawan-icon.webp"
-                  alt="SKAWAN TV Monogram"
+                  alt="SKAWAN TV"
                   class="h-6 sm:h-7 w-auto object-contain drop-shadow-sm"
                   onerror="handleBugLogoFallback(this)"
                 >
@@ -337,7 +343,7 @@
               </div>
             </div>
 
-            <!-- 6. CG Lower Third Live (Persis Seperti index.html) -->
+            <!-- 6. CG Lower Third Live (Identik dengan index.html) -->
             <div id="cgLowerThirdBox" class="hidden absolute bottom-10 left-3 right-3 sm:left-6 sm:right-6 z-30 transition-all duration-300">
               <div id="cgLtTitle" class="bg-gradient-to-r from-orange-600 to-red-600 text-white font-brand font-black text-[11px] sm:text-xs px-3.5 py-1.5 rounded-t-xl shadow-lg inline-block tracking-wide">
                 NAMA PRESENTER
@@ -358,7 +364,7 @@
               </div>
             </div>
 
-            <!-- 8. Kotak Merah "LIVE" On-Air di Pojok Kiri Atas (Identik dengan index.html) -->
+            <!-- 8. Kotak Merah "LIVE" On-Air di Pojok Kiri Atas -->
             <div id="badgeLiveOnAir" class="hidden absolute top-2.5 sm:top-3 left-2.5 sm:left-3 z-30 bg-red-600 text-white font-brand font-black text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1.5 shadow-lg animate-pulse">
               <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
               <span>LIVE</span>
@@ -387,7 +393,7 @@
             <h3 class="font-brand font-black text-xs sm:text-sm uppercase tracking-wider text-white">Lower Third Preset &amp; Live Staging</h3>
           </div>
           <button onclick="bukaModalTambahPreset()" class="cg-btn text-[10px] font-bold bg-cyan-600 hover:bg-cyan-500 text-black px-2.5 py-1 rounded-lg">
-            + Tambah Preset
+            + Tambah Preset ke Firebase
           </button>
         </div>
 
@@ -420,7 +426,7 @@
             <div class="flex items-center gap-2">
               <button onclick="eksekusiKirimKeCue()" class="cg-btn px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-600/40 text-xs font-bold flex items-center gap-1">
                 <span>👁️</span>
-                <span>CUE</span>
+                <span>CUE (Ke PD)</span>
               </button>
               <button onclick="eksekusiTakeOnAir()" class="cg-btn px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-brand font-black text-xs shadow-lg shadow-red-600/40 flex items-center gap-1.5">
                 <span>⚡</span>
@@ -434,9 +440,12 @@
           </div>
         </div>
 
-        <!-- Daftar Preset Siap Pakai -->
+        <!-- Daftar Preset Siap Pakai yang Tersinkron Firebase -->
         <div class="space-y-1.5">
-          <span class="text-[10px] font-mono text-slate-400 font-bold uppercase block">DAFTAR PRESET LOWER THIRD:</span>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono text-slate-400 font-bold uppercase block">DAFTAR PRESET LOWER THIRD (FIREBASE CLOUD):</span>
+            <span class="text-[9px] font-mono text-slate-500" id="lblPresetCount">0 Preset</span>
+          </div>
           <div class="space-y-1.5 max-h-[220px] overflow-y-auto pr-1" id="presetListContainer"></div>
         </div>
       </div>
@@ -508,7 +517,7 @@
   <div id="modalTambahPreset" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 space-y-4 text-white">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <h3 class="font-brand font-black text-sm uppercase text-white">Tambah Preset Lower Third Baru</h3>
+        <h3 class="font-brand font-black text-sm uppercase text-white">Tambah Preset Lower Third (Cloud Firebase)</h3>
         <button onclick="tutupModalTambahPreset()" class="text-slate-400 hover:text-white">✕</button>
       </div>
 
@@ -525,7 +534,7 @@
 
       <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
         <button onclick="tutupModalTambahPreset()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Batal</button>
-        <button onclick="eksekusiModalTambahPreset()" class="cg-btn bg-cyan-600 hover:bg-cyan-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">Simpan Preset</button>
+        <button onclick="eksekusiModalTambahPreset()" class="cg-btn bg-cyan-600 hover:bg-cyan-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">Simpan ke Firebase</button>
       </div>
     </div>
   </div>
@@ -534,7 +543,7 @@
     SKAWAN TV &bull; Character Generator Console &copy; 2026 SMK Negeri 1 Pacitan
   </footer>
 
-  <!-- SCRIPT LOGIKA CHARACTER GENERATOR -->
+  <!-- SCRIPT LOGIKA CHARACTER GENERATOR DENGAN PERSISTENSI FIREBASE PENUH -->
   <script>
     let currentRoomToken = 'SKASA';
     let streamerInstance = null;
@@ -586,6 +595,7 @@
       tickerText: 'Selamat Datang di Siaran Simulasi Studio TV Edukasi Digital SMK Negeri 1 Pacitan \u2022 SKAWAN TV'
     };
 
+    // Default Fallback Preset jika Firebase masih kosong
     let cgPresets = [
       { id: 'p1', title: 'Drs. Eko Prasetyo, M.T.', subtitle: 'Kepala Sekolah SMK Negeri 1 Pacitan' },
       { id: 'p2', title: 'Siti Aminah, S.Sn.', subtitle: 'Kepala Program Keahlian Broadcast & Film' },
@@ -605,9 +615,7 @@
       return match ? match[1] : '';
     }
 
-    // ========================================================
     // KALKULASI WAKTU LINIER MURNI (SINKRON DENGAN INDEX.HTML)
-    // ========================================================
     function getLinearServerTime(vt) {
       if (!vt) return 0;
       const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
@@ -634,7 +642,7 @@
       return dur > 0 ? Math.min(linearTime, dur) : linearTime;
     }
 
-    // YOUTUBE API RESMI INITIALIZATION (PERSIS SEPERTI INDEX.HTML)
+    // YOUTUBE API RESMI INITIALIZATION
     function initMasterYtPlayer(initialYtId, initialTime) {
       if (typeof YT === 'undefined' || !YT.Player) return;
       if (masterYtPlayer && isMasterYtReady) return;
@@ -690,7 +698,7 @@
       document.getElementById('navRoomToken').innerText = currentRoomToken;
 
       try {
-        const storedPresets = localStorage.getItem('skawan_cg_presets');
+        const storedPresets = localStorage.getItem(`skawan_cg_presets_${currentRoomToken}`);
         if (storedPresets) cgPresets = JSON.parse(storedPresets);
       } catch (e) {}
 
@@ -700,6 +708,9 @@
       updateLiveCueStaging();
     });
 
+    // ==============================================================
+    // SINKRONISASI REAL-TIME & PERSISTENSI FIREBASE
+    // ==============================================================
     function initCgSystem(token) {
       const activeDb = getDatabase();
       if (!activeDb) {
@@ -711,7 +722,21 @@
         serverClockOffset = snap.val() || 0;
       });
 
-      // SINKRONISASI REAL-TIME DARI FIREBASE
+      // 1. SINKRONISASI DAFTAR PRESET DARI FIREBASE (cg_presets)
+      activeDb.ref(`rooms/${token}/cg_presets`).on('value', snap => {
+        if (snap.exists()) {
+          const data = snap.val();
+          cgPresets = Array.isArray(data) ? data : Object.values(data);
+          cgPresets = cgPresets.filter(p => p && typeof p === 'object');
+        } else {
+          // Inisialisasi awal ke Firebase jika masih kosong
+          activeDb.ref(`rooms/${token}/cg_presets`).set(cgPresets);
+        }
+        localStorage.setItem(`skawan_cg_presets_${token}`, JSON.stringify(cgPresets));
+        renderPresetUI();
+      });
+
+      // 2. SINKRONISASI STATUS RUANGAN & CG STATE (cg_state)
       activeDb.ref(`rooms/${token}`).on('value', snapshot => {
         if (!snapshot.exists()) {
           currentRoomMeta = { status: (token === 'SKASA' ? 'live' : 'ended') };
@@ -739,6 +764,27 @@
 
         if (roomData.cg_state) {
           cgState = { ...cgState, ...roomData.cg_state };
+
+          // Isi nilai form jika operator tidak sedang mengetik aktif
+          const titleInput = document.getElementById('inputCgTitle');
+          const subInput = document.getElementById('inputCgSubtitle');
+          const tickerInput = document.getElementById('inputTickerText');
+          const logoInput = document.getElementById('inputCustomLogoUrl');
+
+          if (titleInput && document.activeElement !== titleInput && cgState.cueTitle) {
+            titleInput.value = cgState.cueTitle;
+          }
+          if (subInput && document.activeElement !== subInput && cgState.cueSubtitle) {
+            subInput.value = cgState.cueSubtitle;
+          }
+          if (tickerInput && document.activeElement !== tickerInput && cgState.tickerText) {
+            tickerInput.value = cgState.tickerText;
+          }
+          if (logoInput && document.activeElement !== logoInput && cgState.logoUrl !== undefined) {
+            logoInput.value = cgState.logoUrl;
+          }
+
+          updateLiveCueStaging();
           applyCgToLiveDisplay();
         }
 
@@ -749,7 +795,7 @@
         updatePgmReturnMonitor();
       });
 
-      // WEBRTC RECEIVER FEED KAMERA
+      // 3. WEBRTC RECEIVER FEED KAMERA
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -772,9 +818,6 @@
       return null;
     }
 
-    // ==============================================================
-    // SINKRONISASI VT PLAYOUT IDENTIK DENGAN INDEX.HTML
-    // ==============================================================
     function syncVtDisplay() {
       const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
       if (!vidId) return;
@@ -816,9 +859,7 @@
       }
     }
 
-    // ==============================================================
-    // LOGIKA RENDER MONITOR UTAMA (PGM) - PERSIS SAMA DENGAN INDEX.HTML
-    // ==============================================================
+    // UPDATE MONITOR PGM LIVE RETURN
     function updatePgmReturnMonitor() {
       const pgmViewport = document.getElementById('pgmViewport');
       const bumperWrap = document.getElementById('pgmBumperWrapper');
@@ -830,24 +871,6 @@
 
       const effectiveStatus = (currentRoomToken === 'SKASA') ? 'live' : (currentRoomMeta.status || 'standby');
 
-      // 1. SESI SELESAI (OFF-AIR)
-      if (effectiveStatus === 'ended') {
-        pgmViewport.style.borderColor = '#334155';
-        if (lblSrc) lblSrc.innerText = "OFF-AIR";
-
-        standbyOverlay.style.display = 'flex';
-        document.getElementById('standbyOverlayToken').innerText = currentRoomToken;
-        document.getElementById('standbyOverlayProgram').innerText = currentRoomMeta.programName || "Program Berakhir";
-
-        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; pgmVideo.pause(); }
-        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
-        if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
-        if (bumperIframe) bumperIframe.src = 'about:blank';
-        if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
-        return;
-      }
-
-      // 2. GLADI BERSIH (STANDBY) -> BUMPER IDENT LOOP & KARTU GLADI
       if (effectiveStatus !== 'live') {
         pgmViewport.style.borderColor = '#d97706';
         if (lblSrc) lblSrc.innerText = "STANDBY GLADI";
@@ -858,25 +881,21 @@
 
         bumperWrap.style.display = 'flex';
         bumperWrap.style.opacity = '1';
-        document.getElementById('bumperTagOverlay').classList.add('hidden');
-        document.getElementById('bumperProgressBarContainer').classList.add('hidden');
 
-        const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0`;
+        const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+        const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0${originParam}`;
         if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
           bumperIframe.src = desiredBumperSrc;
         }
 
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
         if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
-        if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
         return;
       }
 
-      // 3. ON-AIR LIVE (MUTLAK UNTUK SKASA)
       pgmViewport.style.borderColor = '#dc2626';
       standbyOverlay.style.display = 'none';
 
-      // Penanganan Blackout mode off
       if (latestVtState.status === 'ended' && liveState.programSource === 'vt') {
         if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
@@ -888,54 +907,41 @@
 
       const activeSrc = liveState.programSource || 'cam_1';
       const stream = getCameraStream(activeSrc);
-      const vtVidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-      const isVtActive = (activeSrc === 'vt' && vtVidId !== '');
-      const isCamActive = (stream !== null);
+      const isVt = (activeSrc === 'vt');
 
-      // KASUS 3A: JIKA ADA KLIP VT ON-AIR
-      if (isVtActive) {
-        bumperWrap.style.opacity = '0';
-        setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
+      if (lblSrc) lblSrc.innerText = activeSrc.toUpperCase().replace('_', ' ');
 
+      if (isVt) {
+        if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
         if (pgmVtWrap) {
           pgmVtWrap.style.display = 'flex';
           pgmVtWrap.style.opacity = '1';
         }
-        if (lblSrc) lblSrc.innerText = "VT PLAYOUT (ON-AIR)";
         syncVtDisplay();
         return;
       }
 
-      // KASUS 3B: JIKA ADA UMPAN KAMERA WEBRTC AKTIF
-      if (isCamActive && pgmVideo) {
-        bumperWrap.style.opacity = '0';
-        setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
+      if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
 
-        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+      if (stream && pgmVideo) {
+        if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
         if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
         pgmVideo.style.display = 'block';
         pgmVideo.style.opacity = '1';
         pgmVideo.play().catch(() => {});
-        if (lblSrc) lblSrc.innerText = activeSrc.toUpperCase().replace('_', ' ');
-        return;
+      } else {
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+        if (bumperWrap) {
+          bumperWrap.style.display = 'flex';
+          bumperWrap.style.opacity = '1';
+          const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+          const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0${originParam}`;
+          if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
+            bumperIframe.src = desiredBumperSrc;
+          }
+        }
       }
-
-      // KASUS 3C: JIKA KAMERA & VT BELUM AKTIF -> JANGAN BIARKAN HITAM, FALLBACK KE BUMPER IDENT!
-      if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
-      if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
-
-      bumperWrap.style.display = 'flex';
-      bumperWrap.style.opacity = '1';
-      document.getElementById('bumperTagOverlay').classList.add('hidden');
-      document.getElementById('bumperProgressBarContainer').classList.add('hidden');
-
-      const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0`;
-      if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
-        bumperIframe.src = desiredBumperSrc;
-      }
-
-      if (lblSrc) lblSrc.innerText = "BUMPER IDENT (STANDBY)";
     }
 
     function paksaSinkronKeIndex() {
@@ -957,7 +963,7 @@
     }
 
     // ========================================================
-    // LOGIKA STAGING CUE PREVIEW & ON-AIR LIVE GRAPHICS
+    // LOGIKA STAGING CUE PREVIEW & EKSEKUSI KE FIREBASE
     // ========================================================
     function updateLiveCueStaging() {
       const title = document.getElementById('inputCgTitle').value.trim() || 'NAMA NARASUMBER';
@@ -969,6 +975,7 @@
       document.getElementById('previewCueTickerText').innerText = ticker;
     }
 
+    // SIMPAN STAGING CUE KE FIREBASE (TERHUBUNG KE MONITOR PD)
     function eksekusiKirimKeCue() {
       const title = document.getElementById('inputCgTitle').value.trim() || 'NAMA NARASUMBER';
       const subtitle = document.getElementById('inputCgSubtitle').value.trim() || 'Keterangan';
@@ -992,6 +999,7 @@
       }, 1500);
     }
 
+    // SIMPAN TAKE ON-AIR KE FIREBASE (MENGUDARA KE SELURUH PENONTON)
     function eksekusiTakeOnAir() {
       const title = document.getElementById('inputCgTitle').value.trim() || 'NAMA NARASUMBER';
       const subtitle = document.getElementById('inputCgSubtitle').value.trim() || 'Keterangan';
@@ -1017,6 +1025,7 @@
       }
     }
 
+    // HAPUS GRAFIS ON-AIR DI FIREBASE
     function eksekusiClearLowerThird() {
       if (autoHideTimerId) clearTimeout(autoHideTimerId);
       const activeDb = getDatabase();
@@ -1028,7 +1037,7 @@
       }
     }
 
-    // APLIKASIKAN STATUS GRAFIS ON-AIR PERSIS SEPERTI INDEX.HTML
+    // APLIKASIKAN DATA CG KE LAYAR PGM
     function applyCgToLiveDisplay() {
       // 1. Lower Third PGM Live
       const ltBox = document.getElementById('cgLowerThirdBox');
@@ -1093,12 +1102,22 @@
     }
 
     // ========================================================
-    // PRESET MANAGEMENT LOGIKA
+    // PRESET MANAGEMENT KE FIREBASE CLOUD (cg_presets)
     // ========================================================
     function renderPresetUI() {
       const container = document.getElementById('presetListContainer');
       if (!container) return;
       container.innerHTML = '';
+      document.getElementById('lblPresetCount').innerText = `${cgPresets.length} Preset`;
+
+      if (cgPresets.length === 0) {
+        container.innerHTML = `
+          <div class="p-3 text-center text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
+            Belum ada preset. Tambahkan preset baru di atas.
+          </div>
+        `;
+        return;
+      }
 
       cgPresets.forEach((p, idx) => {
         const item = document.createElement('div');
@@ -1115,7 +1134,7 @@
             <button onclick="langsungTakePreset('${p.title.replace(/'/g, "\\'")}', '${p.subtitle.replace(/'/g, "\\'")}')" class="cg-btn px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-brand font-bold text-[10px] shadow">
               TAKE
             </button>
-            <button onclick="hapusPreset(${idx})" class="cg-btn w-6 h-6 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-[10px]">
+            <button onclick="hapusPreset(${idx})" class="cg-btn w-6 h-6 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-[10px]" title="Hapus preset dari Firebase">
               ✕
             </button>
           </div>
@@ -1144,23 +1163,42 @@
     function tutupModalTambahPreset() {
       document.getElementById('modalTambahPreset').classList.add('hidden');
     }
+
+    // TAMBAH PRESET KE FIREBASE REALTIME DATABASE
     function eksekusiModalTambahPreset() {
       const t = document.getElementById('modalInputPresetTitle').value.trim() || 'Narasumber Baru';
       const s = document.getElementById('modalInputPresetSubtitle').value.trim() || 'Keterangan';
 
-      cgPresets.push({ id: `p_${Date.now()}`, title: t, subtitle: s });
-      localStorage.setItem('skawan_cg_presets', JSON.stringify(cgPresets));
+      const newPreset = { id: `p_${Date.now()}`, title: t, subtitle: s };
+      cgPresets.push(newPreset);
       renderPresetUI();
+
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/cg_presets`).set(cgPresets);
+      }
+      localStorage.setItem(`skawan_cg_presets_${currentRoomToken}`, JSON.stringify(cgPresets));
+
+      document.getElementById('modalInputPresetTitle').value = '';
+      document.getElementById('modalInputPresetSubtitle').value = '';
       tutupModalTambahPreset();
     }
+
+    // HAPUS PRESET DARI FIREBASE
     function hapusPreset(idx) {
+      if (!confirm("Hapus preset ini dari Firebase?")) return;
       cgPresets.splice(idx, 1);
-      localStorage.setItem('skawan_cg_presets', JSON.stringify(cgPresets));
       renderPresetUI();
+
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/cg_presets`).set(cgPresets);
+      }
+      localStorage.setItem(`skawan_cg_presets_${currentRoomToken}`, JSON.stringify(cgPresets));
     }
 
     // ========================================================
-    // PENGATURAN TICKER, LOGO, & BADGE
+    // PENGATURAN TICKER, LOGO, & BADGE KE FIREBASE
     // ========================================================
     function toggleTickerActive() {
       const next = !cgState.tickerActive;
@@ -1187,6 +1225,7 @@
       if (num === 1) input.value = "Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan \u2022 SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast";
       else input.value = "WARTA SKASA \u2022 Menampilkan Kreativitas & Kompetensi Keahlian Siswa Penyiaran dan Perfilman SMKN 1 Pacitan";
       updateLiveCueStaging();
+      simpanTickerKeFirebase();
     }
 
     function toggleLogoActive() {
