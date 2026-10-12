@@ -64,7 +64,7 @@
           try { firebase.initializeApp(config); } catch (e) {}
         }
         if (!window.db && firebase.database) {
-          try { window.db = firebase.database(); } catch(e) {}
+          try { window.db = firebase.database(); } catch (e) {}
         }
       }
     })();
@@ -216,7 +216,7 @@
       <!-- 3. FEED KAMERA / SCREEN WEBRTC (MUTED PERMANEN, SUARA MURNI DARI AUDIO-VT) -->
       <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-      <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API NOCOOKIE - TANPA LOOP=1 INTERNAL) -->
+      <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API NOCPOKIE) -->
       <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
         <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
         <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
@@ -450,34 +450,24 @@
       applyAudioState();
     }
 
-    // ==============================================================
-    // KALKULASI WAKTU LINIER MURNI (TANPA MODULO PREMATUR)
-    // ==============================================================
-    function getLinearServerTime(vt) {
-      if (!vt) return 0;
-      const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
-      if (vt.status !== 'playing') return offset;
-
-      const serverNow = Date.now() + serverClockOffset;
-      const baseStart = vt.startAt || vt.updatedAt || serverNow;
-      const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
-      return offset + elapsed;
-    }
-
     function calculateAbsoluteServerTime(vt) {
       if (!vt) return 0;
       const dur = (masterYtPlayer && typeof masterYtPlayer.getDuration === 'function' && masterYtPlayer.getDuration() > 0)
         ? masterYtPlayer.getDuration()
         : (vt.totalDuration || 0);
 
-      const linearTime = getLinearServerTime(vt);
-      const activeLoop = vt.loopMode || 'playlist';
+      const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
 
-      // Modulo HANYA aktif jika kru secara eksplisit menyetel mode single loop
-      if (activeLoop === 'single' && dur > 0) {
-        return linearTime % dur;
+      if (vt.status !== 'playing') {
+        return dur > 0 ? (offset % dur) : offset;
       }
-      return dur > 0 ? Math.min(linearTime, dur) : linearTime;
+
+      const serverNow = Date.now() + serverClockOffset;
+      const baseStart = vt.startAt || vt.updatedAt || serverNow;
+      const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
+      const target = offset + elapsed;
+
+      return (dur > 0) ? (target % dur) : target;
     }
 
     function startWibLiveClock() {
@@ -619,4 +609,538 @@
         document.getElementById('bumperTagOverlay').classList.add('hidden');
         document.getElementById('bumperProgressBarContainer').classList.add('hidden');
 
-        const desiredBumperSrc = `
+        const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0`;
+        if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
+          bumperIframe.src = desiredBumperSrc;
+        }
+
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+        if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
+        applyAudioState();
+        return;
+      }
+
+      // 3. ON-AIR LIVE (MUTLAK UNTUK SKASA)
+      pgmViewport.style.borderColor = '#dc2626';
+      navBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-950/70 text-orange-400 border border-orange-800";
+      navDot.className = "w-2 h-2 rounded-full bg-orange-500 animate-pulse";
+      navStatusText.innerText = (currentRoomToken === 'SKASA') ? "SKASA LIVE ON-AIR" : `${currentRoomToken} LIVE ON-AIR`;
+      footerDot.className = "w-2 h-2 rounded-full bg-red-600 animate-ping";
+      lblBroadcast.innerText = "ON-AIR (LIVE)";
+      lblBroadcast.className = "text-red-500 font-bold uppercase animate-pulse";
+
+      standbyOverlay.style.display = 'none';
+
+      const activeSrc = liveState.programSource || 'cam_1';
+      const stream = getCameraStream(activeSrc);
+      const vtVidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      const isVtActive = (activeSrc === 'vt' && vtVidId !== '');
+      const isCamActive = (stream !== null);
+
+      // KASUS 3A: BELUM PERNAH MEMUTAR BUMPER 7 DETIK SAAT LIVE DIMULAI
+      if (!onAirBumperPlayedForCurrentSession) {
+        onAirBumperPlayedForCurrentSession = true;
+        lblActiveSrc.innerText = "OPENING IDENT (7s)";
+
+        bumperWrap.style.display = 'flex';
+        bumperWrap.style.opacity = '1';
+
+        const tagOverlay = document.getElementById('bumperTagOverlay');
+        const pbContainer = document.getElementById('bumperProgressBarContainer');
+        const pBar = document.getElementById('bumperProgressBar');
+        const cdLbl = document.getElementById('lblBumperCountdown');
+
+        if (tagOverlay) tagOverlay.classList.remove('hidden');
+        if (pbContainer) pbContainer.classList.remove('hidden');
+
+        bumperIframe.src = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0`;
+
+        const startTime = Date.now();
+        if (bumperProgressInterval) clearInterval(bumperProgressInterval);
+        bumperProgressInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const pct = Math.min(100, (elapsed / ON_AIR_BUMPER_DURATION_MS) * 100);
+          if (pBar) pBar.style.width = `${pct}%`;
+          if (cdLbl) cdLbl.innerText = `${Math.max(0, Math.ceil((ON_AIR_BUMPER_DURATION_MS - elapsed) / 1000))}s`;
+
+          if (elapsed >= ON_AIR_BUMPER_DURATION_MS) {
+            clearInterval(bumperProgressInterval);
+            bumperProgressInterval = null;
+          }
+        }, 80);
+
+        if (bumperCountdownTimer) clearTimeout(bumperCountdownTimer);
+        bumperCountdownTimer = setTimeout(() => {
+          if (tagOverlay) tagOverlay.classList.add('hidden');
+          if (pbContainer) pbContainer.classList.add('hidden');
+          updateMonitors();
+        }, ON_AIR_BUMPER_DURATION_MS);
+
+        applyAudioState();
+        return;
+      }
+
+      // KASUS 3B: BUMPER OPENING SUDAH SELESAI
+      // 1. JIKA ADA KLIP VT ON-AIR
+      if (isVtActive) {
+        bumperWrap.style.opacity = '0';
+        setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
+
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+        if (pgmVtWrap) {
+          pgmVtWrap.style.display = 'flex';
+          pgmVtWrap.style.opacity = '1';
+        }
+        lblActiveSrc.innerText = "VT PLAYOUT (ON-AIR)";
+        syncVtDisplay();
+        applyAudioState();
+        return;
+      }
+
+      // 2. JIKA ADA UMPAN KAMERA WEBRTC AKTIF
+      if (isCamActive && pgmVideo) {
+        bumperWrap.style.opacity = '0';
+        setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
+
+        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+        if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+        pgmVideo.style.display = 'block';
+        pgmVideo.style.opacity = '1';
+        pgmVideo.play().catch(() => {});
+        lblActiveSrc.innerText = activeSrc.toUpperCase().replace('_', ' ');
+        applyAudioState();
+        return;
+      }
+
+      // 3. JIKA BELUM ADA KAMERA MAUPUN KLIP VT -> FALLBACK KE BUMPER IDENT PLAYOUT
+      if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+      if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+      
+      bumperWrap.style.display = 'flex';
+      bumperWrap.style.opacity = '1';
+      document.getElementById('bumperTagOverlay').classList.add('hidden');
+      document.getElementById('bumperProgressBarContainer').classList.add('hidden');
+
+      const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0`;
+      if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
+        bumperIframe.src = desiredBumperSrc;
+      }
+
+      lblActiveSrc.innerText = "BUMPER IDENT (STANDBY)";
+      applyAudioState();
+    }
+
+    function getCameraStream(key) {
+      if (!key) return null;
+      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
+      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
+      return null;
+    }
+
+    function syncVtDisplay() {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      if (!vidId) return;
+
+      const isPlaying = latestVtState.status === 'playing';
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+
+      if (!isMasterYtReady || !masterYtPlayer) {
+        initMasterYtPlayer(vidId, targetTime);
+        return;
+      }
+
+      if (currentActiveYtId !== vidId) {
+        currentActiveYtId = vidId;
+        const shield = document.getElementById('pgmBlackShield');
+        if (shield) shield.classList.remove('opacity-0');
+
+        masterYtPlayer.loadVideoById({
+          videoId: vidId,
+          startSeconds: Math.floor(targetTime)
+        });
+
+        if (isPlaying) masterYtPlayer.playVideo();
+        else masterYtPlayer.pauseVideo();
+        applyAudioState();
+        return;
+      }
+
+      const curState = masterYtPlayer.getPlayerState();
+      if (isPlaying && curState !== YT.PlayerState.PLAYING) {
+        masterYtPlayer.playVideo();
+      } else if (!isPlaying && curState !== YT.PlayerState.PAUSED) {
+        masterYtPlayer.pauseVideo();
+      }
+
+      const actualSec = (typeof masterYtPlayer.getCurrentTime === 'function') ? masterYtPlayer.getCurrentTime() : 0;
+      if (Math.abs(actualSec - targetTime) > 4.0) {
+        masterYtPlayer.seekTo(targetTime, true);
+        if (isPlaying) masterYtPlayer.playVideo();
+      }
+    }
+
+    function applyCgGraphics(cg) {
+      if (!cg) return;
+      cachedCgState = cg;
+
+      const ltBox = document.getElementById('cgLowerThirdBox');
+      const ltTitle = document.getElementById('cgLtTitle');
+      const ltSub = document.getElementById('cgLtSubtitleText');
+      const logoBox = document.getElementById('cgBugLogo');
+      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
+      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
+      const tickerBox = document.getElementById('cgTickerBar');
+      const tickerText = document.getElementById('cgTickerText');
+      const badgeLive = document.getElementById('badgeLiveOnAir');
+
+      if (cg.lowerThirdActive) {
+        if (ltBox) ltBox.classList.remove('hidden');
+        if (ltTitle) ltTitle.innerText = cg.title || 'NAMA PRESENTER';
+        if (ltSub) ltSub.innerText = cg.subtitle || 'Keterangan Jabatan';
+      } else if (ltBox) ltBox.classList.add('hidden');
+
+      if (cg.logoActive === false) {
+        if (logoBox) logoBox.classList.add('hidden');
+      } else {
+        if (logoBox) logoBox.classList.remove('hidden');
+        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
+          if (logoCustomImg) { logoCustomImg.src = cg.logoUrl; logoCustomImg.classList.remove('hidden'); }
+          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+        } else {
+          if (logoCustomImg) logoCustomImg.classList.add('hidden');
+          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+        }
+      }
+
+      if (cg.tickerActive) {
+        if (tickerBox) tickerBox.classList.remove('hidden');
+        if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live Broadcast';
+      } else if (tickerBox) tickerBox.classList.add('hidden');
+
+      if (badgeLive) {
+        const isLiveNow = (currentRoomToken === 'SKASA') || (currentRoomMeta.status === 'live');
+        if (cg.isLiveBadgeActive && isLiveNow) badgeLive.classList.remove('hidden');
+        else badgeLive.classList.add('hidden');
+      }
+    }
+
+    let roomRef = null;
+
+    function detachChannelListeners() {
+      if (roomRef) { roomRef.off(); roomRef = null; }
+    }
+
+    function connectChannel(token) {
+      currentRoomToken = token.toUpperCase();
+      document.getElementById('navRoomToken').innerText = currentRoomToken;
+
+      const btnKru = document.getElementById('btnMasukKruNav');
+      if (btnKru) btnKru.href = `login.html?room=${currentRoomToken}`;
+
+      if (streamerInstance) {
+        try { streamerInstance.destroy(); } catch (e) {}
+        streamerInstance = null;
+      }
+      remoteCamStreams.clear();
+      detachChannelListeners();
+
+      onAirBumperPlayedForCurrentSession = false;
+
+      // Panggil sinkronisasi monitor langsung agar PGM tidak menunggu
+      updateMonitors();
+
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref('.info/serverTimeOffset').on('value', snap => {
+        serverClockOffset = snap.val() || 0;
+      });
+
+      roomRef = activeDb.ref(`rooms/${currentRoomToken}`);
+      roomRef.on('value', snapshot => {
+        if (!snapshot.exists()) {
+          if (currentRoomToken === 'SKASA') {
+            currentRoomMeta = { status: 'live', programName: 'SKASA TV Live Broadcast' };
+            updateMonitors();
+          } else {
+            currentRoomMeta = { status: 'ended', programName: 'Ruangan Tidak Ditemukan' };
+            updateMonitors();
+          }
+          return;
+        }
+
+        const roomData = snapshot.val() || {};
+        const meta = roomData.meta || roomData;
+
+        if (currentRoomToken === 'SKASA') {
+          currentRoomMeta = {
+            ...meta,
+            status: 'live',
+            programName: meta.programName || "SKASA TV Live Broadcast"
+          };
+        } else {
+          currentRoomMeta = {
+            ...meta,
+            status: meta.status || 'standby',
+            programName: meta.programName || `Studio ${currentRoomToken}`
+          };
+        }
+
+        if (roomData.live_state) {
+          liveState.programSource = roomData.live_state.programSource || liveState.programSource;
+          liveState.previewSource = roomData.live_state.previewSource || liveState.previewSource;
+        }
+        if (roomData.vt_state) {
+          latestVtState = { ...latestVtState, ...roomData.vt_state };
+        }
+        if (roomData.cg_state) {
+          applyCgGraphics(roomData.cg_state);
+        }
+
+        updateMonitors();
+      });
+
+      // KONEKSI WEBRTC PENERIMA (VIDEO KAMERA + MASTER MIC DARI MEJA AUDIO-VT)
+      if (typeof SkawanStreamer !== 'undefined') {
+        try {
+          const viewerRole = `viewer_${Math.random().toString(36).substring(2, 7)}`;
+          streamerInstance = new SkawanStreamer({
+            roomToken: currentRoomToken,
+            roleKey: viewerRole,
+            onRemoteStream: (camKey, stream) => {
+              if (camKey === 'audio_master' || camKey === 'audio_pgm') {
+                const masterAudioEl = document.getElementById('masterStudioAudio');
+                if (masterAudioEl && masterAudioEl.srcObject !== stream) {
+                  masterAudioEl.srcObject = stream;
+                  masterAudioEl.play().catch(() => {});
+                  applyAudioState();
+                }
+                return;
+              }
+
+              const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+              remoteCamStreams.set(normKey, stream);
+              remoteCamStreams.set(camKey, stream);
+              updateMonitors();
+            }
+          });
+        } catch (e) {
+          console.warn("WebRTC Streamer init notice:", e);
+        }
+      }
+    }
+
+    function toggleFullscreen() {
+      const el = document.getElementById('pgmViewport');
+      if (!document.fullscreenElement) el.requestFullscreen().catch(() => {});
+      else document.exitFullscreen().catch(() => {});
+    }
+
+    // ==============================================================
+    // DIREKTORI RUANGAN: INSTANT RENDER + ZERO-WAIT CACHE
+    // ==============================================================
+    function renderChannelsGrid(roomsData = {}) {
+      const grid = document.getElementById('channelRoomsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      let roomTokens = Object.keys(roomsData).filter(t => t && typeof roomsData[t] === 'object');
+      if (!roomTokens.includes('SKASA')) {
+        roomTokens.unshift('SKASA');
+      }
+
+      function getRoomStatus(token) {
+        if (token === 'SKASA') return 'live';
+        const rObj = roomsData[token];
+        if (!rObj) return 'standby';
+        return (rObj.meta && rObj.meta.status) || rObj.status || 'standby';
+      }
+
+      function getRoomProgramName(token) {
+        if (token === 'SKASA') {
+          const rObj = roomsData['SKASA'];
+          return (rObj && rObj.meta && rObj.meta.programName) || rObj?.programName || "SKASA TV Live Broadcast";
+        }
+        const rObj = roomsData[token];
+        if (!rObj) return "Ruangan Siaran";
+        return (rObj.meta && rObj.meta.programName) || rObj.programName || `Studio ${token}`;
+      }
+
+      // Prioritas urutan: SKASA No 1 (Utama) -> Live -> Standby -> Ended
+      roomTokens.sort((a, b) => {
+        if (a === 'SKASA') return -1;
+        if (b === 'SKASA') return 1;
+
+        const statusWeight = { 'live': 1, 'standby': 2, 'ended': 3 };
+        const wA = statusWeight[getRoomStatus(a)] || 2;
+        const wB = statusWeight[getRoomStatus(b)] || 2;
+
+        if (wA !== wB) return wA - wB;
+        return a.localeCompare(b);
+      });
+
+      document.getElementById('lblChannelCount').innerText = `${roomTokens.length} Saluran Siaran`;
+
+      roomTokens.forEach((token, index) => {
+        const status = getRoomStatus(token);
+        const programName = getRoomProgramName(token);
+        const isSelected = token === currentRoomToken;
+        const isSkasa = token === 'SKASA';
+
+        const card = document.createElement('div');
+        card.onclick = () => {
+          if (token === currentRoomToken) return;
+          const newUrl = `${window.location.pathname}?room=${token}`;
+          window.history.pushState({ path: newUrl }, '', newUrl);
+          connectChannel(token);
+          renderChannelsGrid(roomsData);
+        };
+
+        let cardStyle = "p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between ";
+        if (isSelected) {
+          cardStyle += "bg-red-950/60 border-red-500 shadow-lg ring-1 ring-red-500";
+        } else {
+          cardStyle += "bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900";
+        }
+
+        let badgeColor = "bg-amber-950/80 text-amber-400 border border-amber-800";
+        let badgeText = "STANDBY";
+        let dotColor = "bg-amber-400";
+
+        if (status === 'live') {
+          badgeColor = "bg-red-950/80 text-red-400 border border-red-800";
+          badgeText = "● ON-AIR";
+          dotColor = "bg-red-500 animate-pulse";
+        } else if (status === 'ended') {
+          badgeColor = "bg-slate-800 text-slate-400 border border-slate-700";
+          badgeText = "OFF-AIR";
+          dotColor = "bg-slate-500";
+        }
+
+        card.className = cardStyle;
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg ${isSkasa ? 'bg-red-600 text-white font-black shadow-md' : 'bg-slate-900 text-slate-300 border border-slate-800'} flex items-center justify-center font-mono text-xs font-bold shrink-0">
+              #${index + 1}
+            </div>
+            <div class="truncate">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono font-bold text-xs text-white block">${token}</span>
+                ${isSkasa ? '<span class="text-[9px] font-mono bg-red-900/80 text-red-300 px-1.5 py-0.2 rounded font-bold border border-red-700/60">UTAMA</span>' : ''}
+              </div>
+              <span class="text-[11px] text-slate-400 truncate block">${programName}</span>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${badgeColor} inline-flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
+              ${badgeText}
+            </span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function listenChannelsDirectory() {
+      // 1. RENDER INSTAN DARI CACHE LOKAL
+      let cachedRooms = {};
+      try {
+        const stored = localStorage.getItem('skawan_rooms_cache');
+        if (stored) cachedRooms = JSON.parse(stored);
+      } catch (e) {}
+      renderChannelsGrid(cachedRooms);
+
+      // 2. SINKRONISASI DARI FIREBASE
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref('rooms').on('value', snapshot => {
+        const roomsData = (snapshot.exists() ? snapshot.val() : {}) || {};
+        try { localStorage.setItem('skawan_rooms_cache', JSON.stringify(roomsData)); } catch (e) {}
+        renderChannelsGrid(roomsData);
+      }, error => {
+        console.warn("Firebase rooms read notice:", error);
+      });
+    }
+
+    // ==============================================================
+    // FALLBACK AUTO-NEXT ENGINE (JIKA BROWSER OPERATOR DITUTUP)
+    // ==============================================================
+    let isIndexFallbackNextExecuting = false;
+    setInterval(() => {
+      if (isIndexFallbackNextExecuting) return;
+      if (liveState.programSource !== 'vt' || latestVtState.status !== 'playing') return;
+
+      const dur = latestVtState.totalDuration || 120;
+      const elapsed = calculateAbsoluteServerTime(latestVtState);
+
+      if (elapsed >= (dur + 2)) {
+        isIndexFallbackNextExecuting = true;
+        const activeDb = getDatabase();
+        if (!activeDb) return;
+
+        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).once('value', snap => {
+          if (!snap.exists()) {
+            isIndexFallbackNextExecuting = false;
+            return;
+          }
+          const list = Object.values(snap.val() || {});
+          const currentVidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+          const curIdx = list.findIndex(it => (it.youtubeId || extractCleanYtId(it.url)) === currentVidId);
+
+          const loop = latestVtState.loopMode || 'playlist';
+          if (loop === 'playlist' && list.length > 0) {
+            let nextIdx = curIdx + 1;
+            if (nextIdx >= list.length) nextIdx = 0;
+            const nextClip = list[nextIdx];
+
+            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
+              status: 'playing',
+              startAt: firebase.database.ServerValue.TIMESTAMP,
+              startOffset: 0,
+              totalDuration: nextClip.durationSec || 120,
+              title: nextClip.title || 'VT Playout',
+              sourceType: 'youtube',
+              youtubeId: nextClip.youtubeId || extractCleanYtId(nextClip.url),
+              url: nextClip.url || '',
+              loopMode: 'playlist',
+              clipId: nextClip.id || `vt_${Date.now()}`,
+              updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          } else if (loop === 'single') {
+            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).update({
+              startAt: firebase.database.ServerValue.TIMESTAMP,
+              startOffset: 0,
+              updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+          setTimeout(() => { isIndexFallbackNextExecuting = false; }, 3000);
+        });
+      }
+    }, 2000);
+
+    // ==============================================================
+    // INISIALISASI
+    // ==============================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetRoom = (urlParams.get('room') || 'SKASA').toUpperCase();
+
+      startWibLiveClock();
+      connectChannel(targetRoom);
+      listenChannelsDirectory();
+
+      window.addEventListener('beforeunload', () => {
+        detachChannelListeners();
+        if (streamerInstance) {
+          try { streamerInstance.destroy(); } catch (e) {}
+          streamerInstance = null;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
