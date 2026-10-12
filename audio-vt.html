@@ -96,12 +96,21 @@
     .deck-btn:active {
       transform: scale(0.96);
     }
-    .playlist-item-card {
-      contain: paint layout;
+    .drag-over {
+      border-color: #f59e0b !important;
+      background-color: rgba(245, 158, 11, 0.15) !important;
+    }
+    .dragging {
+      opacity: 0.4;
     }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black pb-6">
+
+  <!-- INVISIBLE PROBE PLAYER (PENGAMBIL DURASI ASLI OTOMATIS TANPA API KEY) -->
+  <div style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; left: -9999px;">
+    <div id="hiddenDurationProbeEl"></div>
+  </div>
 
   <!-- TOP NAVIGATION BAR -->
   <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md shadow-md">
@@ -148,7 +157,7 @@
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- 1. CUE VIEWPORT (PREVIEW LOCAL OPERATOR) -->
+      <!-- 1. CUE VIEWPORT (PREVIEW OPERATOR) -->
       <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -205,15 +214,16 @@
               <span>ROLL TO PGM</span>
             </button>
 
-            <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-12 sm:col-span-3 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1">
-              <span>🔁</span>
+            <!-- TOMBOL SIKLUS LOOPING: SINGLE -> PLAYLIST -> OFF -->
+            <button onclick="cycleLoopMode()" id="btnLoopMode" class="col-span-12 sm:col-span-3 deck-btn py-2.5 rounded-xl bg-amber-950 border border-amber-500 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 transition">
+              <span id="iconLoopMode">🔁</span>
               <span id="lblLoopMode">PLAYLIST</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- 2. PGM RETURN MONITOR (SINKRON DENGAN INDEX) -->
+      <!-- 2. PGM RETURN MONITOR (SINKRON PASCA-REFRESH) -->
       <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -243,7 +253,7 @@
 
             <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-            <!-- Video VT PGM (Muted Permanen) -->
+            <!-- Video VT PGM (Muted Permanen di Deck Operator) -->
             <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 pointer-events-none" style="display: none; opacity: 0;">
               <iframe id="pgmYtIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
             </div>
@@ -268,33 +278,40 @@
 
     </div>
 
-    <!-- ANTREAN PLAYLIST DENGAN POSTER STATIS & DURASI (RINGAN) -->
+    <!-- ANTREAN PLAYLIST KOMPAK (DRAG & DROP + DURASI ASLI OTOMATIS) -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-2">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow"></span>
-          <h3 class="font-brand font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Antrean Daftar Putar Online (Poster Statis + Durasi)</h3>
+          <h3 class="font-brand font-bold text-white text-xs sm:text-sm uppercase tracking-wider">
+            Rundown Playlist (Geser/Drag untuk Atur Urutan)
+          </h3>
         </div>
         
-        <button onclick="bukaModalTambahKlip()" class="deck-btn px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold text-[11px] flex items-center gap-1 shadow self-end sm:self-center">
-          <span>+</span>
-          <span>Tambah VT</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-mono text-slate-400">Mode:</span>
+          <span id="badgeLoopIndicator" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600 uppercase">
+            PLAYLIST
+          </span>
+        </div>
       </div>
 
-      <!-- Quick Add Bar -->
-      <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-2">
-        <div class="grid grid-cols-12 gap-1.5">
-          <input type="text" id="quickAddTitle" placeholder="Judul Klip (cth: Profil Siswa)" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500">
-          <input type="text" id="quickAddUrl" placeholder="Tempel Link YouTube / Video ID" class="col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-500">
-          <button onclick="eksekusiQuickAdd()" class="col-span-2 deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-black rounded-lg text-xs flex items-center justify-center">
+      <!-- Quick Add Bar (Mendukung Deteksi Judul Otomatis) -->
+      <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+        <div class="flex items-center gap-1.5">
+          <input type="text" id="quickAddUrl" oninput="handleAutoDetectTitle(this.value)" placeholder="Tempel URL YouTube / Video ID di sini..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono outline-none focus:border-amber-500">
+          <input type="text" id="quickAddTitle" placeholder="Judul Klip (Otomatis terisi)" class="w-1/3 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500">
+          <button onclick="eksekusiQuickAdd()" class="deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-black rounded-lg text-xs px-4 py-1.5 flex items-center justify-center shrink-0">
             + Tambah
           </button>
         </div>
+        <span class="text-[10px] font-mono text-slate-500 block">
+          * Judul dan durasi asli video akan dideteksi secara otomatis dari YouTube tanpa API Key.
+        </span>
       </div>
 
-      <!-- List Kontainer Playlist -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[300px] overflow-y-auto pr-1" id="playlistItemsContainer"></div>
+      <!-- Kontainer Rundown Kompak List View (Drag & Drop) -->
+      <div class="space-y-1.5 max-h-[320px] overflow-y-auto pr-1" id="playlistItemsContainer"></div>
 
       <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
         <span id="lblPlaylistCount">Total Klip: 0 Video</span>
@@ -304,7 +321,7 @@
       </div>
     </div>
 
-    <!-- BROADCAST AUDIO CONSOLE (TRANSMITTER KE INDEX.HTML) -->
+    <!-- BROADCAST AUDIO CONSOLE (MASTER TRANSMITTER) -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
         <div class="flex items-center gap-2">
@@ -318,7 +335,6 @@
             <span id="lblHeadphone">Monitor Headphone: OFF</span>
           </button>
 
-          <!-- TRANSMITTER MIC FISIK PRESENTER -->
           <button id="btnHardwareMic" onclick="toggleHardwareInputAudio()" class="deck-btn px-3 py-1.5 rounded-xl border border-amber-600/60 bg-amber-950/40 hover:bg-amber-900 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition">
             <span id="iconHardwareMic">🎙️</span>
             <span id="lblHardwareMic">Sambungkan Mic / Line-In Fisik</span>
@@ -327,7 +343,7 @@
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" id="audioMixerStripsGrid">
-        <!-- CH 1 -->
+        <!-- CH 1: MIC STUDIO -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center">
           <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">CH 1: MIC STUDIO</span>
           <div class="w-3 h-24 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
@@ -337,7 +353,7 @@
           <span id="lbl-val-ch1" class="font-mono text-[11px] font-bold text-amber-400">85%</span>
         </div>
 
-        <!-- CH 2 -->
+        <!-- CH 2: CAM 2 -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center">
           <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">CH 2: CAM 2</span>
           <div class="w-3 h-24 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
@@ -347,7 +363,7 @@
           <span id="lbl-val-ch2" class="font-mono text-[11px] font-bold text-amber-400">80%</span>
         </div>
 
-        <!-- CH 3 -->
+        <!-- CH 3: CAM 3 -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center">
           <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">CH 3: CAM 3</span>
           <div class="w-3 h-24 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
@@ -357,7 +373,7 @@
           <span id="lbl-val-ch3" class="font-mono text-[11px] font-bold text-amber-400">50%</span>
         </div>
 
-        <!-- CH 4 (VT AUDIO) -->
+        <!-- CH 4: VT AUDIO -->
         <div class="bg-slate-950/80 border border-amber-500/40 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center ring-1 ring-amber-500/20">
           <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400">CH 4: VT AUDIO</span>
           <div class="w-3 h-24 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
@@ -367,7 +383,7 @@
           <span id="lbl-val-ch4" class="font-mono text-[11px] font-bold text-amber-400">90%</span>
         </div>
 
-        <!-- CH 5 (BGM) -->
+        <!-- CH 5: BGM -->
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between items-center space-y-2 text-center">
           <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">CH 5: BGM</span>
           <div class="w-3 h-24 bg-slate-900 rounded border border-slate-800 flex flex-col-reverse p-0.5 overflow-hidden">
@@ -390,37 +406,7 @@
     </div>
   </main>
 
-  <!-- MODAL TAMBAH KLIP -->
-  <div id="modalTambahKlip" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 space-y-4 text-white">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <h3 class="font-brand font-black text-sm uppercase text-white">Tambah Klip Video ke Playlist</h3>
-        <button onclick="tutupModalTambahKlip()" class="text-slate-400 hover:text-white">✕</button>
-      </div>
-
-      <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Judul Klip:</label>
-          <input type="text" id="modalInputClipTitle" placeholder="Contoh: Profil Sekolah Segmen 1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white outline-none focus:border-amber-500">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Link YouTube / Video ID:</label>
-          <input type="text" id="modalInputClipUrl" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono outline-none focus:border-amber-500">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-400 uppercase mb-1">Perkiraan Durasi (Detik):</label>
-          <input type="number" id="modalInputClipDuration" min="5" max="3600" value="120" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-mono outline-none focus:border-amber-500">
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-        <button onclick="tutupModalTambahKlip()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Batal</button>
-        <button onclick="eksekusiModalTambahKlip()" class="deck-btn bg-amber-600 hover:bg-amber-500 text-black font-brand font-bold px-4 py-2 rounded-xl text-xs shadow-md">Simpan ke Firebase</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCRIPT LOGIKA ENGINE -->
+  <!-- JAVASCRIPT LOGIKA ENGINE AUDIO-VT -->
   <script>
     let currentRoomToken = 'SKASA';
     let vtPlaylist = [];
@@ -453,18 +439,15 @@
     let currentPgmActiveYtId = '';
     let lastPgmKnownVtTime = 0;
 
-    let audioMixerState = {
-      ch1: { fader: 85, isMuted: false },
-      ch2: { fader: 80, isMuted: false },
-      ch3: { fader: 50, isMuted: false },
-      ch4: { fader: 90, isMuted: false },
-      ch5: { fader: 65, isMuted: false },
-      master: { fader: 95, isMuted: false }
-    };
-
+    // Instance Pemutar CUE & Probe Background
     let cueYtPlayer = null;
     let isCueYtReady = false;
     let pendingCueVidId = null;
+
+    let probeYtPlayer = null;
+    let isProbeReady = false;
+    let probeQueue = [];
+    let isProbing = false;
 
     let streamerInstance = null;
     const remoteCamStreams = new Map();
@@ -473,6 +456,17 @@
     let micMediaStream = null;
     let isHardwareMicConnected = false;
     let isHeadphoneMonitorOn = false;
+
+    let dragSrcIndex = null;
+
+    let audioMixerState = {
+      ch1: { fader: 85, isMuted: false },
+      ch2: { fader: 80, isMuted: false },
+      ch3: { fader: 50, isMuted: false },
+      ch4: { fader: 90, isMuted: false },
+      ch5: { fader: 65, isMuted: false },
+      master: { fader: 95, isMuted: false }
+    };
 
     function getDatabase() {
       return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
@@ -517,13 +511,95 @@
       }
     }
 
+    // ========================================================
+    // DETEKSI JUDUL OTOMATIS (YOUTUBE OEMBED - TANPA API KEY)
+    // ========================================================
+    async function handleAutoDetectTitle(url) {
+      const vidId = extractCleanYtId(url);
+      const titleInput = document.getElementById('quickAddTitle');
+      if (!vidId || (titleInput.value.trim() !== '' && titleInput.dataset.auto !== 'true')) return;
+
+      try {
+        const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${vidId}`);
+        const data = await res.json();
+        if (data && data.title) {
+          titleInput.value = data.title;
+          titleInput.dataset.auto = 'true';
+        }
+      } catch (e) {}
+    }
+
+    // ========================================================
+    // YOUTUBE API READY: CUE PLAYER & BACKGROUND PROBE
+    // ========================================================
     window.onYouTubeIframeAPIReady = () => {
       isCueYtReady = true;
       if (pendingCueVidId) {
         initCueYtPlayer(pendingCueVidId);
         pendingCueVidId = null;
       }
+      initBackgroundProbePlayer();
     };
+
+    function initBackgroundProbePlayer() {
+      try {
+        probeYtPlayer = new YT.Player('hiddenDurationProbeEl', {
+          height: '1',
+          width: '1',
+          host: 'https://www.youtube-nocookie.com',
+          playerVars: { autoplay: 0, controls: 0, mute: 1, playsinline: 1 },
+          events: {
+            onReady: () => {
+              isProbeReady = true;
+              processProbeQueue();
+            },
+            onStateChange: (e) => {
+              if (e.data === YT.PlayerState.CUED || e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.PAUSED) {
+                const dur = probeYtPlayer.getDuration();
+                if (dur && dur > 0 && probeQueue.length > 0) {
+                  const currentItem = probeQueue.shift();
+                  simpanDurasiAsliKeFirebase(currentItem.id, Math.round(dur));
+                  isProbing = false;
+                  probeYtPlayer.stopVideo();
+                  setTimeout(processProbeQueue, 200);
+                }
+              }
+            }
+          }
+        });
+      } catch (e) {}
+    }
+
+    function processProbeQueue() {
+      if (!isProbeReady || isProbing || probeQueue.length === 0) return;
+      isProbing = true;
+      const item = probeQueue[0];
+      const vidId = item.youtubeId || extractCleanYtId(item.url);
+      if (vidId && probeYtPlayer && typeof probeYtPlayer.cueVideoById === 'function') {
+        probeYtPlayer.cueVideoById(vidId);
+      } else {
+        probeQueue.shift();
+        isProbing = false;
+      }
+    }
+
+    function simpanDurasiAsliKeFirebase(itemId, durSec) {
+      const activeDb = getDatabase();
+      let changed = false;
+      vtPlaylist = vtPlaylist.map(it => {
+        if (it.id === itemId && (!it.durationSec || it.durationSec === 120 || it.durationSec !== durSec)) {
+          changed = true;
+          return { ...it, durationSec: durSec };
+        }
+        return it;
+      });
+
+      if (changed) {
+        localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
+        renderPlaylistUI();
+        if (activeDb) activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(vtPlaylist);
+      }
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -538,20 +614,16 @@
         }
       } catch (e) {}
 
+      updateLoopModeUI();
       renderPlaylistUI();
       startStudioTimecodeTicker();
       startVuMeterEngine();
       initAudioVtSystem(currentRoomToken);
-
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden && audioCtx && audioCtx.state === 'running') {
-          audioCtx.suspend();
-        } else if (!document.hidden && audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-      });
     });
 
+    // ========================================================
+    // SINKRONISASI FIREBASE & RESTORASI STATE SETELAH REFRESH
+    // ========================================================
     function initAudioVtSystem(token) {
       const activeDb = getDatabase();
       if (!activeDb) {
@@ -563,11 +635,20 @@
         serverClockOffset = snap.val() || 0;
       });
 
+      // 1. SINKRONISASI PLAYLIST ONLINE
       activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
         if (snap.exists()) {
           const data = snap.val();
           vtPlaylist = Array.isArray(data) ? data : Object.values(data);
           vtPlaylist = vtPlaylist.filter(item => item && typeof item === 'object');
+
+          // Masukkan klip tanpa durasi asli ke probe queue
+          vtPlaylist.forEach(it => {
+            if (!it.durationSec || it.durationSec === 120) {
+              if (!probeQueue.some(q => q.id === it.id)) probeQueue.push(it);
+            }
+          });
+          processProbeQueue();
         } else if (vtPlaylist.length > 0) {
           activeDb.ref(`rooms/${token}/vt_playlist`).set(vtPlaylist);
         }
@@ -575,6 +656,7 @@
         renderPlaylistUI();
       });
 
+      // 2. RESTORASI STATUS RUANGAN & VT ON-AIR PASCA-REFRESH
       activeDb.ref(`rooms/${token}`).on('value', snapshot => {
         if (!snapshot.exists()) {
           currentRoomMeta = { status: (token === 'SKASA' ? 'live' : 'ended') };
@@ -618,32 +700,7 @@
       }
     }
 
-    // TRANSMITTER MIKROFON FISIK VIA WEBRTC KE INDEX.HTML
-    async function toggleHardwareInputAudio() {
-      if (isHardwareMicConnected) {
-        if (micMediaStream) micMediaStream.getTracks().forEach(t => t.stop());
-        isHardwareMicConnected = false;
-        document.getElementById('lblHardwareMic').innerText = "Sambungkan Mic / Line-In Fisik";
-        document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-amber-600/60 bg-amber-950/40 hover:bg-amber-900 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition";
-        return;
-      }
-
-      try {
-        micMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        
-        // Broadcast stream audio ke penonton index.html dengan tag 'audio_master'
-        if (streamerInstance && typeof streamerInstance.publishStream === 'function') {
-          streamerInstance.publishStream('audio_master', micMediaStream);
-        }
-
-        isHardwareMicConnected = true;
-        document.getElementById('lblHardwareMic').innerText = "Mic Studio: Mengudara (Live PGM)";
-        document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md";
-      } catch (err) {
-        alert("Izin mikrofon ditolak oleh browser.");
-      }
-    }
-
+    // UPDATE MONITOR PGM RETURN
     function updatePgmMonitors() {
       const pgmViewport = document.getElementById('pgmViewport');
       const bumperWrap = document.getElementById('pgmBumperWrapper');
@@ -747,6 +804,9 @@
       }
     }
 
+    // ========================================================
+    // RENDER RUNDOWN PLAYLIST KOMPAK (DENGAN DRAG & DROP)
+    // ========================================================
     function renderPlaylistUI() {
       const container = document.getElementById('playlistItemsContainer');
       if (!container) return;
@@ -755,8 +815,8 @@
 
       if (vtPlaylist.length === 0) {
         container.innerHTML = `
-          <div class="col-span-full p-4 text-center text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
-            Belum ada klip dalam antrean. Masukkan judul dan link YouTube di atas.
+          <div class="p-4 text-center text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
+            Belum ada klip dalam rundown antrean. Masukkan link YouTube di atas.
           </div>
         `;
         return;
@@ -773,12 +833,8 @@
         const posterUrl = itemYtId ? `https://i.ytimg.com/vi/${itemYtId}/mqdefault.jpg` : '';
 
         let borderStyle = 'border-slate-800 bg-slate-950 hover:border-slate-700';
-        if (isOnAirNow) borderStyle = 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/60 shadow-lg shadow-emerald-950/40';
-        else if (isCuedNow) borderStyle = 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500/60 shadow-lg shadow-amber-950/40';
-
-        const card = document.createElement('div');
-        card.className = `playlist-item-card p-2 rounded-xl border transition flex flex-col justify-between gap-2 cursor-pointer ${borderStyle}`;
-        card.onclick = () => pilihKlipPlaylist(idx);
+        if (isOnAirNow) borderStyle = 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/60 shadow-md shadow-emerald-950/40';
+        else if (isCuedNow) borderStyle = 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500/60 shadow-md shadow-amber-950/40';
 
         let badgeLabel = 'STANDBY';
         let badgeStyle = 'bg-slate-800 text-slate-400';
@@ -791,34 +847,110 @@
           badgeStyle = 'bg-amber-500 text-black font-black';
         }
 
-        card.innerHTML = `
-          <div class="aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center border border-slate-800">
-            ${posterUrl ? `<img src="${posterUrl}" alt="${item.title}" class="w-full h-full object-cover select-none" loading="lazy" onerror="this.style.display='none'">` : ''}
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none"></div>
+        const row = document.createElement('div');
+        row.className = `p-2 rounded-xl border transition flex items-center justify-between gap-3 cursor-pointer select-none ${borderStyle}`;
+        row.draggable = true;
+        row.dataset.index = idx;
 
-            <div class="absolute top-1.5 left-1.5">
-              <span class="text-[8px] font-mono px-1.5 py-0.5 rounded ${badgeStyle}">${badgeLabel}</span>
+        // Pasang Event Drag & Drop
+        row.addEventListener('dragstart', handleDragStart);
+        row.addEventListener('dragover', handleDragOver);
+        row.addEventListener('dragleave', handleDragLeave);
+        row.addEventListener('drop', handleDrop);
+        row.addEventListener('dragend', handleDragEnd);
+
+        row.onclick = () => pilihKlipPlaylist(idx);
+
+        row.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <!-- Drag Handle Icon -->
+            <span class="text-slate-600 hover:text-amber-400 font-mono text-xs cursor-grab active:cursor-grabbing px-1">⋮⋮</span>
+            
+            <!-- Index Nomor -->
+            <span class="w-5 h-5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px] font-bold text-slate-400 flex items-center justify-center shrink-0">
+              ${idx + 1}
+            </span>
+
+            <!-- Thumbnail Kompak (88x50 px) -->
+            <div class="w-[88px] h-[50px] bg-black rounded-lg overflow-hidden relative shrink-0 border border-slate-800">
+              ${posterUrl ? `<img src="${posterUrl}" alt="" class="w-full h-full object-cover pointer-events-none" loading="lazy">` : ''}
+              <div class="absolute bottom-0.5 right-0.5 bg-black/85 px-1 rounded font-mono text-[8px] font-bold text-white border border-white/10">
+                ${formatTimecode(item.durationSec || 120)}
+              </div>
             </div>
 
-            <div class="absolute bottom-1.5 right-1.5 bg-black/85 px-1.5 py-0.5 rounded font-mono text-[9px] font-bold text-white border border-white/10">
-              ⏱ ${formatTimecode(item.durationSec || 120)}
+            <!-- Metadata Judul & ID -->
+            <div class="min-w-0">
+              <span class="font-brand font-bold text-xs text-white block truncate max-w-[260px] sm:max-w-[340px]">
+                ${item.title || 'Klip Segmen'}
+              </span>
+              <span class="text-[9px] font-mono text-slate-400 block truncate">
+                ID: ${itemYtId || 'N/A'} &bull; Durasi: ${formatTimecode(item.durationSec || 120)}
+              </span>
             </div>
           </div>
 
-          <div class="flex items-center justify-between gap-1.5 px-0.5">
-            <div class="min-w-0">
-              <span class="font-brand font-bold text-xs text-white block truncate">${item.title || 'Klip Segmen'}</span>
-              <span class="text-[9px] font-mono text-slate-400 block">ID: ${itemYtId || 'N/A'}</span>
-            </div>
-            <button onclick="hapusKlipDariFirebase(event, ${idx})" class="deck-btn w-6 h-6 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-xs transition shrink-0" title="Hapus klip">
+          <!-- Tally Badge & Tombol Hapus -->
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[8px] font-mono px-2 py-0.5 rounded font-bold ${badgeStyle}">
+              ${badgeLabel}
+            </span>
+            <button onclick="hapusKlipDariFirebase(event, ${idx})" class="deck-btn w-6 h-6 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-xs transition" title="Hapus klip">
               ✕
             </button>
           </div>
         `;
-        container.appendChild(card);
+        container.appendChild(row);
       });
     }
 
+    // ========================================================
+    // EVENT HANDLER DRAG & DROP NATIVE
+    // ========================================================
+    function handleDragStart(e) {
+      dragSrcIndex = parseInt(this.dataset.index);
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      this.classList.add('drag-over');
+    }
+
+    function handleDragLeave() {
+      this.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      const targetIndex = parseInt(this.dataset.index);
+
+      if (dragSrcIndex !== null && dragSrcIndex !== targetIndex) {
+        const movedItem = vtPlaylist.splice(dragSrcIndex, 1)[0];
+        vtPlaylist.splice(targetIndex, 0, movedItem);
+
+        // Update Cued Index jika tergeser
+        if (cuedIndex === dragSrcIndex) cuedIndex = targetIndex;
+        else if (cuedIndex > dragSrcIndex && cuedIndex <= targetIndex) cuedIndex--;
+        else if (cuedIndex < dragSrcIndex && cuedIndex >= targetIndex) cuedIndex++;
+
+        localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
+        renderPlaylistUI();
+
+        const activeDb = getDatabase();
+        if (activeDb) activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(vtPlaylist);
+      }
+    }
+
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+
+    // CUE PLAYER LOGIC
     function initCueYtPlayer(vidId) {
       const ytWrap = document.getElementById('audioVtYtWrap');
       const fallbackBox = document.getElementById('audioVtFallback');
@@ -859,6 +991,9 @@
             onReady: (e) => {
               isCueYtReady = true;
               e.target.pauseVideo();
+              // Deteksi durasi asli cadangan saat klip dibuka di CUE
+              const realD = e.target.getDuration();
+              if (realD && cuedClip) simpanDurasiAsliKeFirebase(cuedClip.id, Math.round(realD));
             },
             onStateChange: (e) => {
               if (e.data === YT.PlayerState.PLAYING) {
@@ -946,6 +1081,8 @@
         sourceType: 'youtube',
         youtubeId: vidId,
         url: cuedClip.url || '',
+        loopMode: loopMode,
+        clipId: cuedClip.id || `vt_${Date.now()}`,
         updatedAt: firebase.database.ServerValue.TIMESTAMP
       });
 
@@ -958,12 +1095,144 @@
       }
     }
 
+    // ========================================================
+    // LOGIKA 3 MODE LOOPING: SINGLE -> PLAYLIST -> OFF
+    // ========================================================
     function cycleLoopMode() {
-      if (loopMode === 'off') loopMode = 'single';
-      else if (loopMode === 'single') loopMode = 'playlist';
-      else loopMode = 'off';
+      if (loopMode === 'playlist') loopMode = 'single';
+      else if (loopMode === 'single') loopMode = 'off';
+      else loopMode = 'playlist';
+
       localStorage.setItem('skawan_vt_loop_mode', loopMode);
-      document.getElementById('lblLoopMode').innerText = loopMode.toUpperCase();
+      updateLoopModeUI();
+
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/vt_state/loopMode`).set(loopMode);
+      }
+    }
+
+    function updateLoopModeUI() {
+      const lbl = document.getElementById('lblLoopMode');
+      const icon = document.getElementById('iconLoopMode');
+      const badge = document.getElementById('badgeLoopIndicator');
+
+      if (lbl) lbl.innerText = loopMode.toUpperCase();
+      if (badge) badge.innerText = loopMode.toUpperCase();
+
+      if (loopMode === 'single') {
+        if (icon) icon.innerText = '🔂';
+        if (badge) badge.className = "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-600 uppercase";
+      } else if (loopMode === 'off') {
+        if (icon) icon.innerText = '⏹';
+        if (badge) badge.className = "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700 uppercase";
+      } else {
+        if (icon) icon.innerText = '🔁';
+        if (badge) badge.className = "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600 uppercase";
+      }
+    }
+
+    // ========================================================
+    // AUTO-NEXT & STATE TICKER ENGINE
+    // ========================================================
+    function startStudioTimecodeTicker() {
+      setInterval(() => {
+        // 1. Update Monitor CUE
+        if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.getCurrentTime === 'function') {
+          const curTime = cueYtPlayer.getCurrentTime() || 0;
+          const totalD = cueYtPlayer.getDuration() || (cuedClip ? cuedClip.durationSec : 120);
+
+          document.getElementById('lblTimecodeCurrent').innerText = formatTimecode(curTime);
+          document.getElementById('lblTimecodeTotal').innerText = formatTimecode(totalD);
+          document.getElementById('sliderVtProgress').max = Math.floor(totalD);
+          document.getElementById('sliderVtProgress').value = Math.floor(curTime);
+
+          const pct = totalD > 0 ? Math.round((curTime / totalD) * 100) : 0;
+          document.getElementById('lblVtPercent').innerText = `${pct}%`;
+        }
+
+        // 2. Mesin Pengecek Durasi Selesai Klip On-Air (Auto-Next)
+        periksaOtomasiDurasiHabisOnAir();
+      }, 1000);
+    }
+
+    let isAutoNextExecuting = false;
+
+    function periksaOtomasiDurasiHabisOnAir() {
+      if (isAutoNextExecuting) return;
+      if (liveState.programSource !== 'vt' || onAirVtState.status !== 'playing') return;
+
+      const dur = onAirVtState.totalDuration || 120;
+      const elapsed = calculateAbsoluteServerTime(onAirVtState);
+
+      if (elapsed >= dur) {
+        isAutoNextExecuting = true;
+        eksekusiOtomasiSelesaiKlip();
+        setTimeout(() => { isAutoNextExecuting = false; }, 2500);
+      }
+    }
+
+    function eksekusiOtomasiSelesaiKlip() {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const currentVidId = extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url);
+      const currentIndex = vtPlaylist.findIndex(it => (it.youtubeId || extractCleanYtId(it.url)) === currentVidId);
+
+      // KASUS A: LOOP MODE = 'single'
+      if (loopMode === 'single') {
+        activeDb.ref(`rooms/${currentRoomToken}/vt_state`).update({
+          startAt: firebase.database.ServerValue.TIMESTAMP,
+          startOffset: 0,
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        return;
+      }
+
+      // KASUS B: LOOP MODE = 'playlist'
+      if (loopMode === 'playlist' && vtPlaylist.length > 0) {
+        let nextIndex = (currentIndex + 1);
+        if (nextIndex >= vtPlaylist.length) nextIndex = 0; // Balik ke klip 1
+
+        const nextClip = vtPlaylist[nextIndex];
+        const nextVidId = nextClip.youtubeId || extractCleanYtId(nextClip.url);
+
+        activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
+          status: 'playing',
+          startAt: firebase.database.ServerValue.TIMESTAMP,
+          startOffset: 0,
+          totalDuration: nextClip.durationSec || 120,
+          title: nextClip.title || 'VT Playout',
+          sourceType: 'youtube',
+          youtubeId: nextVidId,
+          url: nextClip.url || '',
+          loopMode: loopMode,
+          clipId: nextClip.id || `vt_${Date.now()}`,
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        return;
+      }
+
+      // KASUS C: LOOP MODE = 'off' (Ke Layar Hitam -> 60 Detik Kemudian ke Bumper)
+      if (loopMode === 'off') {
+        activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
+          status: 'ended', // Menjadi blackout di index.html
+          startAt: firebase.database.ServerValue.TIMESTAMP,
+          startOffset: 0,
+          totalDuration: 0,
+          title: 'Blackout',
+          sourceType: 'youtube',
+          youtubeId: '',
+          url: '',
+          loopMode: 'off',
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // Timer 60 detik fallback ke bumper station ident
+        setTimeout(() => {
+          activeDb.ref(`rooms/${currentRoomToken}/live_state/programSource`).set('cam_1'); // Kembali ke mode standby/bumper ident
+        }, 60000);
+      }
     }
 
     function eksekusiQuickAdd() {
@@ -980,7 +1249,7 @@
         sourceType: 'youtube',
         youtubeId: extractCleanYtId(rawUrl),
         url: rawUrl,
-        durationSec: 120
+        durationSec: 120 // Akan di-override durasi aslinya oleh probe player otomatis
       };
 
       const updatedPlaylist = [...vtPlaylist, newItem];
@@ -989,7 +1258,13 @@
       renderPlaylistUI();
 
       if (activeDb) activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(updatedPlaylist);
+
+      // Masukkan ke queue probe durasi
+      probeQueue.push(newItem);
+      processProbeQueue();
+
       titleInput.value = '';
+      titleInput.dataset.auto = 'false';
       urlInput.value = '';
     }
 
@@ -1015,23 +1290,6 @@
       if (activeDb) activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set([]);
     }
 
-    function startStudioTimecodeTicker() {
-      setInterval(() => {
-        if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.getCurrentTime === 'function') {
-          const curTime = cueYtPlayer.getCurrentTime() || 0;
-          const totalD = cueYtPlayer.getDuration() || (cuedClip ? cuedClip.durationSec : 120);
-
-          document.getElementById('lblTimecodeCurrent').innerText = formatTimecode(curTime);
-          document.getElementById('lblTimecodeTotal').innerText = formatTimecode(totalD);
-          document.getElementById('sliderVtProgress').max = Math.floor(totalD);
-          document.getElementById('sliderVtProgress').value = Math.floor(curTime);
-
-          const pct = totalD > 0 ? Math.round((curTime / totalD) * 100) : 0;
-          document.getElementById('lblVtPercent').innerText = `${pct}%`;
-        }
-      }, 500);
-    }
-
     function updateChannelFader(ch, val) {
       audioMixerState[ch].fader = parseInt(val) || 0;
       document.getElementById(`lbl-val-${ch}`).innerText = `${val}%`;
@@ -1047,6 +1305,29 @@
       } else {
         btn.className = "deck-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition";
         lbl.innerText = "Monitor Headphone: OFF";
+      }
+    }
+
+    // TRANSMITTER MIC PRESENTER KE INDEX.HTML
+    async function toggleHardwareInputAudio() {
+      if (isHardwareMicConnected) {
+        if (micMediaStream) micMediaStream.getTracks().forEach(t => t.stop());
+        isHardwareMicConnected = false;
+        document.getElementById('lblHardwareMic').innerText = "Sambungkan Mic / Line-In Fisik";
+        document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-amber-600/60 bg-amber-950/40 hover:bg-amber-900 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition";
+        return;
+      }
+
+      try {
+        micMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        if (streamerInstance && typeof streamerInstance.publishStream === 'function') {
+          streamerInstance.publishStream('audio_master', micMediaStream);
+        }
+        isHardwareMicConnected = true;
+        document.getElementById('lblHardwareMic').innerText = "Mic Studio: Mengudara (Live PGM)";
+        document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md";
+      } catch (err) {
+        alert("Izin mikrofon ditolak oleh browser.");
       }
     }
 
@@ -1067,36 +1348,6 @@
           masterBar.style.height = isVtPlayingOnAir ? `${Math.round(80 * (mFader / 100))}%` : '15%';
         }
       }, 100);
-    }
-
-    function bukaModalTambahKlip() {
-      document.getElementById('modalTambahKlip').classList.remove('hidden');
-    }
-    function tutupModalTambahKlip() {
-      document.getElementById('modalTambahKlip').classList.add('hidden');
-    }
-    function eksekusiModalTambahKlip() {
-      const title = document.getElementById('modalInputClipTitle').value.trim() || 'Klip Segmen';
-      const url = document.getElementById('modalInputClipUrl').value.trim();
-      const dur = parseInt(document.getElementById('modalInputClipDuration').value) || 120;
-      if (!url) return;
-
-      const activeDb = getDatabase();
-      const newItem = {
-        id: `vt_${Date.now()}`,
-        title: title,
-        sourceType: 'youtube',
-        youtubeId: extractCleanYtId(url),
-        url: url,
-        durationSec: dur
-      };
-
-      const updatedPlaylist = [...vtPlaylist, newItem];
-      vtPlaylist = updatedPlaylist;
-      localStorage.setItem(`skawan_vt_playlist_${currentRoomToken}`, JSON.stringify(vtPlaylist));
-      renderPlaylistUI();
-      if (activeDb) activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(updatedPlaylist);
-      tutupModalTambahKlip();
     }
 
     window.addEventListener('beforeunload', () => {
