@@ -2,16 +2,19 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Floor Director (FD) | SKAWAN TV</title>
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floor Director (FD) Console | SKAWAN TV</title>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
+  <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
 
   <script>
     tailwind.config = {
@@ -24,14 +27,12 @@
           },
           colors: {
             skawan: {
+              orange: '#EA580C',
+              navy: '#1B365D',
               red: '#E50914',
-              redHover: '#C70812',
-              darkBg: '#090D14',
-              cardDark: '#121824',
-              borderDark: '#1E293B',
-              accentBlue: '#2563EB',
-              warningAmber: '#F59E0B',
-              studioGreen: '#10B981'
+              darkBg: '#080C14',
+              cardDark: '#0F172A',
+              borderDark: '#1E293B'
             }
           }
         }
@@ -39,634 +40,303 @@
     }
   </script>
 
-  <!-- Firebase SDK (Compat Version) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
+  <script>
+    (function ensureFirebaseConnection() {
+      const config = {
+        apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
+        authDomain: "skawan-tv.firebaseapp.com",
+        databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "skawan-tv",
+        storageBucket: "skawan-tv.firebasestorage.app",
+        messagingSenderId: "501619282826",
+        appId: "1:501619282826:web:81e624ac35e9798062ae73"
+      };
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps || !firebase.apps.length) {
+          try { firebase.initializeApp(config); } catch (e) {}
+        }
+        if (!window.db && firebase.database) {
+          window.db = firebase.database();
+        }
+      }
+    })();
+  </script>
+
   <style>
-    .tally-active-red {
-      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
-      color: #ffffff !important;
-      box-shadow: 0 0 25px rgba(239, 68, 68, 0.75);
-      border-color: #f87171 !important;
+    @keyframes alert-pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
     }
-    .tally-active-green {
-      background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
-      color: #ffffff !important;
-      box-shadow: 0 0 25px rgba(16, 185, 129, 0.65);
-      border-color: #34d399 !important;
-    }
-    .cue-card-touch {
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .cue-card-touch:active {
-      transform: scale(0.96);
-    }
-    .scanline {
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(16, 185, 129, 0.03), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.03));
-      background-size: 100% 2px, 3px 100%;
-      pointer-events: none;
+    .director-cue-pulse {
+      animation: alert-pulse 1s infinite;
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-emerald-600 selection:text-white pb-6">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-orange-600 selection:text-white pb-6">
 
-  <!-- ============================================== -->
-  <!-- NAVIGATION BAR (FLOOR DIRECTOR - DARK THEME)   -->
-  <!-- ============================================== -->
-  <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+  <!-- TOP NAV -->
+  <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
       <div class="flex items-center gap-2.5">
-        <a href="index.html" class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center font-brand font-black text-base text-white shadow-md shadow-emerald-600/30">
-            FD
-          </div>
-          <div>
-            <div class="flex items-center gap-1">
-              <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
-              <span class="font-brand font-black text-emerald-500 text-base leading-none">TV</span>
-            </div>
-            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">Floor Director Studio Deck</span>
-          </div>
-        </a>
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center font-brand font-black text-sm text-black shadow">
+          FD
+        </div>
+        <div>
+          <span class="font-brand font-black text-white text-base leading-none">SKAWAN <span class="text-amber-500">TV</span></span>
+          <span class="text-[9px] font-mono text-slate-400 uppercase block -mt-0.5">Floor Director Console</span>
+        </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span id="navDisplayToken" class="font-mono font-bold text-xs text-emerald-400">STUDIO-1</span>
+        <div class="bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-xs font-mono">
+          Ruangan: <strong id="navRoomToken" class="text-amber-400">SKASA</strong>
         </div>
-        <div class="hidden sm:flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-slate-300 text-xs font-semibold">
-          <span>👤</span>
-          <span id="navDisplayUser">Floor Director</span>
-        </div>
-        <!-- Tombol Ganti Peran Cepat -->
-        <button onclick="bukaModalKeluar('ganti')" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Ganti Posisi Kru">
-          <span>🔄</span>
-          <span class="hidden sm:inline">Ganti</span>
-        </button>
-        <!-- Tombol Keluar Sesi Cepat -->
-        <button onclick="bukaModalKeluar('keluar')" class="text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1" title="Keluar Sesi">
-          <span>🚪</span>
-          <span class="hidden sm:inline">Keluar</span>
-        </button>
+        <a href="login.html" class="px-3 py-1 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-bold transition">
+          Keluar
+        </a>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-4xl mx-auto px-4 sm:px-6 py-4 w-full flex-1 space-y-4">
+  <main class="max-w-4xl mx-auto px-4 py-4 w-full flex-1 space-y-4">
 
-    <!-- Banner Komando Langsung dari Program Director (PD) -->
-    <div id="directorCueBanner" class="bg-gradient-to-r from-emerald-700 via-teal-700 to-cyan-800 text-white p-3.5 rounded-2xl shadow-xl flex items-center justify-between gap-3 transition border border-emerald-500/30">
-      <div class="flex items-center gap-3">
-        <div class="p-2 rounded-xl bg-white/20 shrink-0">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-        </div>
-        <div>
-          <span class="text-[10px] font-black uppercase tracking-wider text-emerald-200 block">KOMANDO SUTRADARA (PD):</span>
-          <span id="directorCueMessage" class="text-xs sm:text-sm font-brand font-black">Standby Studio! Talent Siap-Siap On-Air</span>
-        </div>
-      </div>
-      <span id="directorCueTime" class="text-[10px] font-mono bg-black/40 px-2.5 py-1 rounded-lg font-bold shrink-0 border border-white/10">LIVE</span>
-    </div>
-
-    <!-- Banner Krisis Teknis / Time Crunch dari Guru -->
-    <div id="crisisAlertBanner" class="hidden p-3.5 rounded-2xl bg-rose-600 text-white shadow-xl flex items-center justify-between animate-pulse border border-rose-400">
-      <div class="flex items-center gap-2.5">
-        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-        <div>
-          <span class="text-[10px] font-black uppercase tracking-wider block">⚠️ KENDALA RUNDOWN / STUDIO:</span>
-          <span id="crisisAlertText" class="text-xs font-bold">Waktu Segmen Dipotong! Beri isyarat Wrap Up ke talent sekarang.</span>
-        </div>
-      </div>
-      <span class="text-[10px] font-mono font-bold bg-white/20 px-2.5 py-0.5 rounded shrink-0">CRISIS</span>
-    </div>
-
-    <!-- ============================================== -->
-    <!-- PANEL UTAMA: COUNTDOWN TIMER & DETAIL SEGMEN   -->
-    <!-- ============================================== -->
-    <div class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl text-slate-100 text-center space-y-4 relative overflow-hidden">
-      <!-- Ambient Glow di belakang jam -->
-      <div id="timerGlowBg" class="absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none transition-colors duration-500"></div>
-
-      <div class="flex items-center justify-between text-xs font-mono border-b border-slate-800 pb-2.5 relative z-10">
-        <span class="text-slate-400 uppercase tracking-widest text-[10px] sm:text-xs">COUNTDOWN SISA SEGMEN</span>
-        <span id="badgeCurrentSegment" class="bg-slate-950 text-emerald-400 font-bold px-3 py-1 rounded-full border border-slate-800 text-[11px]">
-          SEGMEN 1 / 3
+    <!-- 1. BANNER ABA-ABA SUTRADARA (DIRECTOR CUE) -->
+    <div id="directorCueCard" class="p-4 rounded-2xl border-2 border-slate-800 bg-slate-900 space-y-1 transition-all duration-300 shadow-xl">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1.5">
+          <span id="cueDotPulse" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          DIRECTOR CUE INTERCOM (DARI PD)
         </span>
+        <span id="lblCueTimestamp" class="text-[9px] font-mono text-slate-500">-</span>
       </div>
-
-      <!-- Jam Digital Raksasa Floor Director -->
-      <div class="py-2 relative z-10">
-        <div id="displayLargeTimer" class="font-mono font-black text-6xl sm:text-7xl md:text-8xl tracking-wider text-emerald-400 drop-shadow-md">
-          02:00
-        </div>
-        <div class="flex items-center justify-center gap-2 mt-2 font-mono text-xs text-slate-400">
-          <span>Target Durasi: <strong id="displayTargetDuration" class="text-white">02:00</strong></span>
-          <span>&bull;</span>
-          <span id="displayTimerStatus" class="font-bold text-emerald-400 uppercase">WAKTU AMAN</span>
-        </div>
-      </div>
-
-      <!-- Detail Rundown Segmen yang Sedang Aktif -->
-      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-left space-y-2 relative z-10">
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">JUDUL SEGMEN BERJALAN:</span>
-          <span class="text-[10px] font-mono text-slate-500" id="displayProgramTitle">Bincang Sore SKAWAN</span>
-        </div>
-        <h2 id="displaySegmentTitle" class="font-brand font-black text-base sm:text-lg text-white">
-          Opening & Sapa Presenter
-        </h2>
-        <p id="displayTalentAction" class="text-xs text-slate-300 leading-relaxed font-sans">
-          Host membuka acara di area presenter, menyapa penonton di Cam 1.
-        </p>
-        <div class="pt-2 border-t border-slate-800/80 flex items-start gap-1.5 text-[11px] font-mono text-amber-400">
-          <span class="font-bold shrink-0">CUES:</span>
-          <span id="displayTechnicalNote" class="truncate">Lower Third Nama Host ON, Siapkan VT profil</span>
-        </div>
-      </div>
-
-      <!-- Tombol Navigasi Segmen Cepat -->
-      <div class="grid grid-cols-2 gap-3 pt-1 relative z-10">
-        <button onclick="pindahSegmen(-1)" class="cue-card-touch py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-          <span>Segmen Sebelumnya</span>
-        </button>
-        <button onclick="pindahSegmen(1)" class="cue-card-touch py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-600/30">
-          <span>Segmen Selanjutnya</span>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-        </button>
-      </div>
+      <p id="txtDirectorPrompt" class="text-base sm:text-xl font-brand font-black text-white">
+        Menunggu instruksi dari Sutradara (PD)...
+      </p>
     </div>
 
-    <!-- ============================================== -->
-    <!-- ARAH PANDANGAN TALENT (STUDIO TALLY)           -->
-    <!-- ============================================== -->
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
+    <!-- 2. STATUS TALLY KAMERA & TIMECODE SEGMEN AKTIF -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+      <!-- TALLY ACTIVE CAMERA -->
+      <div id="tallyBoxCard" class="p-4 rounded-2xl border-2 border-red-600 bg-red-950/40 text-center space-y-1 shadow-lg">
+        <span class="text-[10px] font-mono uppercase text-red-300 font-bold block">KAMERA SEDANG ON-AIR (ARAHKAN HOST):</span>
+        <h2 id="lblOnAirCamera" class="text-3xl sm:text-4xl font-brand font-black text-red-500 tracking-wider">
+          CAM 1
+        </h2>
+        <span class="text-[11px] font-mono text-slate-300 block" id="lblTallySubtext">Host menatap kamera ini</span>
+      </div>
+
+      <!-- MASTER SHOW & SEGMENT TIMERS -->
+      <div class="p-4 rounded-2xl border-2 border-slate-800 bg-slate-900 flex flex-col justify-between text-center space-y-2">
+        <span class="text-[10px] font-mono uppercase text-slate-400 font-bold block">SISA WAKTU SEGMEN AKTIF:</span>
+        <h2 id="lblSegmentRemaining" class="text-3xl sm:text-4xl font-mono font-black text-amber-400">
+          00:00
+        </h2>
+        <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800">
+          <span>Total Show: <strong id="lblShowRemaining" class="text-white">00:00:00</strong></span>
+          <span id="lblHandCueAdvice" class="text-emerald-400 font-bold">Siaran Normal</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3. RUNDOWN MATA ACARA LENGKAP -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
-          <h3 class="font-brand font-bold text-sm text-white uppercase tracking-wider">Arah Pandangan Talent (Studio Tally)</h3>
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+          <h3 class="font-brand font-black text-xs sm:text-sm uppercase tracking-wider text-white">
+            Rundown Siaran Studio
+          </h3>
         </div>
-        <span class="text-[11px] font-mono text-slate-400">Sinkron ATEM Switcher</span>
+        <span class="text-[10px] font-mono text-slate-400" id="lblRundownCount">0 Segmen</span>
       </div>
 
-      <p class="text-xs text-slate-400">
-        Arahkan kontak mata pembawa acara ke kamera yang bertanda <span class="font-bold text-red-500">MERAH (ON-AIR)</span>:
-      </p>
-
-      <div id="studioTallyGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+      <div class="space-y-2 max-h-[340px] overflow-y-auto pr-1" id="rundownContainer">
         <!-- Render otomatis via JavaScript -->
       </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- PANDUAN ISYARAT TANGAN FLOOR DIRECTOR          -->
-    <!-- ============================================== -->
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <h3 class="font-brand font-bold text-sm text-white uppercase tracking-wider">Panduan Isyarat Tangan Floor Director</h3>
-        </div>
-        <span class="text-[11px] font-mono text-slate-400">Tap untuk memandu</span>
-      </div>
-
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center">
-        
-        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
-          <span class="text-3xl">🖐️</span>
-          <span class="font-brand font-black text-xs text-white">STANDBY / CUE</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Tangan terbuka tegak lurus, siap menunjuk hitungan 5..4..3..</span>
-        </div>
-
-        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
-          <span class="text-3xl">✌️</span>
-          <span class="font-brand font-black text-xs text-white">2 MENIT SISA</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Dua jari tegak lurus di depan pandangan host</span>
-        </div>
-
-        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
-          <span class="text-3xl">☝️</span>
-          <span class="font-brand font-black text-xs text-white">1 MENIT SISA</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Satu jari telunjuk tegak ke atas, talent mulai closing</span>
-        </div>
-
-        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
-          <span class="text-3xl">🤏</span>
-          <span class="font-brand font-black text-xs text-amber-400 bg-amber-950/60 border border-amber-800 rounded-lg px-2">30 DETIK</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Dua jari menyilang membentuk huruf C atau X kecil</span>
-        </div>
-
-        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
-          <span class="text-3xl">🔄</span>
-          <span class="font-brand font-black text-xs text-amber-400">WRAP UP</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Putar jari telunjuk melingkar: percepat pembicaraan</span>
-        </div>
-
-        <div class="cue-card-touch bg-slate-950 border border-slate-800 p-3 rounded-2xl flex flex-col items-center justify-center space-y-1 hover:border-slate-700 transition">
-          <span class="text-3xl">✂️</span>
-          <span class="font-brand font-black text-xs text-red-400 bg-red-950/60 border border-red-800 rounded-lg px-2">CUT / STOP</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Gerakan memotong leher perlahan: segmen selesai</span>
-        </div>
-
-      </div>
+    <!-- 4. RINGKASAN GRAFIS LOWER THIRD AKTIF -->
+    <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-xs font-mono">
+      <span class="text-slate-400">Lower Third Tayang: <strong id="lblLiveLtTitle" class="text-white">-</strong></span>
+      <span id="badgeLtStatus" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">OFF</span>
     </div>
 
   </main>
 
-  <!-- MODAL NOTIFIKASI DIALOG -->
-  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
-      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold">✓</div>
-      <h4 id="noticeTitle" class="text-base font-bold text-white mb-1">Pemberitahuan</h4>
-      <p id="noticeMessage" class="text-xs text-slate-300 leading-relaxed"></p>
-      <button onclick="closeNotice()" class="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2.5 rounded-xl text-xs transition">
-        Tutup
-      </button>
-    </div>
-  </div>
-
-  <!-- MODAL KONFIRMASI KELUAR / GANTI PERAN FLOOR DIRECTOR -->
-  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
-      <div id="exitModalIcon" class="w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold">
-        🔄
-      </div>
-      <div>
-        <h4 id="exitModalTitle" class="text-base font-brand font-black text-white">Ganti Peran Kru?</h4>
-        <p id="exitModalMessage" class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Slot posisi <strong>Floor Director (FD)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.
-        </p>
-      </div>
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">
-          Batal
-        </button>
-        <button id="btnConfirmExitAction" onclick="eksekusiKeluarSesi()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">
-          Ya, Lepaskan Slot
-        </button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    let currentRoomToken = 'STUDIO-1';
-    let currentRoleKey = 'fd';
-    let currentSiswaUser = '';
-    let pendingExitType = 'ganti'; // 'ganti' atau 'keluar'
-    let isFirebaseReady = typeof firebase !== 'undefined' && typeof db !== 'undefined';
+    let currentRoomToken = 'SKASA';
+    let rundownItems = [];
+    let segmentRemainingSec = 180;
+    let showRemainingSec = 3600;
 
-    let totalCameras = 3;
-    let liveState = {
-      programSource: 'cam_1',
-      previewSource: 'cam_2',
-      tally: { cam_1: 'red', cam_2: 'green', cam_3: 'off' }
-    };
-
-    let rundownData = [
-      {
-        title: "Opening & Sapa Presenter",
-        duration: "02:00",
-        durationSeconds: 120,
-        talent: "Host menyapa pemirsa di Cam 1, membuka tema bincang sore.",
-        note: "Lower Third Nama Host ON, Siapkan VT profil di Google Drive."
-      },
-      {
-        title: "Sapa Narasumber & Diskusi",
-        duration: "03:00",
-        durationSeconds: 180,
-        talent: "Host melempar topik utama ke narasumber tamu di kursi bincang.",
-        note: "Cam 2 Close Guest, Cam 3 Wide. FD hitung 3 menit mundur."
-      },
-      {
-        title: "Closing & Bumper Penutup",
-        duration: "01:30",
-        durationSeconds: 90,
-        talent: "Host merangkum kesimpulan dan menyampaikan salam penutup.",
-        note: "Roll VT Bumper Drive, Fade Out Audio, Host melambaikan tangan."
-      }
-    ];
-
-    let currentSegmentIndex = 0;
-    let timerRemainingSeconds = 120;
-    let timerInterval = null;
-
-    // Modal Helper
-    function showNotice(title, message, isSuccess = true) {
-      document.getElementById('noticeTitle').innerText = title;
-      document.getElementById('noticeMessage').innerText = message;
-      const icon = document.getElementById('noticeIcon');
-      if (isSuccess) {
-        icon.className = "w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold";
-        icon.innerText = "✓";
-      } else {
-        icon.className = "w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto mb-2 text-xl font-bold";
-        icon.innerText = "!";
-      }
-      document.getElementById('noticeModal').classList.remove('hidden');
+    function getDatabase() {
+      return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
     }
 
-    function closeNotice() {
-      document.getElementById('noticeModal').classList.add('hidden');
+    function formatTimecode(sec) {
+      sec = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
-    // Inisialisasi awal
+    function formatShowTime(sec) {
+      sec = Math.max(0, Math.floor(sec || 0));
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      const sessionRoom = sessionStorage.getItem('skawan_room') || localStorage.getItem('skawan_room');
-      const sessionUser = sessionStorage.getItem('skawan_user') || localStorage.getItem('skawan_user');
-      
-      currentRoomToken = (roomParam || sessionRoom || 'STUDIO-1').toUpperCase();
-      currentSiswaUser = sessionUser || 'Floor Director';
+      currentRoomToken = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
+      document.getElementById('navRoomToken').innerText = currentRoomToken;
 
-      document.getElementById('navDisplayToken').innerText = currentRoomToken;
-      const userBadge = document.getElementById('navDisplayUser');
-      if (userBadge) userBadge.innerText = currentSiswaUser;
-
-      initFloorDirectorSystem(currentRoomToken);
-      startSegmentTimer();
+      initFdListener(currentRoomToken);
+      startTimersTick();
     });
 
-    function initFloorDirectorSystem(token) {
-      if (isFirebaseReady) {
-        // Tarik meta ruangan & pantau status berakhir (SKASA kebal)
-        db.ref(`rooms/${token}/meta`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const meta = snapshot.val();
-          if (meta.totalCameras) totalCameras = meta.totalCameras;
-          if (meta.programName) document.getElementById('displayProgramTitle').innerText = meta.programName;
-          if (meta.status === 'ended' && token !== 'SKASA') {
-            tanganiSesiDiakhiriGuru();
-          }
-          renderStudioTallyCards();
-        });
-
-        // Tarik rundown real-time dari Tim Kreatif
-        db.ref(`rooms/${token}/rundown`).on('value', snapshot => {
-          const val = snapshot.val();
-          if (val) {
-            rundownData = Array.isArray(val) ? val : Object.values(val);
-            updateSegmentDisplay();
-          }
-        });
-
-        // Dengarkan nomor segmen dan timer rundown yang dikomandokan Sutradara (PD)
-        db.ref(`rooms/${token}/timer_rundown`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const tr = snapshot.val();
-          if (typeof tr.currentSegmentIndex === 'number' && tr.currentSegmentIndex !== currentSegmentIndex) {
-            currentSegmentIndex = tr.currentSegmentIndex;
-            updateSegmentDisplay();
-          }
-          if (typeof tr.timeRemaining === 'number') {
-            timerRemainingSeconds = tr.timeRemaining;
-            renderTimerUI();
-          }
-        });
-
-        // Dengarkan live switching (PGM / PVW / Tally) dari ATEM Switcher
-        db.ref(`rooms/${token}/live_state`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const live = snapshot.val();
-          liveState.programSource = live.programSource || liveState.programSource;
-          liveState.previewSource = live.previewSource || liveState.previewSource;
-          liveState.tally = live.tally || liveState.tally;
-          updateStudioTallyVisuals();
-        });
-
-        // Dengarkan komando instruksi langsung dari Program Director (PD)
-        db.ref(`rooms/${token}/director_cues`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const cue = snapshot.val();
-          if (cue.targetRole === 'FD' || cue.targetRole === 'ALL') {
-            document.getElementById('directorCueMessage').innerText = cue.message;
-            const now = new Date(cue.timestamp || Date.now());
-            document.getElementById('directorCueTime').innerText = now.toTimeString().split(' ')[0];
-
-            const banner = document.getElementById('directorCueBanner');
-            banner.classList.add('ring-4', 'ring-emerald-400');
-            setTimeout(() => banner.classList.remove('ring-4', 'ring-emerald-400'), 2000);
-          }
-        });
-
-        // Dengarkan trigger krisis dari Guru (misal: TIME_CUT)
-        db.ref(`rooms/${token}/crisis`).on('value', snapshot => {
-          if (!snapshot.exists()) return;
-          const crisis = snapshot.val();
-          const banner = document.getElementById('crisisAlertBanner');
-          if (crisis.isActive && (crisis.type === 'TIME_CUT' || crisis.type === 'ALL')) {
-            banner.classList.remove('hidden');
-            document.getElementById('crisisAlertText').innerText = crisis.message;
-            if (timerRemainingSeconds > 30) {
-              timerRemainingSeconds = Math.max(10, timerRemainingSeconds - 60);
-              renderTimerUI();
-            }
-          } else {
-            banner.classList.add('hidden');
-          }
-        });
-      } else {
-        // Mode demo preview
-        renderStudioTallyCards();
-        updateSegmentDisplay();
-        updateStudioTallyVisuals();
+    function initFdListener(token) {
+      const activeDb = getDatabase();
+      if (!activeDb) {
+        setTimeout(() => initFdListener(token), 300);
+        return;
       }
-    }
 
-    function renderStudioTallyCards() {
-      const grid = document.getElementById('studioTallyGrid');
-      grid.innerHTML = '';
+      activeDb.ref(`rooms/${token}`).on('value', snapshot => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.val();
 
-      for (let i = 1; i <= totalCameras; i++) {
-        const camKey = `cam_${i}`;
-        const card = document.createElement('div');
-        card.id = `fd-tally-${camKey}`;
-        card.className = "p-3 rounded-2xl border-2 border-slate-800 bg-slate-950 flex flex-col items-center justify-between text-center transition";
-        card.innerHTML = `
-          <span class="text-[10px] font-mono font-bold text-slate-400">CAM ${i}</span>
-          <span class="text-xl font-brand font-black my-1 text-slate-400" id="fd-label-${camKey}">IDLE</span>
-          <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400" id="fd-badge-${camKey}">OFF</span>
-        `;
-        grid.appendChild(card);
-      }
-      updateStudioTallyVisuals();
-    }
+        // 1. Tally Camera
+        const pgmSrc = data.live_state?.programSource || 'cam_1';
+        updateTallyDisplay(pgmSrc);
 
-    function updateStudioTallyVisuals() {
-      for (let i = 1; i <= totalCameras; i++) {
-        const camKey = `cam_${i}`;
-        const card = document.getElementById(`fd-tally-${camKey}`);
-        const label = document.getElementById(`fd-label-${camKey}`);
-        const badge = document.getElementById(`fd-badge-${camKey}`);
-        if (!card || !label || !badge) continue;
-
-        if (camKey === liveState.programSource) {
-          card.className = "p-3 rounded-2xl border-2 tally-active-red text-center transition scale-105 shadow-xl";
-          label.innerText = "ON-AIR";
-          label.className = "text-xl font-brand font-black my-1 text-white animate-pulse";
-          badge.innerText = "TATAP CAM INI";
-          badge.className = "text-[9px] font-mono font-black px-2 py-0.5 rounded bg-black/50 text-white shadow";
-        } else if (camKey === liveState.previewSource) {
-          card.className = "p-3 rounded-2xl border-2 tally-active-green text-center transition shadow-lg";
-          label.innerText = "STANDBY";
-          label.className = "text-xl font-brand font-black my-1 text-white";
-          badge.innerText = "NEXT SHOT";
-          badge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-black/40 text-white";
-        } else {
-          card.className = "p-3 rounded-2xl border-2 border-slate-800 bg-slate-950 text-center transition opacity-60";
-          label.innerText = "OFF";
-          label.className = "text-xl font-brand font-bold my-1 text-slate-500";
-          badge.innerText = "IDLE";
-          badge.className = "text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-slate-500 border border-slate-800";
+        // 2. Director Cue
+        if (data.pd_state?.directorCue) {
+          updateDirectorCue(data.pd_state.directorCue, data.pd_state.cueTimestamp);
         }
-      }
+
+        // 3. Rundown
+        if (data.rundown) {
+          const list = Array.isArray(data.rundown) ? data.rundown : Object.values(data.rundown);
+          rundownItems = list.filter(s => s && typeof s === 'object');
+          renderRundownUI(data.pd_state?.currentSegmentIndex || 0);
+        }
+
+        // 4. CG Lower Third Info
+        if (data.cg_state) {
+          const ltOn = data.cg_state.lowerThirdActive;
+          document.getElementById('lblLiveLtTitle').innerText = ltOn ? `${data.cg_state.title} (${data.cg_state.subtitle})` : '-';
+          const badge = document.getElementById('badgeLtStatus');
+          badge.innerText = ltOn ? 'ON-AIR' : 'OFF';
+          badge.className = ltOn ? 'px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white animate-pulse' : 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+        }
+      });
     }
 
-    function updateSegmentDisplay() {
-      if (!rundownData || rundownData.length === 0) return;
-      const seg = rundownData[currentSegmentIndex] || rundownData[0];
+    function updateTallyDisplay(src) {
+      const box = document.getElementById('tallyBoxCard');
+      const lbl = document.getElementById('lblOnAirCamera');
+      const sub = document.getElementById('lblTallySubtext');
 
-      document.getElementById('badgeCurrentSegment').innerText = `SEGMEN ${currentSegmentIndex + 1} / ${rundownData.length}`;
-      document.getElementById('displaySegmentTitle').innerText = seg.title || 'Segmen Siaran';
-      document.getElementById('displayTalentAction').innerText = seg.talent || '-';
-      document.getElementById('displayTechnicalNote').innerText = seg.note || '-';
+      lbl.innerText = src.toUpperCase().replace('_', ' ');
 
-      const totalSec = seg.durationSeconds || parseDuration(seg.duration);
-      document.getElementById('displayTargetDuration').innerText = formatTimer(totalSec);
-      timerRemainingSeconds = totalSec;
-      renderTimerUI();
-    }
-
-    function pindahSegmen(delta) {
-      const nextIdx = currentSegmentIndex + delta;
-      if (nextIdx >= 0 && nextIdx < rundownData.length) {
-        currentSegmentIndex = nextIdx;
-        updateSegmentDisplay();
-      }
-    }
-
-    function parseDuration(str) {
-      if (!str) return 120;
-      const p = str.split(':');
-      if (p.length === 2) return (parseInt(p[0]) || 0) * 60 + (parseInt(p[1]) || 0);
-      return 120;
-    }
-
-    function formatTimer(sec) {
-      const isNeg = sec < 0;
-      const absSec = Math.abs(sec);
-      const m = Math.floor(absSec / 60);
-      const s = absSec % 60;
-      return `${isNeg ? '-' : ''}${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    function startSegmentTimer() {
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        timerRemainingSeconds--;
-        renderTimerUI();
-      }, 1000);
-    }
-
-    function renderTimerUI() {
-      const display = document.getElementById('displayLargeTimer');
-      const statusLabel = document.getElementById('displayTimerStatus');
-      const glow = document.getElementById('timerGlowBg');
-
-      display.innerText = formatTimer(timerRemainingSeconds);
-
-      if (timerRemainingSeconds > 60) {
-        display.className = "font-mono font-black text-6xl sm:text-7xl md:text-8xl tracking-wider text-emerald-400 drop-shadow-md";
-        statusLabel.className = "font-bold text-emerald-400 uppercase";
-        statusLabel.innerText = "WAKTU AMAN";
-        glow.className = "absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none transition-colors duration-500";
-      } else if (timerRemainingSeconds >= 0) {
-        display.className = "font-mono font-black text-6xl sm:text-7xl md:text-8xl tracking-wider text-amber-400 animate-pulse drop-shadow-md";
-        statusLabel.className = "font-bold text-amber-400 uppercase";
-        statusLabel.innerText = "SISA < 1 MENIT (PERSIAPKAN CLOSING / VT)";
-        glow.className = "absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl pointer-events-none transition-colors duration-500";
+      if (src.startsWith('cam')) {
+        box.className = "p-4 rounded-2xl border-2 border-red-600 bg-red-950/50 text-center space-y-1 shadow-lg";
+        lbl.className = "text-3xl sm:text-4xl font-brand font-black text-red-500 tracking-wider animate-pulse";
+        sub.innerText = "Host tatap kamera ini!";
+      } else if (src === 'vt') {
+        box.className = "p-4 rounded-2xl border-2 border-amber-600 bg-amber-950/40 text-center space-y-1 shadow-lg";
+        lbl.className = "text-3xl sm:text-4xl font-brand font-black text-amber-400 tracking-wider";
+        sub.innerText = "Pemutaran Video VT (Host Standby)";
       } else {
-        display.className = "font-mono font-black text-6xl sm:text-7xl md:text-8xl tracking-wider text-red-500 animate-bounce drop-shadow-md";
-        statusLabel.className = "font-bold text-red-500 uppercase";
-        statusLabel.innerText = "OVERTIME! BERIKAN ISYARAT CUT KE HOST!";
-        glow.className = "absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-64 bg-red-600/30 rounded-full blur-3xl pointer-events-none transition-colors duration-500";
+        box.className = "p-4 rounded-2xl border-2 border-cyan-600 bg-cyan-950/40 text-center space-y-1 shadow-lg";
+        lbl.className = "text-3xl sm:text-4xl font-brand font-black text-cyan-400 tracking-wider";
+        sub.innerText = "Layar Presentasi / Screen Share";
       }
     }
 
-    // Modal Konfirmasi Keluar / Ganti Peran Floor Director
-    function bukaModalKeluar(type) {
-      pendingExitType = type;
-      const modal = document.getElementById('exitConfirmModal');
-      const title = document.getElementById('exitModalTitle');
-      const message = document.getElementById('exitModalMessage');
-      const icon = document.getElementById('exitModalIcon');
-      const btn = document.getElementById('btnConfirmExitAction');
+    function updateDirectorCue(msg, timestamp) {
+      const card = document.getElementById('directorCueCard');
+      const promptEl = document.getElementById('txtDirectorPrompt');
+      const dot = document.getElementById('cueDotPulse');
+      const timeLbl = document.getElementById('lblCueTimestamp');
 
-      if (type === 'ganti') {
-        icon.innerText = "🔄";
-        icon.className = "w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold";
-        title.innerText = "Ganti Peran Kru?";
-        message.innerHTML = `Slot posisi <strong>Floor Director (FD)</strong> akan dilepaskan di sistem studio, dan Anda akan langsung diarahkan ke layar pemilihan peran.`;
-        btn.innerText = "Ya, Ganti Peran";
-        btn.className = "w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-sm";
-      } else {
-        icon.innerText = "🚪";
-        icon.className = "w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl font-bold";
-        title.innerText = "Keluar dari Sesi Siaran?";
-        message.innerHTML = `Slot posisi <strong>Floor Director (FD)</strong> akan dilepaskan dan Anda akan keluar dari sesi studio.`;
-        btn.innerText = "Ya, Keluar Sesi";
-        btn.className = "w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm";
+      promptEl.innerText = msg;
+      dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+      card.className = "p-4 rounded-2xl border-2 border-amber-500 bg-amber-950/40 space-y-1 transition-all duration-300 shadow-xl director-cue-pulse";
+
+      if (timestamp) {
+        timeLbl.innerText = new Date(timestamp).toLocaleTimeString();
       }
 
-      modal.classList.remove('hidden');
-    }
-
-    function tutupModalKeluar() {
-      document.getElementById('exitConfirmModal').classList.add('hidden');
-    }
-
-    function tanganiSesiDiakhiriGuru() {
-      if (currentRoomToken === 'SKASA') return; // Proteksi SKASA
-
-      localStorage.removeItem('skawan_role');
-      localStorage.removeItem('skawan_role_title');
-      sessionStorage.removeItem('skawan_role');
-      sessionStorage.removeItem('skawan_role_title');
-
-      showNotice("Sesi Diakhiri", "Sesi siaran telah diselesaikan oleh Guru. Mengalihkan ke halaman peran...", false);
       setTimeout(() => {
-        window.location.href = `login.html?room=${currentRoomToken}`;
-      }, 1500);
+        card.classList.remove('director-cue-pulse');
+        dot.className = "w-2 h-2 rounded-full bg-slate-500";
+        card.className = "p-4 rounded-2xl border-2 border-slate-800 bg-slate-900 space-y-1 transition-all duration-300 shadow-xl";
+      }, 6000);
     }
 
-    function eksekusiKeluarSesi() {
-      if (isFirebaseReady && currentRoomToken && currentSiswaUser) {
-        db.ref(`rooms/${currentRoomToken}/roles/fd`).transaction(currentVal => {
-          if (currentVal === currentSiswaUser) {
-            return "";
-          }
-          return currentVal;
-        });
-      }
+    function renderRundownUI(activeIndex) {
+      const container = document.getElementById('rundownContainer');
+      container.innerHTML = '';
+      document.getElementById('lblRundownCount').innerText = `${rundownItems.length} Segmen`;
 
-      localStorage.removeItem('skawan_role');
-      localStorage.removeItem('skawan_role_title');
-      sessionStorage.removeItem('skawan_role');
-      sessionStorage.removeItem('skawan_role_title');
+      rundownItems.forEach((seg, idx) => {
+        const isActive = (idx === activeIndex);
+        const card = document.createElement('div');
 
-      tutupModalKeluar();
+        let border = 'border-slate-800 bg-slate-950';
+        if (isActive) border = 'border-amber-500 bg-amber-950/30 ring-1 ring-amber-500 shadow-md';
 
-      if (pendingExitType === 'keluar') {
-        localStorage.removeItem('skawan_user');
-        sessionStorage.removeItem('skawan_user');
-        window.location.href = 'login.html';
-      } else {
-        window.location.href = `login.html?room=${currentRoomToken}`;
-      }
+        card.className = `p-3 rounded-xl border flex items-center justify-between text-xs ${border}`;
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded ${isActive ? 'bg-amber-500 text-black font-black' : 'bg-slate-900 text-slate-400 font-bold'} flex items-center justify-center font-mono">
+              ${idx + 1}
+            </span>
+            <div>
+              <span class="font-brand font-bold text-white block ${isActive ? 'text-amber-400' : ''}">${seg.title}</span>
+              <span class="text-[10px] font-mono text-slate-400 block">Sumber: <strong class="uppercase text-slate-200">${(seg.targetSource || '').replace('_', ' ')}</strong> &bull; Durasi: ${formatTimecode(seg.durationSec)}</span>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded font-mono text-[9px] font-bold ${isActive ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-400'}">
+            ${isActive ? 'ACTIVE' : 'QUEUED'}
+          </span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function startTimersTick() {
+      setInterval(() => {
+        if (segmentRemainingSec > 0) segmentRemainingSec--;
+        if (showRemainingSec > 0) showRemainingSec--;
+
+        document.getElementById('lblSegmentRemaining').innerText = formatTimecode(segmentRemainingSec);
+        document.getElementById('lblShowRemaining').innerText = formatShowTime(showRemainingSec);
+
+        const advice = document.getElementById('lblHandCueAdvice');
+        if (segmentRemainingSec <= 15 && segmentRemainingSec > 0) {
+          advice.innerText = "Isyarat: Wrap Up / Potong!";
+          advice.className = "text-red-500 font-bold animate-pulse";
+        } else if (segmentRemainingSec <= 60 && segmentRemainingSec > 0) {
+          advice.innerText = "Isyarat: 1 Menit Tersisa";
+          advice.className = "text-amber-400 font-bold";
+        } else {
+          advice.innerText = "Siaran Normal";
+          advice.className = "text-emerald-400 font-bold";
+        }
+      }, 1000);
     }
   </script>
 </body>
