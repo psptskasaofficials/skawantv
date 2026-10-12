@@ -119,7 +119,10 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-orange-600 selection:text-white">
 
-  <!-- NAVBAR: Z-50 (SELALU DI ATAS SAAT SCROLL) -->
+  <!-- AUDIO TERSEMBUNYI UNTUK MIC OPERATOR MEJA AUDIO-VT -->
+  <audio id="masterStudioAudio" autoplay playsinline></audio>
+
+  <!-- NAVBAR: Z-50 -->
   <nav id="liveNavBar" class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -166,7 +169,7 @@
     </div>
   </nav>
 
-  <!-- VIEWPORT PROGRAM UTAMA (Z-10: MELUNCUR DI BAWAH NAVBAR SAAT SCROLL) -->
+  <!-- VIEWPORT PROGRAM UTAMA (Z-10) -->
   <main class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-5 w-full flex-1 flex flex-col justify-start items-center space-y-4">
     <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl shadow-red-950/40 flex items-center justify-center group select-none">
 
@@ -210,7 +213,7 @@
         </div>
       </div>
 
-      <!-- 3. FEED KAMERA WEBRTC -->
+      <!-- 3. FEED KAMERA / SCREEN WEBRTC (AUDIO DIMUTE, HANYA MENGAMBIL GAMBAR) -->
       <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
       <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API) -->
@@ -222,7 +225,7 @@
         </div>
       </div>
 
-      <!-- 5. CG BUG LOGO (WATERMARK DI DEPAN VIDEO PLAYER) -->
+      <!-- 5. CG BUG LOGO (WATERMARK DI DEPAN VIDEO) -->
       <div id="cgBugLogo" class="absolute top-3 sm:top-4 right-3 sm:right-4 z-30 flex items-center justify-center max-w-[140px] max-h-12 transition-all duration-200 pointer-events-none select-none">
         <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-9 w-auto max-w-[130px] object-contain drop-shadow-md">
         <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-white/95 rounded-xl px-2 py-1 shadow-lg backdrop-blur-sm border border-white/20">
@@ -265,7 +268,7 @@
         <span>LIVE</span>
       </div>
 
-      <!-- 7. KONTROL OVERLAY (MUTE & FULLSCREEN) -->
+      <!-- KONTROL OVERLAY (MUTE & FULLSCREEN) -->
       <div class="absolute bottom-8 right-4 z-40 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
         <button id="btnToggleAudio" onclick="toggleAudioPlayback()" class="bg-black/80 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition flex items-center gap-1.5 shadow-lg">
           <span id="iconAudioMute">🔇</span>
@@ -293,7 +296,7 @@
       </div>
     </div>
 
-    <!-- PANEL DAFTAR RUANGAN SIARAN (TERURUT: SKASA #1, ON-AIR, STANDBY, OFF-AIR) -->
+    <!-- PANEL DAFTAR RUANGAN SIARAN -->
     <div class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
@@ -384,26 +387,39 @@
       }
     }
 
+    // ==============================================================
+    // ROUTING AUDIO TERPUSAT (SPLIT AUDIO/VIDEO ARCHITECTURE)
+    // ==============================================================
     function applyAudioState() {
       const bumperIframe = document.getElementById('pgmBumperIframe');
-      const pgmCamVideo = document.getElementById('pgmCamVideo');
+      const studioMicAudio = document.getElementById('masterStudioAudio');
+      const activeSrc = liveState.programSource || 'cam_1';
 
       if (isAudioUnmuted) {
+        // 1. Audio Mic Operator dari Meja Audio-VT (Selalu Unmute ke Penonton)
+        if (studioMicAudio) studioMicAudio.muted = false;
+
+        // 2. Audio Bumper Ident
         sendCommandToIframe(bumperIframe, 'unMute');
         sendCommandToIframe(bumperIframe, 'setVolume', [100]);
 
+        // 3. Audio VT YouTube: HANYA BERBUNYI JIKA SUMBER PROGRAM ADALAH VT
         if (masterYtPlayer && typeof masterYtPlayer.unMute === 'function') {
-          masterYtPlayer.unMute();
-          masterYtPlayer.setVolume(100);
+          if (activeSrc === 'vt') {
+            masterYtPlayer.unMute();
+            masterYtPlayer.setVolume(100);
+          } else {
+            // JIKA BERALIH KE KAMERA/SCREEN -> MUTE TOTAL YOUTUBE
+            masterYtPlayer.mute();
+          }
         }
-        if (pgmCamVideo) pgmCamVideo.muted = false;
       } else {
+        // Semua Terbungkam (User Menekan Mute)
+        if (studioMicAudio) studioMicAudio.muted = true;
         sendCommandToIframe(bumperIframe, 'mute');
-
         if (masterYtPlayer && typeof masterYtPlayer.mute === 'function') {
           masterYtPlayer.mute();
         }
-        if (pgmCamVideo) pgmCamVideo.muted = true;
       }
     }
 
@@ -486,10 +502,7 @@
             if (e.data === YT.PlayerState.PLAYING) {
               const shield = document.getElementById('pgmBlackShield');
               if (shield) shield.classList.add('opacity-0');
-              if (isAudioUnmuted) {
-                e.target.unMute();
-                e.target.setVolume(100);
-              }
+              applyAudioState();
             }
           }
         }
@@ -503,7 +516,6 @@
       }
     };
 
-    // LOGIKA MONITOR DENGAN ISOLASI TAMPILAN
     function updateMonitors() {
       const pgmViewport = document.getElementById('pgmViewport');
       const bumperWrap = document.getElementById('pgmBumperWrapper');
@@ -519,12 +531,9 @@
       const lblBroadcast = document.getElementById('lblBroadcastStatus');
       const lblActiveSrc = document.getElementById('lblActivePgmSource');
 
-      // KUNCI KHUSUS SKASA SELALU 'live' (ON AIR)
       const effectiveStatus = (currentRoomToken === 'SKASA') ? 'live' : (currentRoomMeta.status || 'standby');
 
-      // ==========================================
-      // KONDISI 1: ROOM DI-END / SELESAI
-      // ==========================================
+      // 1. SESI SELESAI
       if (effectiveStatus === 'ended') {
         pgmViewport.style.borderColor = '#334155';
         navBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700";
@@ -541,19 +550,17 @@
         document.getElementById('standbyBadgeText').innerText = "SIARAN SELESAI (OFF-AIR)";
         document.getElementById('standbyOverlayToken').innerText = currentRoomToken;
         document.getElementById('standbyOverlayProgram').innerText = currentRoomMeta.programName || "Program Berakhir";
-        document.getElementById('standbyOverlayDesc').innerText = "Sesi siaran pada ruangan ini telah diakhiri dari Master Control Room (MCR).";
 
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; pgmVideo.pause(); }
         if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
         if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
         if (bumperIframe) bumperIframe.src = 'about:blank';
         if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
+        applyAudioState();
         return;
       }
 
-      // ==========================================
-      // KONDISI 2: ROOM STANDBY / GLADI BERSIH
-      // ==========================================
+      // 2. GLADI BERSIH (STANDBY)
       if (effectiveStatus !== 'live') {
         onAirBumperPlayedForCurrentSession = false;
 
@@ -572,7 +579,6 @@
         document.getElementById('standbyBadgeText').innerText = "STUDIO STANDBY / GLADI BERSIH";
         document.getElementById('standbyOverlayToken').innerText = currentRoomToken;
         document.getElementById('standbyOverlayProgram').innerText = currentRoomMeta.programName || "Gladi Bersih Studio";
-        document.getElementById('standbyOverlayDesc').innerText = "Siaran belum mengudara secara publik. Kru sedang melakukan persiapan di ruang kontrol.";
 
         bumperWrap.style.display = 'flex';
         bumperWrap.style.opacity = '1';
@@ -580,7 +586,7 @@
         document.getElementById('bumperProgressBarContainer').classList.add('hidden');
 
         const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-        const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0${originParam}`;
+        const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0${originParam}`;
         if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
           bumperIframe.src = desiredBumperSrc;
         }
@@ -588,12 +594,11 @@
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
         if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
         if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
+        applyAudioState();
         return;
       }
 
-      // ==========================================
-      // KONDISI 3: STATUS 'live' (MUTLAK UNTUK SKASA)
-      // ==========================================
+      // 3. ON-AIR LIVE (MUTLAK UNTUK SKASA)
       pgmViewport.style.borderColor = '#dc2626';
       navBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-950/70 text-orange-400 border border-orange-800";
       navDot.className = "w-2 h-2 rounded-full bg-orange-500 animate-pulse";
@@ -604,7 +609,7 @@
 
       standbyOverlay.style.display = 'none';
 
-      // PRE-ROLL BUMPER 7 DETIK 1X SAJA SAAT MEMASUKI SESI LIVE
+      // PRE-ROLL BUMPER 7 DETIK 1X SAJA
       if (!onAirBumperPlayedForCurrentSession) {
         onAirBumperPlayedForCurrentSession = true;
         lblActiveSrc.innerText = "OPENING IDENT (7s)";
@@ -651,10 +656,11 @@
           updateMonitors();
         }, ON_AIR_BUMPER_DURATION_MS);
 
+        applyAudioState();
         return;
       }
 
-      // BUMPER SELESAI -> TAMPILKAN SIARAN UTAMA (VT / KAMERA)
+      // BUMPER SELESAI -> SIARAN ON-AIR
       bumperWrap.style.opacity = '0';
       setTimeout(() => {
         if (bumperWrap.style.opacity === '0') {
@@ -665,7 +671,7 @@
 
       const activeSrc = liveState.programSource || 'cam_1';
       const stream = getCameraStream(activeSrc);
-      const isVt = (activeSrc === 'vt' || activeSrc === 'sharescreen');
+      const isVt = (activeSrc === 'vt');
 
       if (isVt) {
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
@@ -679,6 +685,7 @@
         return;
       }
 
+      // JIKA BERGANTI KE KAMERA ATAU SHARESCREEN
       if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
       if (stream && pgmVideo) {
         if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
@@ -691,7 +698,8 @@
         pgmVideo.style.opacity = '0';
         lblActiveSrc.innerText = "MENUNGGU FEED KAMERA";
       }
-      applyAudioState();
+
+      applyAudioState(); // Pastikan YouTube VT langsung di-mute saat cut ke Cam
     }
 
     function getCameraStream(key) {
@@ -764,7 +772,6 @@
         if (ltSub) ltSub.innerText = cg.subtitle || 'Keterangan Jabatan';
       } else if (ltBox) ltBox.classList.add('hidden');
 
-      // BUG LOGO WATERMARK: SELALU TAMPIL DEFAULT (KECUALI DINONAKTIFKAN EKSPLISIT)
       if (cg.logoActive === false) {
         if (logoBox) logoBox.classList.add('hidden');
       } else {
@@ -868,12 +875,23 @@
         updateMonitors();
       });
 
+      // KONEKSI WEBRTC DENGAN AUDIO STREAM DARI MEJA AUDIO-VT
       if (typeof SkawanStreamer !== 'undefined') {
         const viewerRole = `viewer_${Math.random().toString(36).substring(2, 7)}`;
         streamerInstance = new SkawanStreamer({
           roomToken: currentRoomToken,
           roleKey: viewerRole,
           onRemoteStream: (camKey, stream) => {
+            // JIKA MENERIMA FEED SUARA MASTER DARI AUDIO-VT
+            if (camKey === 'audio_master' || camKey === 'audio_pgm') {
+              const masterAudioEl = document.getElementById('masterStudioAudio');
+              if (masterAudioEl && masterAudioEl.srcObject !== stream) {
+                masterAudioEl.srcObject = stream;
+                masterAudioEl.play().catch(() => {});
+              }
+              return;
+            }
+
             const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
             remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
@@ -926,7 +944,6 @@
           return (rObj.meta && rObj.meta.programName) || rObj.programName || `Studio ${token}`;
         }
 
-        // Pengurutan saluran berbobot
         roomTokens.sort((a, b) => {
           if (a === 'SKASA') return -1;
           if (b === 'SKASA') return 1;
