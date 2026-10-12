@@ -658,4 +658,451 @@
       status: 'playing',
       startAt: Date.now(),
       startOffset: 0,
-      totalDuration
+      totalDuration: 120,
+      title: 'SKAWAN TV Broadcast',
+      sourceType: 'youtube',
+      youtubeId: '',
+      url: ''
+    };
+
+    let liveState = { programSource: 'cam_1', previewSource: 'cam_2' };
+    let cachedCgState = {
+      isLiveBadgeActive: false,
+      logoActive: false,
+      logoUrl: '',
+      lowerThirdActive: false,
+      tickerActive: false
+    };
+
+    let loopMode = localStorage.getItem('skawan_vt_loop_mode') || 'playlist';
+    let currentPgmActiveYtId = '';
+    let lastPgmKnownVtTime = 0;
+
+    let audioMixerState = {
+      ch1: { fader: 85, isMuted: false, source: 'mic_hardware' },
+      ch2: { fader: 80, isMuted: false, source: 'cam_2' },
+      ch3: { fader: 50, isMuted: false, source: 'cam_3' },
+      ch4: { fader: 90, isMuted: false, source: 'vt_audio' },
+      ch5: { fader: 65, isMuted: false, source: 'bgm' },
+      master: { fader: 95, isMuted: false }
+    };
+
+    let cueYtPlayer = null;
+    let isCueYtReady = false;
+    let pendingCueVidId = null;
+
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
+
+    let audioCtx = null;
+    let micMediaStream = null;
+    let micSourceNode = null;
+    let micAnalyserNode = null;
+    let headphoneMonitorGain = null;
+    let isHardwareMicConnected = false;
+    let isHeadphoneMonitorOn = false;
+
+    function getDatabase() {
+      return window.db || (typeof firebase !== 'undefined' ? firebase.database() : null);
+    }
+
+    function showNotice(title, message, isSuccess = true) {
+      document.getElementById('noticeTitle').innerText = title;
+      document.getElementById('noticeMessage').innerText = message;
+      document.getElementById('noticeModal').classList.remove('hidden');
+    }
+
+    function closeNotice() {
+      document.getElementById('noticeModal').classList.add('hidden');
+    }
+
+    function extractCleanYtId(raw) {
+      if (!raw) return '';
+      const str = String(raw).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+      const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      return match ? match[1] : '';
+    }
+
+    function formatTimecode(sec) {
+      sec = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function calculateAbsoluteServerTime(vt) {
+      if (!vt) return 0;
+      const dur = vt.totalDuration || 120;
+      const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
+
+      if (vt.status !== 'playing') {
+        return dur > 0 ? (offset % dur) : offset;
+      }
+
+      const serverNow = Date.now() + serverClockOffset;
+      const baseStart = vt.startAt || vt.updatedAt || serverNow;
+      const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
+      const target = offset + elapsed;
+
+      return dur > 0 ? (target % dur) : target;
+    }
+
+    function sendCommandToPgmYtIframe(func, args = []) {
+      const ytIframe = document.getElementById('pgmYtIframe');
+      if (ytIframe && ytIframe.contentWindow) {
+        ytIframe.contentWindow.postMessage(JSON.stringify({
+          event: 'command',
+          func: func,
+          args: args
+        }), '*');
+      }
+    }
+
+    function startWibLiveClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        const wibStr = `${formatter.format(now).replace('.', ':')} WIB`;
+        const clockEl = document.getElementById('indexTickerWibHeader');
+        if (clockEl) clockEl.innerText = wibStr;
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    function paksaSinkronKeIndex() {
+      const badge = document.getElementById('pgmSyncStatusBadge');
+      const dot = document.getElementById('pgmSyncDot');
+      const label = document.getElementById('pgmSyncLabel');
+
+      if (badge && dot && label) {
+        badge.className = "flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-950 text-amber-400 border border-amber-700/60 font-mono text-[10px] font-bold";
+        dot.className = "w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse";
+        label.innerText = "SYNCING...";
+      }
+
+      syncPgmVtDisplay(true);
+
+      setTimeout(() => {
+        if (badge && dot && label) {
+          badge.className = "flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-700/60 font-mono text-[10px] font-bold";
+          dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-400";
+          label.innerText = "SYNCED";
+        }
+      }, 500);
+    }
+
+    window.onYouTubeIframeAPIReady = () => {
+      isCueYtReady = true;
+      if (pendingCueVidId) {
+        initCueYtPlayer(pendingCueVidId);
+        pendingCueVidId = null;
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      currentRoomToken = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
+      currentSiswaUser = sessionStorage.getItem('skawan_user') || 'Audio/VT Operator';
+
+      document.getElementById('navRoomToken').innerText = currentRoomToken;
+
+      try {
+        const cached = localStorage.getItem(`skawan_vt_playlist_${currentRoomToken}`);
+        if (cached) vtPlaylist = JSON.parse(cached);
+      } catch (e) {}
+
+      renderPlaylistUI();
+      startWibLiveClock();
+      startStudioTimecodeTicker();
+      startVuMeterRealtimeEngine();
+      updateLoopModeUI();
+      initAudioVtSystem(currentRoomToken);
+    });
+
+    function initAudioVtSystem(token) {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref('.info/serverTimeOffset').on('value', snap => {
+        serverClockOffset = snap.val() || 0;
+      });
+
+      // Sinkronisasi data playlist Firebase dengan sanitasi Array
+      activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
+        if (snap.exists()) {
+          const data = snap.val();
+          vtPlaylist = Array.isArray(data) ? data : Object.values(data);
+        } else if (vtPlaylist.length > 0) {
+          activeDb.ref(`rooms/${token}/vt_playlist`).set(vtPlaylist);
+        }
+        localStorage.setItem(`skawan_vt_playlist_${token}`, JSON.stringify(vtPlaylist));
+        renderPlaylistUI();
+      });
+
+      // Sinkronisasi VT On-Air
+      activeDb.ref(`rooms/${token}/vt_state`).on('value', snap => {
+        if (!snap.exists()) return;
+        onAirVtState = { ...onAirVtState, ...snap.val() };
+        renderPlaylistUI();
+        syncPgmVtDisplay(false);
+        updatePgmMonitors();
+      });
+
+      // Sinkronisasi live_state
+      activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
+        if (!snap.exists()) return;
+        const live = snap.val();
+        liveState.programSource = live.programSource || liveState.programSource;
+        liveState.previewSource = live.previewSource || liveState.previewSource;
+        updatePgmMonitors();
+      });
+
+      activeDb.ref(`rooms/${token}/cg_state`).on('value', snap => {
+        if (!snap.exists()) return;
+        applyCgGraphics(snap.val());
+      });
+
+      if (typeof SkawanStreamer !== 'undefined') {
+        streamerInstance = new SkawanStreamer({
+          roomToken: token,
+          roleKey: 'audio_vt',
+          onRemoteStream: (camKey, stream) => {
+            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+            remoteCamStreams.set(normKey, stream);
+            remoteCamStreams.set(camKey, stream);
+            updatePgmMonitors();
+          }
+        });
+      }
+    }
+
+    function updatePgmMonitors() {
+      const pgmVideo = document.getElementById('pgmCamVideo');
+      const pgmFallback = document.getElementById('pgmFallbackBox');
+      const pgmVtWrap = document.getElementById('pgmVtWrapper');
+      const lblActiveSrc = document.getElementById('lblActivePgmSource');
+      const screenLabel = document.getElementById('pgmScreenLabel');
+
+      const activeSrc = liveState.programSource || 'cam_1';
+      const stream = getCameraStream(activeSrc);
+      const isVtAvailable = (activeSrc === 'vt' || activeSrc === 'sharescreen') && (extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url) !== '');
+
+      if (isVtAvailable) {
+        if (pgmFallback) pgmFallback.classList.add('hidden');
+        if (pgmVideo) {
+          pgmVideo.classList.remove('opacity-100');
+          pgmVideo.classList.add('opacity-0', 'pointer-events-none');
+        }
+        if (pgmVtWrap) {
+          pgmVtWrap.classList.remove('opacity-0', 'pointer-events-none');
+          pgmVtWrap.classList.add('opacity-100');
+          pgmVtWrap.style.zIndex = '15';
+        }
+        if (lblActiveSrc) lblActiveSrc.innerText = 'VT ON-AIR';
+        syncPgmVtDisplay(false);
+        return;
+      }
+
+      if (stream) {
+        if (pgmFallback) pgmFallback.classList.add('hidden');
+        if (pgmVtWrap) {
+          pgmVtWrap.classList.remove('opacity-100');
+          pgmVtWrap.classList.add('opacity-0', 'pointer-events-none');
+          pgmVtWrap.style.zIndex = '0';
+        }
+        if (pgmVideo) {
+          if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+          pgmVideo.classList.remove('opacity-0', 'pointer-events-none');
+          pgmVideo.classList.add('opacity-100');
+          pgmVideo.style.zIndex = '15';
+          pgmVideo.play().catch(() => {});
+        }
+        if (lblActiveSrc) lblActiveSrc.innerText = activeSrc.toUpperCase().replace('_', ' ');
+        return;
+      }
+
+      // Default: Fallback Bumper
+      if (pgmVideo) {
+        pgmVideo.classList.remove('opacity-100');
+        pgmVideo.classList.add('opacity-0', 'pointer-events-none');
+      }
+      if (pgmVtWrap) {
+        pgmVtWrap.classList.remove('opacity-100');
+        pgmVtWrap.classList.add('opacity-0', 'pointer-events-none');
+        pgmVtWrap.style.zIndex = '0';
+      }
+      if (pgmFallback) pgmFallback.classList.remove('hidden');
+      if (lblActiveSrc) lblActiveSrc.innerText = 'BUMPER IDLE';
+      if (screenLabel) screenLabel.innerText = 'BUMPER IDLE';
+    }
+
+    function getCameraStream(key) {
+      if (!key) return null;
+      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
+      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
+      return null;
+    }
+
+    function syncPgmVtDisplay(forceResync = false) {
+      const ytIframe = document.getElementById('pgmYtIframe');
+      const shield = document.getElementById('pgmReturnBlackShield');
+
+      const ytId = extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url);
+      if (!ytId) return;
+
+      const isPlaying = onAirVtState.status === 'playing';
+      const targetTime = calculateAbsoluteServerTime(onAirVtState);
+
+      if (currentPgmActiveYtId !== ytId || !ytIframe.src || ytIframe.src === 'about:blank') {
+        currentPgmActiveYtId = ytId;
+        lastPgmKnownVtTime = targetTime;
+
+        if (shield) shield.classList.remove('opacity-0');
+
+        const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+        const autoPlayParam = isPlaying ? '1' : '0';
+        
+        ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=1&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&start=${Math.floor(targetTime)}${originParam}`;
+
+        setTimeout(() => {
+          if (shield) shield.classList.add('opacity-0');
+          if (isPlaying) sendCommandToPgmYtIframe('playVideo');
+          else sendCommandToPgmYtIframe('pauseVideo');
+        }, 350);
+        return;
+      }
+
+      const timeDiff = Math.abs(targetTime - lastPgmKnownVtTime);
+      if (timeDiff > 3.5 || forceResync) {
+        lastPgmKnownVtTime = targetTime;
+        sendCommandToPgmYtIframe('seekTo', [targetTime, true]);
+        if (isPlaying) sendCommandToPgmYtIframe('playVideo');
+      } else {
+        lastPgmKnownVtTime = targetTime;
+      }
+    }
+
+    function applyCgGraphics(cg) {
+      if (!cg) return;
+      cachedCgState = cg;
+
+      const ltBox = document.getElementById('cgLowerThirdBox');
+      const ltTitle = document.getElementById('cgLtTitle');
+      const ltSub = document.getElementById('cgLtSubtitleText');
+      const logoBox = document.getElementById('cgBugLogo');
+      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
+      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
+      const tickerBox = document.getElementById('cgTickerBar');
+      const tickerText = document.getElementById('cgTickerText');
+      const badgeLive = document.getElementById('badgeLiveOnAir');
+
+      if (cg.lowerThirdActive) {
+        if (ltBox) ltBox.classList.remove('hidden');
+        if (ltTitle) ltTitle.innerText = cg.title || 'NAMA PRESENTER';
+        if (ltSub) ltSub.innerText = cg.subtitle || 'Keterangan Jabatan';
+      } else {
+        if (ltBox) ltBox.classList.add('hidden');
+      }
+
+      if (cg.logoActive) {
+        if (logoBox) logoBox.classList.remove('hidden');
+        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
+          if (logoCustomImg) {
+            logoCustomImg.src = cg.logoUrl;
+            logoCustomImg.classList.remove('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+        } else {
+          if (logoCustomImg) {
+            logoCustomImg.src = '';
+            logoCustomImg.classList.add('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+        }
+      } else {
+        if (logoBox) logoBox.classList.add('hidden');
+      }
+
+      if (cg.tickerActive) {
+        if (tickerBox) tickerBox.classList.remove('hidden');
+        if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live Broadcast';
+      } else {
+        if (tickerBox) tickerBox.classList.add('hidden');
+      }
+
+      if (badgeLive) {
+        if (cg.isLiveBadgeActive) badgeLive.classList.remove('hidden');
+        else badgeLive.classList.add('hidden');
+      }
+    }
+
+    function initCueYtPlayer(vidId) {
+      const ytWrap = document.getElementById('audioVtYtWrap');
+      const fallbackBox = document.getElementById('audioVtFallback');
+      if (fallbackBox) fallbackBox.classList.add('hidden');
+      if (ytWrap) ytWrap.classList.remove('hidden');
+
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.loadVideoById === 'function') {
+        cueYtPlayer.loadVideoById({ videoId: vidId, startSeconds: 0 });
+        cueYtPlayer.pauseVideo();
+        isTestPlaying = false;
+        updateTestPlayBtnUI();
+        return;
+      }
+
+      if (typeof YT === 'undefined' || !YT.Player) {
+        pendingCueVidId = vidId;
+        return;
+      }
+
+      try {
+        cueYtPlayer = new YT.Player('audioVtYtEl', {
+          height: '100%',
+          width: '100%',
+          host: 'https://www.youtube-nocookie.com',
+          videoId: vidId,
+          playerVars: {
+            playsinline: 1,
+            controls: 0,
+            rel: 0,
+            autoplay: 0,
+            mute: 0,
+            modestbranding: 1,
+            iv_load_policy: 3,
+            disablekb: 1,
+            origin: window.location.origin || 'http://localhost'
+          },
+          events: {
+            onReady: (e) => {
+              isCueYtReady = true;
+              e.target.pauseVideo();
+              updateAudioFaderVolume();
+            },
+            onStateChange: (e) => {
+              if (e.data === YT.PlayerState.PLAYING) {
+                isTestPlaying = true;
+                updateTestPlayBtnUI();
+              } else if (e.data === YT.PlayerState.PAUSED) {
+                isTestPlaying = false;
+                updateTestPlayBtnUI();
+              } else if (e.data === YT.PlayerState.ENDED) {
+                isTestPlaying = false;
+                updateTestPlayBtnUI();
+                e.target.seekTo(0, true);
+              }
+            }
+          }
+        });
+      } catch (err) {}
+    }
+
+    function pilihKlipPlaylist(index) {
+      if (
