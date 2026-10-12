@@ -70,7 +70,7 @@
     })();
   </script>
 
-  <!-- Native WebRTC Streamer & YouTube API -->
+  <!-- Native WebRTC Streamer & YouTube API Resmi -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -81,7 +81,7 @@
       -webkit-font-smoothing: antialiased;
     }
     .broadcast-dissolve {
-      transition: opacity 800ms cubic-bezier(0.4, 0, 0.2, 1);
+      transition: opacity 1000ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     @keyframes ticker-anim {
       0% { transform: translateX(100%); }
@@ -95,6 +95,27 @@
     :fullscreen #liveNavBar { display: none; }
     :-webkit-full-screen #liveNavBar { display: none; }
   </style>
+
+  <script>
+    function handleNavLogoFallback(imgEl) {
+      if (imgEl.src.indexOf('assets/img/') !== -1) {
+        imgEl.src = 'logo-skawan-full.webp';
+      } else {
+        imgEl.style.display = 'none';
+        const fallback = document.getElementById('navBrandFallback');
+        if (fallback) fallback.classList.remove('hidden');
+      }
+    }
+    function handleBugLogoFallback(imgEl) {
+      if (imgEl.src.indexOf('assets/img/') !== -1) {
+        imgEl.src = 'logo-skawan-icon.webp';
+      } else {
+        imgEl.style.display = 'none';
+        const textFallback = document.getElementById('cgBugLogoTextFallback');
+        if (textFallback) textFallback.classList.remove('hidden');
+      }
+    }
+  </script>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-orange-600 selection:text-white">
 
@@ -106,20 +127,28 @@
           <img
             id="navBrandImg"
             src="assets/img/logo-skawan-full.webp"
-            alt="SKAWAN TV"
-            class="h-10 sm:h-14 w-auto max-w-[240px] sm:max-w-[320px] object-contain bg-white rounded-xl sm:rounded-2xl px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-md"
-            onerror="this.style.display='none'; document.getElementById('navBrandFallback').classList.remove('hidden')"
+            alt="SKAWAN TV | SKASA WAHANA TELEVISI"
+            class="h-10 sm:h-14 w-auto max-w-[240px] sm:max-w-[320px] object-contain bg-white rounded-xl sm:rounded-2xl px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-md transition-transform duration-200 group-hover:scale-105"
+            onerror="handleNavLogoFallback(this)"
           >
           <div id="navBrandFallback" class="hidden items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center font-brand font-black text-base text-white">SK</div>
-            <span class="font-brand font-black tracking-wide text-white text-base">SKAWAN <span class="text-orange-500">TV</span></span>
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center font-brand font-black text-base text-white shadow-md shadow-orange-600/30">
+              SK
+            </div>
+            <div>
+              <div class="flex items-center gap-1">
+                <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
+                <span class="font-brand font-black text-orange-500 text-base leading-none">TV</span>
+              </div>
+              <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block">SKASA WAHANA TV</span>
+            </div>
           </div>
         </a>
 
         <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
-        <span id="badgeLiveOnAirNav" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">
-          <span id="navLiveDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
-          <span id="navLiveStatusText">STANDBY</span>
+        <span id="badgeLiveOnAirNav" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-950/70 text-orange-400 border border-orange-800">
+          <span id="navLiveDot" class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+          <span id="navLiveStatusText">SKASA LIVE ON-AIR</span>
         </span>
       </div>
 
@@ -129,7 +158,7 @@
           <span id="navRoomToken" class="font-mono font-bold text-xs text-orange-400">SKASA</span>
         </div>
 
-        <a id="btnMasukKruNav" href="login.html?room=SKASA" class="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 active:scale-95 text-white font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs transition shadow-md flex items-center gap-1.5">
+        <a id="btnMasukKruNav" href="login.html?room=SKASA" class="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 active:scale-95 text-white font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs transition shadow-md shadow-orange-600/25 flex items-center gap-1.5">
           <span>🎬</span>
           <span class="font-brand font-bold">Akses Studio</span>
         </a>
@@ -137,12 +166,12 @@
     </div>
   </nav>
 
-  <!-- VIEWPORT PROGRAM UTAMA -->
+  <!-- VIEWPORT PROGRAM UTAMA (PGM BROADCAST SCREEN 16:9) -->
   <main class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-5 w-full flex-1 flex flex-col justify-start items-center space-y-4">
-    <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative border-2 border-slate-800 shadow-2xl flex items-center justify-center group select-none">
+    <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative border-2 border-red-600/90 shadow-2xl shadow-red-950/40 flex items-center justify-center group select-none">
 
       <!-- 1. LAYER BUMPER (ON-AIR: 1x 7 DETIK, STANDBY: LOOPING SELAMANYA) -->
-      <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-30 broadcast-dissolve opacity-100 flex items-center justify-center">
+      <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-30 broadcast-dissolve opacity-100 flex items-center justify-center pointer-events-auto">
         <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <iframe
             id="pgmBumperIframe"
@@ -151,6 +180,7 @@
             allow="autoplay; encrypted-media; picture-in-picture"
             tabindex="-1"
           ></iframe>
+          <div class="absolute inset-0 z-20 pointer-events-auto bg-transparent cursor-default"></div>
         </div>
 
         <!-- Tag Countdown (Hanya muncul jika On-Air Pre-Roll) -->
@@ -185,20 +215,35 @@
       <!-- 3. FEED KAMERA WEBRTC -->
       <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
-      <!-- 4. PEMUTAR VT MEDIA RESMI YOUTUBE API -->
+      <!-- 4. PEMUTAR VT MEDIA DENGAN YOUTUBE API RESMI -->
       <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 opacity-0 pointer-events-none">
         <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
+
+        <!-- Tirai Hitam Pelindung Anti-Flicker Saat Ganti Video -->
         <div id="pgmBlackShield" class="absolute inset-0 bg-black z-20 pointer-events-none transition-opacity duration-300 opacity-0"></div>
+
         <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <div id="pgmMasterYtEl" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"></div>
         </div>
+
+        <iframe id="pgmGdriveIframe" class="absolute inset-0 w-full h-full border-0 pointer-events-none opacity-0" allow="autoplay"></iframe>
       </div>
 
       <!-- 5. CG GRAPHICS OVERLAY -->
       <div id="cgBugLogo" class="hidden absolute top-3 sm:top-4 right-3 sm:right-4 z-40 flex items-center justify-center max-w-[140px] max-h-12 transition-all duration-200">
         <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-9 w-auto max-w-[130px] object-contain drop-shadow-md">
         <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-white rounded-xl px-2 py-1 shadow-lg">
-          <img id="cgBugLogoDefaultImg" src="assets/img/logo-skawan-icon.webp" alt="SKAWAN TV" class="h-7 sm:h-9 w-auto object-contain" onerror="this.style.display='none'">
+          <img
+            id="cgBugLogoDefaultImg"
+            src="assets/img/logo-skawan-icon.webp"
+            alt="SKAWAN TV Monogram"
+            class="h-7 sm:h-9 w-auto object-contain drop-shadow-sm"
+            onerror="handleBugLogoFallback(this)"
+          >
+          <div id="cgBugLogoTextFallback" class="hidden items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md border border-white/20">
+            <div class="w-4 h-4 rounded bg-orange-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
+            <span class="text-[10px] font-brand font-black text-white uppercase tracking-widest">SKAWAN <span class="text-orange-500">TV</span></span>
+          </div>
         </div>
       </div>
 
@@ -212,12 +257,12 @@
         </div>
       </div>
 
-      <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 sm:h-7 bg-gradient-to-r from-orange-700 to-red-700 text-white z-40 overflow-hidden flex items-center border-t border-orange-500 shadow-md">
+      <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 sm:h-7 bg-gradient-to-r from-orange-700 to-red-700 text-white z-30 overflow-hidden flex items-center border-t border-orange-500 shadow-md">
         <div id="indexTickerWibHeader" class="bg-slate-950 px-2.5 h-full flex items-center font-mono font-black text-[9px] sm:text-[10px] text-amber-400 shrink-0 border-r border-orange-900 tracking-wider">
           00:00 WIB
         </div>
         <div class="w-full overflow-hidden text-[10px] sm:text-xs font-medium px-2">
-          <span id="cgTickerText" class="marquee-text">Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan &bull; SKAWAN TV</span>
+          <span id="cgTickerText" class="marquee-text">Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan &bull; SKAWAN TV Siaran Edukasi Digital Praktik Siswa Broadcast</span>
         </div>
       </div>
 
@@ -232,34 +277,38 @@
           <span id="iconAudioMute">🔇</span>
           <span id="lblAudioMute" class="hidden sm:inline text-[11px]">Buka Suara</span>
         </button>
+
         <button onclick="toggleFullscreen()" class="bg-black/80 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition shadow-lg" title="Layar Penuh">
           ⛶
         </button>
       </div>
+
     </div>
 
     <!-- Informasi Status Siaran Bawah -->
     <div class="w-full flex items-center justify-between text-xs text-slate-400 px-1 font-mono text-[11px]">
       <div class="flex items-center gap-1.5">
-        <span id="footerStatusDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
-        <span>STATUS: <strong id="lblBroadcastStatus" class="text-slate-300 font-bold uppercase">MEMUAT...</strong></span>
+        <span id="footerStatusDot" class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+        <span>STATUS: <strong id="lblBroadcastStatus" class="text-red-500 font-bold uppercase animate-pulse">ON-AIR (LIVE)</strong></span>
         <span>&bull;</span>
-        <span>SUMBER: <strong id="lblActivePgmSource" class="text-white uppercase font-bold">BUMPER</strong></span>
+        <span>SUMBER: <strong id="lblActivePgmSource" class="text-white uppercase font-bold">MEMUAT...</strong></span>
       </div>
+
       <div>
         <span>Resolusi: <strong class="text-slate-200">16:9 Full HD</strong></span>
       </div>
     </div>
 
-    <!-- PANEL DAFTAR RUANGAN SIARAN -->
+    <!-- PANEL DAFTAR RUANGAN SIARAN (TERURUT: SKASA #1, LALU ON-AIR, STANDBY, OFF-AIR) -->
     <div class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow"></span>
           <h3 class="font-brand font-black text-xs sm:text-sm uppercase tracking-wider text-white">Daftar Saluran Ruang Siaran (Channels)</h3>
         </div>
-        <span class="text-[10px] font-mono text-slate-400" id="lblChannelCount">0 Saluran</span>
+        <span class="text-[10px] font-mono text-slate-400" id="lblChannelCount">Memuat saluran...</span>
       </div>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="channelRoomsGrid"></div>
     </div>
   </main>
@@ -268,7 +317,7 @@
     SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026 &bull; Siaran Edukasi Digital
   </footer>
 
-  <!-- SCRIPT LOGIKA REVISI TOTAL -->
+  <!-- SCRIPT LOGIKA MASTER PGM -->
   <script>
     let currentRoomToken = 'SKASA';
     let streamerInstance = null;
@@ -281,23 +330,24 @@
     let masterYtPlayer = null;
     let isMasterYtReady = false;
 
-    // Kontrol Bumper
+    // Kontrol Bumper & Sesi
     const DEFAULT_BUMPER_YT_ID = 'Jnp3esoHb9k';
     const ON_AIR_BUMPER_DURATION_MS = 7000;
-    let onAirBumperPlayedForCurrentSession = false; // Memastikan bumper ON-AIR hanya 1x putar
+    let onAirBumperPlayedForCurrentSession = false;
     let bumperCountdownTimer = null;
     let bumperProgressInterval = null;
 
-    // Status Ruangan Riil
+    // Status Ruangan Aktif
     let currentRoomMeta = {
-      status: 'standby', // 'standby' | 'live' | 'ended'
-      programName: 'SKAWAN TV Broadcast',
-      episode: 'Reguler'
+      status: 'live', // Default SKASA selalu live
+      programName: 'SKASA TV Live Broadcast',
+      episode: 'Siaran Utama'
     };
 
     let liveState = {
       programSource: 'cam_1',
-      previewSource: 'cam_2'
+      previewSource: 'cam_2',
+      tally: { cam_1: 'red', cam_2: 'green', cam_3: 'off' }
     };
 
     let latestVtState = { 
@@ -347,6 +397,7 @@
       if (isAudioUnmuted) {
         sendCommandToIframe(bumperIframe, 'unMute');
         sendCommandToIframe(bumperIframe, 'setVolume', [100]);
+
         if (masterYtPlayer && typeof masterYtPlayer.unMute === 'function') {
           masterYtPlayer.unMute();
           masterYtPlayer.setVolume(100);
@@ -354,6 +405,7 @@
         if (pgmCamVideo) pgmCamVideo.muted = false;
       } else {
         sendCommandToIframe(bumperIframe, 'mute');
+
         if (masterYtPlayer && typeof masterYtPlayer.mute === 'function') {
           masterYtPlayer.mute();
         }
@@ -375,13 +427,17 @@
         : (vt.totalDuration || 0);
 
       const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
-      if (vt.status !== 'playing') return dur > 0 ? (offset % dur) : offset;
+
+      if (vt.status !== 'playing') {
+        return dur > 0 ? (offset % dur) : offset;
+      }
 
       const serverNow = Date.now() + serverClockOffset;
       const baseStart = vt.startAt || vt.updatedAt || serverNow;
       const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
       const target = offset + elapsed;
-      return dur > 0 ? (target % dur) : target;
+
+      return (dur > 0) ? (target % dur) : target;
     }
 
     function startWibLiveClock() {
@@ -400,18 +456,17 @@
       setInterval(updateClock, 1000);
     }
 
-    // YOUTUBE MASTER PLAYER
-    function initMasterYtPlayer(ytId, initialTime) {
+    function initMasterYtPlayer(initialYtId, initialTime) {
       if (typeof YT === 'undefined' || !YT.Player) return;
       if (masterYtPlayer && isMasterYtReady) return;
-      if (!ytId) return;
+      if (!initialYtId) return;
 
-      currentActiveYtId = ytId;
+      currentActiveYtId = initialYtId;
       masterYtPlayer = new YT.Player('pgmMasterYtEl', {
         height: '100%',
         width: '100%',
         host: 'https://www.youtube-nocookie.com',
-        videoId: ytId,
+        videoId: initialYtId,
         playerVars: {
           playsinline: 1,
           controls: 0,
@@ -470,12 +525,13 @@
       const lblBroadcast = document.getElementById('lblBroadcastStatus');
       const lblActiveSrc = document.getElementById('lblActivePgmSource');
 
-      const status = currentRoomMeta.status || 'standby';
+      // KUNCI KHUSUS ROOM SKASA SELALU 'live' (ON AIR)
+      const effectiveStatus = (currentRoomToken === 'SKASA') ? 'live' : (currentRoomMeta.status || 'standby');
 
       // ==========================================
-      // KONDISI 1: ROOM DI-END / SELESAI
+      // KONDISI 1: ROOM DI-END / SELESAI (KHUSUS NON-SKASA)
       // ==========================================
-      if (status === 'ended') {
+      if (effectiveStatus === 'ended') {
         pgmViewport.className = pgmViewport.className.replace(/border-[a-z0-9\/-]+/g, '') + ' border-slate-800';
         navBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700";
         navDot.className = "w-2 h-2 rounded-full bg-slate-500";
@@ -485,7 +541,6 @@
         lblBroadcast.className = "text-slate-400 font-bold uppercase";
         lblActiveSrc.innerText = "OFF-AIR";
 
-        // Tampilkan kartu sesi selesai
         standbyOverlay.classList.remove('hidden');
         document.getElementById('standbyBadgeBox').className = "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-xs font-mono font-bold uppercase tracking-wider";
         document.getElementById('standbyDot').className = "w-2 h-2 rounded-full bg-slate-500";
@@ -494,7 +549,6 @@
         document.getElementById('standbyOverlayProgram').innerText = currentRoomMeta.programName || "Program Berakhir";
         document.getElementById('standbyOverlayDesc').innerText = "Sesi siaran pada ruangan ini telah diakhiri dari Master Control Room (MCR).";
 
-        // Sembunyikan semua media aktif
         if (pgmVideo) { pgmVideo.classList.add('opacity-0', 'pointer-events-none'); pgmVideo.pause(); }
         if (pgmVtWrap) pgmVtWrap.classList.add('opacity-0', 'pointer-events-none');
         if (bumperWrap) bumperWrap.classList.add('opacity-0', 'pointer-events-none');
@@ -504,10 +558,10 @@
       }
 
       // ==========================================
-      // KONDISI 2: ROOM STANDBY (GLADI BERSIH)
+      // KONDISI 2: ROOM STANDBY / GLADI BERSIH (KHUSUS NON-SKASA)
       // ==========================================
-      if (status !== 'live') {
-        onAirBumperPlayedForCurrentSession = false; // Reset agar saat live nanti putar bumper 1x
+      if (effectiveStatus !== 'live') {
+        onAirBumperPlayedForCurrentSession = false;
 
         pgmViewport.className = pgmViewport.className.replace(/border-[a-z0-9\/-]+/g, '') + ' border-amber-600/80';
         navBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-950/70 text-amber-400 border border-amber-800";
@@ -518,7 +572,6 @@
         lblBroadcast.className = "text-amber-400 font-bold uppercase";
         lblActiveSrc.innerText = "BUMPER IDENT LOOP";
 
-        // Tampilkan kartu standby dengan nama program
         standbyOverlay.classList.remove('hidden');
         document.getElementById('standbyBadgeBox').className = "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold uppercase tracking-wider";
         document.getElementById('standbyDot').className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
@@ -527,7 +580,6 @@
         document.getElementById('standbyOverlayProgram').innerText = currentRoomMeta.programName || "Gladi Bersih Studio";
         document.getElementById('standbyOverlayDesc').innerText = "Siaran belum mengudara secara publik. Kru sedang melakukan persiapan di ruang kontrol.";
 
-        // Putar bumper secara LOOPING di latar belakang
         bumperWrap.classList.remove('opacity-0', 'pointer-events-none');
         bumperWrap.classList.add('opacity-100');
         document.getElementById('bumperTagOverlay').classList.add('hidden');
@@ -535,399 +587,4 @@
 
         const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
         const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0${originParam}`;
-        if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
-          bumperIframe.src = desiredBumperSrc;
-        }
-
-        // Matikan player siaran utama
-        if (pgmVideo) { pgmVideo.classList.add('opacity-0', 'pointer-events-none'); }
-        if (pgmVtWrap) { pgmVtWrap.classList.add('opacity-0', 'pointer-events-none'); }
-        if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
-        return;
-      }
-
-      // ==========================================
-      // KONDISI 3: ROOM STATUS 'LIVE' (ON-AIR SEJATI)
-      // ==========================================
-      pgmViewport.className = pgmViewport.className.replace(/border-[a-z0-9\/-]+/g, '') + ' border-red-600/90 shadow-red-950/40';
-      navBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-950/70 text-orange-400 border border-orange-800";
-      navDot.className = "w-2 h-2 rounded-full bg-orange-500 animate-pulse";
-      navStatusText.innerText = "SKASA LIVE ON-AIR";
-      footerDot.className = "w-2 h-2 rounded-full bg-red-600 animate-ping";
-      lblBroadcast.innerText = "ON-AIR (LIVE)";
-      lblBroadcast.className = "text-red-500 font-bold uppercase animate-pulse";
-
-      // Sembunyikan kartu standby
-      standbyOverlay.classList.add('hidden');
-
-      // TAHAP 3A: JIKA BARU PERTAMA KALI ON-AIR -> PUTAR BUMPER 7 DETIK 1X SAJA
-      if (!onAirBumperPlayedForCurrentSession) {
-        onAirBumperPlayedForCurrentSession = true;
-        lblActiveSrc.innerText = "OPENING IDENT";
-
-        bumperWrap.classList.remove('opacity-0', 'pointer-events-none');
-        bumperWrap.classList.add('opacity-100');
-
-        const tagOverlay = document.getElementById('bumperTagOverlay');
-        const pbContainer = document.getElementById('bumperProgressBarContainer');
-        const pBar = document.getElementById('bumperProgressBar');
-        const cdLbl = document.getElementById('lblBumperCountdown');
-
-        if (tagOverlay) tagOverlay.classList.remove('hidden');
-        if (pbContainer) pbContainer.classList.remove('hidden');
-
-        const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-        bumperIframe.src = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0${originParam}`;
-
-        const startTime = Date.now();
-        if (bumperProgressInterval) clearInterval(bumperProgressInterval);
-        bumperProgressInterval = setInterval(() => {
-          const elapsed = Date.now() - startTime;
-          const pct = Math.min(100, (elapsed / ON_AIR_BUMPER_DURATION_MS) * 100);
-          if (pBar) pBar.style.width = `${pct}%`;
-          if (cdLbl) cdLbl.innerText = `${Math.max(0, Math.ceil((ON_AIR_BUMPER_DURATION_MS - elapsed) / 1000))}s`;
-
-          if (elapsed >= ON_AIR_BUMPER_DURATION_MS) {
-            clearInterval(bumperProgressInterval);
-            bumperProgressInterval = null;
-          }
-        }, 80);
-
-        if (bumperCountdownTimer) clearTimeout(bumperCountdownTimer);
-        bumperCountdownTimer = setTimeout(() => {
-          // Bumper 7 detik selesai! Hancurkan bumper dan alihkan ke siaran
-          if (tagOverlay) tagOverlay.classList.add('hidden');
-          if (pbContainer) pbContainer.style.display = 'none';
-          bumperWrap.classList.remove('opacity-100');
-          bumperWrap.classList.add('opacity-0', 'pointer-events-none');
-          setTimeout(() => { bumperIframe.src = 'about:blank'; }, 900);
-          updateMonitors();
-        }, ON_AIR_BUMPER_DURATION_MS);
-
-        return; // Tahan sampai timer bumper 7 detik tuntas
-      }
-
-      // TAHAP 3B: BUMPER SUDAH SELESAI -> TAMPILKAN SIARAN UTAMA (VT ATAU KAMERA)
-      bumperWrap.classList.remove('opacity-100');
-      bumperWrap.classList.add('opacity-0', 'pointer-events-none');
-
-      const activeSrc = liveState.programSource || 'cam_1';
-      const stream = getCameraStream(activeSrc);
-      const isVt = (activeSrc === 'vt' || activeSrc === 'sharescreen');
-
-      if (isVt) {
-        if (pgmVideo) { pgmVideo.classList.add('opacity-0', 'pointer-events-none'); }
-        if (pgmVtWrap) {
-          pgmVtWrap.classList.remove('opacity-0', 'pointer-events-none');
-          pgmVtWrap.classList.add('opacity-100');
-          pgmVtWrap.style.zIndex = '15';
-        }
-        lblActiveSrc.innerText = "VT PLAYOUT (ON-AIR)";
-        syncVtDisplay();
-        applyAudioState();
-        return;
-      }
-
-      // Jika kamera
-      if (pgmVtWrap) { pgmVtWrap.classList.add('opacity-0', 'pointer-events-none'); }
-      if (stream && pgmVideo) {
-        if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
-        pgmVideo.classList.remove('opacity-0', 'pointer-events-none');
-        pgmVideo.classList.add('opacity-100');
-        pgmVideo.style.zIndex = '15';
-        pgmVideo.play().catch(() => {});
-        lblActiveSrc.innerText = activeSrc.toUpperCase().replace('_', ' ');
-      } else if (pgmVideo) {
-        pgmVideo.classList.remove('opacity-100');
-        pgmVideo.classList.add('opacity-0', 'pointer-events-none');
-        lblActiveSrc.innerText = "MENUNGGU FEED KAMERA";
-      }
-      applyAudioState();
-    }
-
-    function getCameraStream(key) {
-      if (!key) return null;
-      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
-      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
-      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
-      return null;
-    }
-
-    function syncVtDisplay() {
-      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-      if (!vidId) return;
-
-      const isPlaying = latestVtState.status === 'playing';
-      const targetTime = calculateAbsoluteServerTime(latestVtState);
-
-      if (!isMasterYtReady || !masterYtPlayer) {
-        initMasterYtPlayer(vidId, targetTime);
-        return;
-      }
-
-      if (currentActiveYtId !== vidId) {
-        currentActiveYtId = vidId;
-        const shield = document.getElementById('pgmBlackShield');
-        if (shield) shield.classList.remove('opacity-0');
-
-        masterYtPlayer.loadVideoById({
-          videoId: vidId,
-          startSeconds: Math.floor(targetTime)
-        });
-
-        if (isPlaying) masterYtPlayer.playVideo();
-        else masterYtPlayer.pauseVideo();
-        applyAudioState();
-        return;
-      }
-
-      const curState = masterYtPlayer.getPlayerState();
-      if (isPlaying && curState !== YT.PlayerState.PLAYING) {
-        masterYtPlayer.playVideo();
-      } else if (!isPlaying && curState !== YT.PlayerState.PAUSED) {
-        masterYtPlayer.pauseVideo();
-      }
-
-      const actualSec = (typeof masterYtPlayer.getCurrentTime === 'function') ? masterYtPlayer.getCurrentTime() : 0;
-      if (Math.abs(actualSec - targetTime) > 4.0) {
-        masterYtPlayer.seekTo(targetTime, true);
-        if (isPlaying) masterYtPlayer.playVideo();
-      }
-    }
-
-    function applyCgGraphics(cg) {
-      if (!cg) return;
-      cachedCgState = cg;
-
-      const ltBox = document.getElementById('cgLowerThirdBox');
-      const ltTitle = document.getElementById('cgLtTitle');
-      const ltSub = document.getElementById('cgLtSubtitleText');
-      const logoBox = document.getElementById('cgBugLogo');
-      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
-      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
-      const tickerBox = document.getElementById('cgTickerBar');
-      const tickerText = document.getElementById('cgTickerText');
-      const badgeLive = document.getElementById('badgeLiveOnAir');
-
-      if (cg.lowerThirdActive) {
-        if (ltBox) ltBox.classList.remove('hidden');
-        if (ltTitle) ltTitle.innerText = cg.title || 'NAMA PRESENTER';
-        if (ltSub) ltSub.innerText = cg.subtitle || 'Keterangan Jabatan';
-      } else if (ltBox) ltBox.classList.add('hidden');
-
-      if (cg.logoActive) {
-        if (logoBox) logoBox.classList.remove('hidden');
-        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
-          if (logoCustomImg) { logoCustomImg.src = cg.logoUrl; logoCustomImg.classList.remove('hidden'); }
-          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
-        } else {
-          if (logoCustomImg) logoCustomImg.classList.add('hidden');
-          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
-        }
-      } else if (logoBox) logoBox.classList.add('hidden');
-
-      if (cg.tickerActive) {
-        if (tickerBox) tickerBox.classList.remove('hidden');
-        if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live Broadcast';
-      } else if (tickerBox) tickerBox.classList.add('hidden');
-
-      if (badgeLive) {
-        if (cg.isLiveBadgeActive && currentRoomMeta.status === 'live') badgeLive.classList.remove('hidden');
-        else badgeLive.classList.add('hidden');
-      }
-    }
-
-    let roomMetaRef = null;
-    let liveStateRef = null;
-    let vtStateRef = null;
-    let cgStateRef = null;
-
-    function detachChannelListeners() {
-      if (roomMetaRef) { roomMetaRef.off(); roomMetaRef = null; }
-      if (liveStateRef) { liveStateRef.off(); liveStateRef = null; }
-      if (vtStateRef) { vtStateRef.off(); vtStateRef = null; }
-      if (cgStateRef) { cgStateRef.off(); cgStateRef = null; }
-    }
-
-    // HUBUNGKAN KE RUANGAN SECARA TEPAT DAN AMAN
-    function connectChannel(token) {
-      const activeDb = getDatabase();
-      currentRoomToken = token.toUpperCase();
-      document.getElementById('navRoomToken').innerText = currentRoomToken;
-      localStorage.setItem('skawan_room', currentRoomToken);
-
-      const btnKru = document.getElementById('btnMasukKruNav');
-      if (btnKru) btnKru.href = `login.html?room=${currentRoomToken}`;
-
-      if (streamerInstance) {
-        streamerInstance.destroy();
-        streamerInstance = null;
-      }
-      remoteCamStreams.clear();
-      detachChannelListeners();
-
-      if (!activeDb) return;
-
-      activeDb.ref('.info/serverTimeOffset').on('value', snap => {
-        serverClockOffset = snap.val() || 0;
-      });
-
-      // 1. DENGARKAN STATUS META RUANGAN (STANDBY / LIVE / ENDED)
-      roomMetaRef = activeDb.ref(`rooms/${currentRoomToken}/meta`);
-      roomMetaRef.on('value', snapshot => {
-        if (!snapshot.exists()) {
-          // Jika room dihapus dari database MCR
-          currentRoomMeta = { status: 'ended', programName: 'Ruangan Tidak Ditemukan' };
-        } else {
-          currentRoomMeta = snapshot.val() || { status: 'standby' };
-        }
-        updateMonitors();
-      });
-
-      // 2. DENGARKAN LIVE STATE
-      liveStateRef = activeDb.ref(`rooms/${currentRoomToken}/live_state`);
-      liveStateRef.on('value', snapshot => {
-        if (snapshot.exists()) {
-          const live = snapshot.val();
-          liveState.programSource = live.programSource || liveState.programSource;
-          liveState.previewSource = live.previewSource || liveState.previewSource;
-          updateMonitors();
-        }
-      });
-
-      // 3. DENGARKAN VT STATE
-      vtStateRef = activeDb.ref(`rooms/${currentRoomToken}/vt_state`);
-      vtStateRef.on('value', snapshot => {
-        if (snapshot.exists()) {
-          latestVtState = { ...latestVtState, ...snapshot.val() };
-          updateMonitors();
-        }
-      });
-
-      // 4. DENGARKAN CG STATE
-      cgStateRef = activeDb.ref(`rooms/${currentRoomToken}/cg_state`);
-      cgStateRef.on('value', snapshot => {
-        if (snapshot.exists()) applyCgGraphics(snapshot.val());
-      });
-
-      // 5. WEBRTC
-      if (typeof SkawanStreamer !== 'undefined') {
-        const viewerRole = `viewer_${Math.random().toString(36).substring(2, 7)}`;
-        streamerInstance = new SkawanStreamer({
-          roomToken: currentRoomToken,
-          roleKey: viewerRole,
-          onRemoteStream: (camKey, stream) => {
-            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
-            remoteCamStreams.set(normKey, stream);
-            remoteCamStreams.set(camKey, stream);
-            updateMonitors();
-          }
-        });
-      }
-    }
-
-    function toggleFullscreen() {
-      const el = document.getElementById('pgmViewport');
-      if (!document.fullscreenElement) el.requestFullscreen().catch(() => {});
-      else document.exitFullscreen().catch(() => {});
-    }
-
-    // DIREKTORI SEMUA SALURAN RUANGAN
-    function listenChannelsDirectory() {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-
-      activeDb.ref('rooms').on('value', snapshot => {
-        const grid = document.getElementById('channelRoomsGrid');
-        if (!grid) return;
-        grid.innerHTML = '';
-
-        if (!snapshot.exists()) {
-          document.getElementById('lblChannelCount').innerText = "0 Saluran";
-          return;
-        }
-
-        const roomsData = snapshot.val() || {};
-        const roomTokens = Object.keys(roomsData);
-        document.getElementById('lblChannelCount').innerText = `${roomTokens.length} Saluran Siaran`;
-
-        roomTokens.forEach(token => {
-          const roomObj = roomsData[token];
-          const meta = (roomObj && roomObj.meta) ? roomObj.meta : {};
-          const status = meta.status || 'standby';
-          const isSelected = token === currentRoomToken;
-
-          const card = document.createElement('div');
-          card.onclick = () => {
-            if (token === currentRoomToken) return;
-            const newUrl = `${window.location.pathname}?room=${token}`;
-            window.history.pushState({ path: newUrl }, '', newUrl);
-            connectChannel(token);
-            listenChannelsDirectory();
-          };
-
-          let cardStyle = "p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between ";
-          if (isSelected) {
-            cardStyle += "bg-red-950/60 border-red-500 shadow-lg ring-1 ring-red-500";
-          } else {
-            cardStyle += "bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900";
-          }
-
-          let badgeColor = "bg-amber-950/80 text-amber-400 border border-amber-800";
-          let badgeText = "STANDBY";
-          let dotColor = "bg-amber-400";
-
-          if (status === 'live') {
-            badgeColor = "bg-red-950/80 text-red-400 border border-red-800";
-            badgeText = "● ON-AIR";
-            dotColor = "bg-red-500 animate-pulse";
-          } else if (status === 'ended') {
-            badgeColor = "bg-slate-800 text-slate-400 border border-slate-700";
-            badgeText = "OFF-AIR";
-            dotColor = "bg-slate-500";
-          }
-
-          card.className = cardStyle;
-          card.innerHTML = `
-            <div class="flex items-center gap-2.5 overflow-hidden">
-              <div class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-brand font-black text-xs text-white shrink-0">
-                ${token.substring(0, 3)}
-              </div>
-              <div class="truncate">
-                <span class="font-mono font-bold text-xs text-white block">${token}</span>
-                <span class="text-[11px] text-slate-400 truncate block">${meta.programName || "Siaran Studio"}</span>
-              </div>
-            </div>
-            <div class="text-right shrink-0">
-              <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${badgeColor} inline-flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
-                ${badgeText}
-              </span>
-            </div>
-          `;
-          grid.appendChild(card);
-        });
-      });
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      const savedRoom = localStorage.getItem('skawan_room');
-      const targetRoom = (roomParam || savedRoom || 'SKASA').toUpperCase();
-
-      startWibLiveClock();
-      connectChannel(targetRoom);
-      listenChannelsDirectory();
-
-      window.addEventListener('beforeunload', () => {
-        detachChannelListeners();
-        if (streamerInstance) {
-          streamerInstance.destroy();
-          streamerInstance = null;
-        }
-      });
-    });
-  </script>
-</body>
-</html>
+        if (!bumperI
