@@ -2,8 +2,8 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Portal Studio | SKAWAN TV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Masuk Kru Studio | SKAWAN TV</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,7 +13,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
-  <!-- Favicon Logo Baru SKAWAN TV (Mendukung path assets/img/ atau root) -->
   <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
   <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
 
@@ -29,11 +28,11 @@
           colors: {
             skawan: {
               orange: '#EA580C',
-              orangeHover: '#C2410C',
               navy: '#1B365D',
-              navyDark: '#0F2537',
               red: '#E50914',
-              redHover: '#C70812'
+              darkBg: '#080C14',
+              cardDark: '#0F172A',
+              borderDark: '#1E293B'
             }
           }
         }
@@ -41,13 +40,12 @@
     }
   </script>
 
-  <!-- Firebase SDK (Compat Version) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
 
   <script>
-    // Inisialisasi Otomatis Firebase jika belum termuat dari js/firebase-config.js
     (function ensureFirebaseConnection() {
       const config = {
         apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
@@ -60,956 +58,315 @@
       };
       if (typeof firebase !== 'undefined') {
         if (!firebase.apps || !firebase.apps.length) {
-          try {
-            firebase.initializeApp(config);
-          } catch (e) {
-            console.warn("Init fallback Firebase error:", e);
-          }
+          try { firebase.initializeApp(config); } catch (e) {}
         }
         if (!window.db && firebase.database) {
           window.db = firebase.database();
         }
       }
     })();
-    var db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
-
-    // Penangan Fallback Logo jika belum disalin ke assets/img/
-    function handleLoginLogoFallback(imgEl) {
-      if (imgEl.src.indexOf('assets/img/') !== -1) {
-        // Coba cari langsung di root direktori proyek
-        imgEl.src = 'logo-skawan-full.webp';
-      } else {
-        // Tampilkan fallback tipografi CSS yang serasi jika berkas belum ada
-        imgEl.style.display = 'none';
-        const fallback = document.getElementById('loginFallbackBrand');
-        if (fallback) fallback.classList.remove('hidden');
-      }
-    }
   </script>
 
   <style>
-    .login-btn {
+    .deck-btn {
       transition: all 0.12s ease;
-      -webkit-tap-highlight-color: transparent;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    .login-btn:active {
-      transform: scale(0.98);
+    .deck-btn:active {
+      transform: scale(0.97);
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center p-4 selection:bg-orange-600 selection:text-white">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-red-600 selection:text-white p-4 sm:p-6">
 
-  <!-- Header Branding Portal -->
-  <header class="text-center mb-6 w-full max-w-xl">
-    <div class="flex items-center justify-center gap-2 mb-3 flex-wrap">
-      <!-- Badge Status: PORTAL STUDIO -->
-      <div class="inline-flex items-center gap-2 bg-orange-100 border border-orange-200 text-orange-700 px-3.5 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm">
-        <span class="w-2 h-2 rounded-full bg-orange-600 animate-ping"></span>
-        PORTAL STUDIO
+  <!-- HEADER -->
+  <header class="max-w-4xl mx-auto w-full flex items-center justify-between pb-6 border-b border-slate-900">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center font-brand font-black text-xl text-white shadow-lg shadow-red-600/30">
+        SK
       </div>
-
-      <!-- Status Firebase: Icon Saja dengan Indikator Status Warna & Tooltip -->
-      <div id="connStatusBadge" title="Menghubungkan Database..." class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-700 border border-amber-300 shadow-sm transition-all duration-300 cursor-help">
-        <span id="connStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <span class="font-brand font-black tracking-wide text-white text-lg leading-none">SKAWAN</span>
+          <span class="font-brand font-black text-red-500 text-lg leading-none">TV</span>
+        </div>
+        <span class="text-[10px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">SMK Negeri 1 Pacitan &bull; Broadcast Studio</span>
       </div>
     </div>
 
-    <!-- Area Logo Baru SKAWAN TV (Mendukung path assets/img/ atau root) -->
-    <div class="flex flex-col items-center justify-center">
-      <img
-        id="loginBrandImg"
-        src="assets/img/logo-skawan-full.webp"
-        alt="SKAWAN TV | SKASA WAHANA TV"
-        class="h-20 sm:h-24 md:h-28 w-auto max-w-[340px] sm:max-w-[420px] object-contain mx-auto drop-shadow-md transition-transform duration-200 hover:scale-105"
-        onerror="handleLoginLogoFallback(this)"
-      >
-
-      <!-- Fallback Branding Elegan jika berkas WebP belum disalin ke folder -->
-      <div id="loginFallbackBrand" class="hidden items-center justify-center gap-3">
-        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center font-brand font-black text-xl text-white shadow-md shadow-orange-500/20">
-          SK
-        </div>
-        <div class="text-left">
-          <h1 class="text-3xl sm:text-4xl font-brand font-black tracking-wider text-slate-900 leading-tight">
-            SKAWAN <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">TV</span>
-          </h1>
-          <p class="text-[10px] tracking-widest uppercase font-semibold text-slate-500">
-            SKASA WAHANA TELEVISI
-          </p>
-        </div>
-      </div>
-    </div>
+    <button onclick="bukaModalAdmin()" class="deck-btn px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5">
+      <span>🔑</span>
+      <span>Akses Guru/Admin</span>
+    </button>
   </header>
 
-  <!-- Kontainer Form Masuk Multi-Tab -->
-  <main class="w-full max-w-xl bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 sm:p-8 relative overflow-hidden space-y-6">
+  <!-- KONTEN FORM PEMILIHAN RUANGAN & IDENTITAS -->
+  <main class="max-w-4xl mx-auto w-full my-auto py-6 space-y-6">
 
-    <!-- BANNER KHUSUS SESI ADMIN / SUPERVISOR (JIKA TERDETEKSI SUDAH LOGIN ADMIN) -->
-    <div id="adminActiveSessionBanner" class="hidden p-3.5 bg-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between gap-3 text-xs">
-      <div class="flex items-center gap-2.5">
-        <span class="text-xl">🛡️</span>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <span class="font-brand font-black text-purple-900" id="lblAdminBannerTitle">SESI SUPER ADMIN AKTIF</span>
-            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-200 text-purple-800 font-bold">AKSES BEBAS</span>
-          </div>
-          <span class="text-[11px] text-purple-700 block">Anda dapat masuk ke lobby & memilih posisi kru ruangan mana saja tanpa PIN siswa.</span>
-        </div>
-      </div>
-      <div class="flex items-center gap-1.5 shrink-0">
-        <a href="admin.html?role=admin" class="deck-btn px-2.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-[11px] shadow">
-          Ke MCR →
-        </a>
-        <button onclick="keluarSesiAdminDariLogin()" class="deck-btn px-2 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-xl font-bold text-[11px] border border-rose-300" title="Keluar dari sesi Admin sepenuhnya agar bisa login sebagai siswa biasa">
-          🚪 Logout Admin
-        </button>
-      </div>
+    <div class="text-center space-y-2">
+      <h1 class="text-2xl sm:text-3xl font-brand font-black text-white">
+        Portal Masuk Ruang Siaran
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
+        Masukkan token ruangan, PIN sesi dari guru, nama Anda, lalu pilih posisi tugas siaran.
+      </p>
     </div>
 
-    <!-- Tab Navigasi Peran Masuk (3 Tab) -->
-    <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-brand font-bold text-center">
-      <button id="tabBtnSiswa" onclick="switchLoginTab('siswa')" class="py-2.5 px-2 rounded-xl transition bg-white text-orange-600 shadow-sm border border-slate-200/80">
-        🔴 Siswa (Kru)
-      </button>
-      <button id="tabBtnGuru" onclick="switchLoginTab('guru')" class="py-2.5 px-2 rounded-xl transition text-slate-600 hover:text-slate-900">
-        👨‍🏫 Guru Pengampu
-      </button>
-      <button id="tabBtnAdmin" onclick="switchLoginTab('admin')" class="py-2.5 px-2 rounded-xl transition text-slate-600 hover:text-slate-900">
-        🛡️ Super Admin
-      </button>
-    </div>
-
-    <!-- ============================================== -->
-    <!-- TAB 1: FORM MASUK SISWA (KRU STUDIO)           -->
-    <!-- ============================================== -->
-    <section id="formSectionSiswa" class="space-y-4">
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-          Pilih Ruangan Siaran Aktif:
-        </label>
-        <!-- Dropdown Pilihan Ruangan Otomatis Mencegah Typo Siswa -->
-        <div class="relative">
-          <select
-            id="selectSiswaRoom"
-            onchange="sinkronPilihanRuanganSiswa(this.value)"
-            class="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold uppercase tracking-wider text-slate-900 outline-none transition appearance-none cursor-pointer"
-          >
-            <option value="SKASA">SKASA (Saluran Utama Studio)</option>
-          </select>
-          <div class="absolute right-3 top-3.5 pointer-events-none flex items-center gap-1 text-xs font-mono font-bold text-orange-600">
-            <span>▼</span>
-            <span>ROOM</span>
-          </div>
-        </div>
-        <!-- Input Tersembunyi Penyimpan Token Ruangan Aktif -->
-        <input type="hidden" id="inputSiswaRoom" value="SKASA">
-      </div>
-
+    <!-- KARTU INPUT TOKEN, PIN, NAMA -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl max-w-xl mx-auto space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            PIN Sesi Ruangan:
-          </label>
-          <input
-            type="password"
-            id="inputSiswaPin"
-            placeholder="6-digit PIN"
-            maxlength="6"
-            value="123456"
-            class="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold tracking-widest text-slate-900 outline-none transition"
-          >
+          <label class="block text-[11px] font-mono font-bold text-slate-400 uppercase mb-1">Ruangan / Studio:</label>
+          <input type="text" id="inputRoomToken" oninput="muatStatusRuangan(this.value)" placeholder="SKASA" value="SKASA" class="w-full uppercase bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-mono font-bold text-sm outline-none focus:border-red-500">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            Nama Lengkap Siswa:
-          </label>
-          <input
-            type="text"
-            id="inputSiswaName"
-            placeholder="Contoh: Dimas Pratama"
-            class="w-full bg-slate-50 border border-slate-300 focus:border-orange-500 focus:bg-white rounded-xl px-4 py-3 text-sm text-slate-900 outline-none transition"
-          >
+          <label class="block text-[11px] font-mono font-bold text-amber-400 uppercase mb-1">PIN Sesi Ruangan:</label>
+          <input type="password" id="inputRoomPin" maxlength="6" placeholder="6-Digit PIN" class="w-full bg-slate-950 border border-amber-600/70 rounded-xl px-3.5 py-2.5 text-amber-400 font-mono font-bold text-sm tracking-widest outline-none focus:border-amber-400 text-center">
         </div>
       </div>
 
-      <button
-        onclick="validasiDanBukaModalPeran()"
-        class="login-btn w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-brand font-black text-sm tracking-wider shadow-lg shadow-orange-600/30 flex items-center justify-center gap-2"
-      >
-        <span>🎬</span>
-        <span>MASUK & PILIH POSISI KRU</span>
-      </button>
-
-      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] font-mono text-slate-500 space-y-1">
-        <p>• Pilih Ruang / room siaran, tanyakan <strong>PIN</strong> dari Guru Pengampu.</p>
-      </div>
-    </section>
-
-    <!-- ============================================== -->
-    <!-- TAB 2: FORM MASUK GURU PENGAMPU                -->
-    <!-- ============================================== -->
-    <section id="formSectionGuru" class="hidden space-y-4">
-      <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-center gap-2">
-        <span class="text-base">👨‍🏫</span>
-        <span>Akses Supervisor untuk mengelola ruangan kelas, gladi bersih, dan kendala krisis siaran.</span>
-      </div>
-
       <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-          Pilih Ruangan Siaran yang Dikelola:
-        </label>
-        <div class="relative">
-          <select
-            id="selectGuruRoom"
-            onchange="sinkronPilihanRuanganGuru(this.value)"
-            class="w-full bg-slate-50 border border-slate-300 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold uppercase tracking-wider text-slate-900 outline-none transition appearance-none cursor-pointer"
-          >
-            <option value="SKASA">SKASA (Saluran Utama Studio)</option>
-          </select>
-          <div class="absolute right-3 top-3.5 pointer-events-none flex items-center gap-1 text-xs font-mono font-bold text-blue-600">
-            <span>▼</span>
-            <span>ROOM</span>
-          </div>
-        </div>
-        <input type="hidden" id="inputGuruRoom" value="SKASA">
+        <label class="block text-[11px] font-mono font-bold text-slate-400 uppercase mb-1">Nama Siswa / Kru:</label>
+        <input type="text" id="inputUserName" placeholder="Masukkan nama lengkap Anda" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-medium text-sm outline-none focus:border-red-500">
       </div>
 
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-          Kata Sandi Master Guru atau PIN Sesi Ruangan:
-        </label>
-        <input
-          type="password"
-          id="inputGuruPasscode"
-          placeholder="Masukkan Passcode Guru atau PIN Ruangan"
-          class="w-full bg-slate-50 border border-slate-300 focus:border-blue-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold tracking-widest text-slate-900 outline-none transition"
-        >
+      <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono">
+        <span class="text-slate-400">Status Studio: <strong id="lblRoomStatusText" class="text-white uppercase">Memeriksa...</strong></span>
+        <span id="lblRoomBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">STANDBY</span>
+      </div>
+    </div>
+
+    <!-- GRID PEMILIHAN PERAN (1 SISWA = 1 SLOT KETAT) -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between text-xs font-mono text-slate-400 max-w-xl mx-auto">
+        <span class="font-bold uppercase tracking-wider text-slate-300">Pilih Posisi Tugas (1 Peran = 1 Siswa):</span>
+        <span id="lblSlotAvailable">Memuat slot...</span>
       </div>
 
-      <button
-        onclick="prosesLoginGuru()"
-        class="login-btn w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-brand font-black text-sm tracking-wider shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"
-      >
-        <span>🎛️</span>
-        <span>AKSES PANEL SUPERVISOR GURU</span>
-      </button>
-    </section>
-
-    <!-- ============================================== -->
-    <!-- TAB 3: FORM MASUK SUPER ADMIN                  -->
-    <!-- ============================================== -->
-    <section id="formSectionAdmin" class="hidden space-y-4">
-      <div class="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-800 flex items-center gap-2">
-        <span class="text-base">🛡️</span>
-        <span>Akses Tertinggi Master Control: Mengontrol siaran SKASA, generate PIN, dan menghapus ruangan.</span>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto" id="rolesGrid">
+        <!-- Render otomatis via JavaScript -->
       </div>
-
-      <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-          Kunci Sandi Super Admin:
-        </label>
-        <input
-          type="password"
-          id="inputAdminPasscode"
-          placeholder="Masukkan Kunci Sandi Super Admin"
-          class="w-full bg-slate-50 border border-slate-300 focus:border-purple-500 focus:bg-white rounded-xl px-4 py-3 text-sm font-mono font-bold tracking-widest text-slate-900 outline-none transition"
-        >
-      </div>
-
-      <button
-        onclick="prosesLoginAdmin()"
-        class="login-btn w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 text-white font-brand font-black text-sm tracking-wider shadow-lg shadow-purple-700/30 flex items-center justify-center gap-2"
-      >
-        <span>🔑</span>
-        <span>MASUK MASTER CONTROL ADMIN</span>
-      </button>
-    </section>
-
-    <!-- Tautan Pintas Cepat ke Layar Siaran PGM Publik -->
-    <div class="pt-4 border-t border-slate-200 flex items-center justify-between text-xs">
-      <span class="text-slate-500">Ingin menonton siaran langsung?</span>
-      <a href="index.html" class="font-bold text-orange-600 hover:text-orange-700 hover:underline flex items-center gap-1">
-        <span>📺 Buka Layar PGM Siaran</span>
-        <span>→</span>
-      </a>
     </div>
 
   </main>
 
-  <!-- Footer -->
-  <footer class="mt-6 text-center text-xs text-slate-500 space-y-1">
-    <p>SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026</p>
-    <p class="text-[11px] text-slate-400">Sistem Produksi Siaran Televisi Digital Terdistribusi</p>
+  <!-- MODAL AKSES GURU / ADMIN -->
+  <div id="modalAdminAccess" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div class="w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl font-bold">
+        🔑
+      </div>
+      <div>
+        <h4 class="text-base font-brand font-black text-white">Masuk Master Control</h4>
+        <p class="text-xs text-slate-400 mt-0.5">Khusus Guru Pengampu &amp; Teknisi Studio</p>
+      </div>
+
+      <div class="space-y-2 text-left">
+        <label class="block text-[11px] font-mono font-bold text-slate-400 uppercase">PIN Master Guru / Admin:</label>
+        <input type="password" id="inputAdminMasterPin" maxlength="6" placeholder="PIN Master" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-center font-mono font-bold tracking-widest text-amber-400 text-sm outline-none focus:border-red-500">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button onclick="tutupModalAdmin()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-semibold">Batal</button>
+        <button onclick="eksekusiLoginAdmin()" class="deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md">Masuk</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center text-[11px] font-mono text-slate-500 py-3 border-t border-slate-900">
+    SKAWAN TV &bull; SMK Negeri 1 Pacitan &copy; 2026
   </footer>
 
-  <!-- ============================================== -->
-  <!-- MODAL: PEMILIHAN PERAN KRU SISWA               -->
-  <!-- ============================================== -->
-  <div id="modalPilihPeran" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-white">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-orange-500"></span>
-            <h3 class="font-brand font-black text-base text-white">PILIH POSISI KRU STUDIO</h3>
-          </div>
-          <p class="text-xs text-slate-400 font-mono mt-0.5">
-            Ruangan: <strong id="modalRoleRoomBadge" class="text-orange-400">SKASA</strong> &bull; Kru: <strong id="modalRoleUserBadge" class="text-white">-</strong>
-          </p>
-        </div>
-        <button onclick="tutupModalPeran()" class="text-slate-400 hover:text-white text-lg">✕</button>
-      </div>
-
-      <p class="text-xs text-slate-300">
-        Pilih salah satu posisi kru yang masih kosong (*Slot yang diambil otomatis terkunci agar tidak tertabrak kru lain*):
-      </p>
-
-      <!-- Grid Tombol Peran Kru (9 Posisi Baku Studio) -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[60vh] overflow-y-auto pr-1" id="rolesGridContainer">
-        <!-- Dirender secara dinamis oleh JavaScript -->
-      </div>
-
-      <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400">
-        <span>● Hijau: Kosong & Siap Dipilih</span>
-        <span>● Merah: Terisi oleh Siswa Lain</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================== -->
-  <!-- MODAL: DIALOG NOTIFIKASI KUSTOM                -->
-  <!-- ============================================== -->
-  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
-      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/40 flex items-center justify-center mx-auto text-xl font-bold">✓</div>
-      <h4 id="noticeTitle" class="text-base font-bold text-white mb-1">Pemberitahuan</h4>
-      <p id="noticeMessage" class="text-xs text-slate-300 leading-relaxed"></p>
-      <button onclick="closeNotice()" class="login-btn w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-600">
-        Tutup
-      </button>
-    </div>
-  </div>
-
-  <!-- ============================================== -->
-  <!-- SKRIP LOGIKA PORTAL LOGIN LENGKAP              -->
-  <!-- ============================================== -->
   <script>
-    // Konfigurasi Kunci Sandi Baku
-    const MASTER_GURU_PASSCODE = "PESPETETV";
-    const MASTER_ADMIN_PASSCODE = "SKASAONETV*";
-
-    let activeLoginTab = 'siswa';
-    let cachedRoomRoles = {};
-    let activeRolesListener = null;
-    let daftarRuanganAktif = ['SKASA'];
-
-    // Daftar 9 Peran Standar Penyiaran SKAWAN TV
-    const CREW_ROLES_CATALOG = [
-      { key: 'pd', label: 'Program Director (PD)', short: 'Sutradara', icon: '🎬', page: 'pd.html' },
-      { key: 'switcher', label: 'Video Switcher (ATEM)', short: 'Switcher', icon: '🎛️', page: 'switcher.html' },
-      { key: 'audio_vt', label: 'Audio & VT Operator', short: 'Audio/VT', icon: '🎧', page: 'audio-vt.html' },
-      { key: 'cg', label: 'Graphic Operator (CG)', short: 'Character Gen', icon: '🏷️', page: 'cg.html' },
-      { key: 'fd', label: 'Floor Director (FD)', short: 'Lantai Studio', icon: '📋', page: 'fd.html' },
-      { key: 'creative', label: 'Tim Kreatif / Rundown', short: 'Kreatif', icon: '📝', page: 'creative.html' },
-      { key: 'cam_1', label: 'Kamerawan 1 (Master)', short: 'Kamera 1', icon: '📹', page: 'camera.html' },
-      { key: 'cam_2', label: 'Kamerawan 2 (Close/Side)', short: 'Kamera 2', icon: '📹', page: 'camera.html' },
-      { key: 'cam_3', label: 'Kamerawan 3 (Wide/Floor)', short: 'Kamera 3', icon: '📹', page: 'camera.html' }
+    const ROLE_DEFS = [
+      { key: 'pd', name: 'Sutradara (PD)', icon: '🎬', url: 'pd.html' },
+      { key: 'switcher', name: 'Switcher (TD)', icon: '🎛️', url: 'switcher.html' },
+      { key: 'audio_vt', name: 'Audio & VT', icon: '🎧', url: 'audio-vt.html' },
+      { key: 'cg', name: 'Graphic (CG)', icon: '🏷️', url: 'cg.html' },
+      { key: 'creative', name: 'Tim Kreatif', icon: '📝', url: 'creative.html' },
+      { key: 'fd', name: 'Floor Director', icon: '📋', url: 'fd.html' },
+      { key: 'sharescreen', name: 'Screen Share', icon: '🖥️', url: 'screen.html' },
+      { key: 'cam_1', name: 'Kamera 1', icon: '📹', url: 'cam.html?cam=1' },
+      { key: 'cam_2', name: 'Kamera 2', icon: '📹', url: 'cam.html?cam=2' },
+      { key: 'cam_3', name: 'Kamera 3', icon: '📹', url: 'cam.html?cam=3' }
     ];
 
+    let cachedRoomData = null;
+    let roomListenerRef = null;
+
     function getDatabase() {
-      if (window.db) return window.db;
-      if (typeof firebase !== 'undefined' && firebase.database) {
-        window.db = firebase.database();
-        return window.db;
-      }
-      return null;
+      return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
     }
 
-    function showNotice(title, message, isSuccess = true) {
-      document.getElementById('noticeTitle').innerText = title;
-      document.getElementById('noticeMessage').innerText = message;
-      const icon = document.getElementById('noticeIcon');
-      if (isSuccess) {
-        icon.className = "w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold";
-        icon.innerText = "✓";
-      } else {
-        icon.className = "w-12 h-12 rounded-full bg-rose-600/20 text-rose-400 border border-rose-500/40 flex items-center justify-center mx-auto text-xl font-bold";
-        icon.innerText = "!";
-      }
-      document.getElementById('noticeModal').classList.remove('hidden');
-    }
-
-    function closeNotice() {
-      document.getElementById('noticeModal').classList.add('hidden');
-    }
-
-    // Inisialisasi Saat Halaman Dimuat
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      const roleParam = urlParams.get('role');
-      const isAdminParam = urlParams.get('admin') === 'true' || roleParam === 'admin' || roleParam === 'guru';
+      const urlRoom = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
+      document.getElementById('inputRoomToken').value = urlRoom;
 
-      const savedRoom = localStorage.getItem('skawan_room') || sessionStorage.getItem('skawan_room');
-      const savedUser = localStorage.getItem('skawan_user') || sessionStorage.getItem('skawan_user');
-      const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
-      const adminRole = roleParam || sessionStorage.getItem('skawan_role') || localStorage.getItem('skawan_role') || 'admin';
-
-      const targetRoom = (roomParam || savedRoom || 'SKASA').toUpperCase();
-      document.getElementById('inputSiswaRoom').value = targetRoom;
-      document.getElementById('inputGuruRoom').value = targetRoom;
-
-      // Jika ada sesi Admin aktif atau parameter admin=true
-      if (isAdminParam || isLoggedAdmin) {
-        tampilkanBannerAdminAktif(adminRole, targetRoom);
-      } else if (savedUser) {
-        document.getElementById('inputSiswaName').value = savedUser;
-      }
-
-      pantauStatusKoneksiFirebase();
-      pastikanRuanganSkasaAda();
-      muatDaftarRuanganAktif(targetRoom);
-
-      // Jika datang dari tautan admin.html dengan admin=true, buka langsung modal pemilihan peran ruangan tersebut
-      if (isAdminParam || (isLoggedAdmin && urlParams.has('room'))) {
-        setTimeout(() => {
-          bukaLobbyKruBypassAdmin(targetRoom, adminRole);
-        }, 350);
-      }
+      muatStatusRuangan(urlRoom);
     });
 
-    // Fungsi pemutus sesi Admin secara total dari halaman login
-    function keluarSesiAdminDariLogin() {
-      sessionStorage.removeItem('skawan_admin_logged');
-      sessionStorage.removeItem('skawan_role');
-      sessionStorage.removeItem('skawan_user_level');
-      sessionStorage.removeItem('skawan_user');
-      localStorage.removeItem('skawan_admin_logged');
-      localStorage.removeItem('skawan_role');
-      localStorage.removeItem('skawan_user_level');
-      localStorage.removeItem('skawan_user');
-
-      const banner = document.getElementById('adminActiveSessionBanner');
-      if (banner) banner.classList.add('hidden');
-
-      const nameInput = document.getElementById('inputSiswaName');
-      if (nameInput) nameInput.value = '';
-
-      // Bersihkan URL parameter admin
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-
-      showNotice("Sesi Admin Direset", "Anda kini berada dalam mode Siswa biasa. Silakan pilih ruangan dan masukkan PIN siswa.", true);
-    }
-
-    // Mengambil daftar ruangan aktif dari Firebase agar Siswa tidak salah ketik nama ruangan
-    function muatDaftarRuanganAktif(targetRoom) {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-
-      activeDb.ref('rooms').on('value', snap => {
-        const roomsData = snap.val() || {};
-        let roomKeys = Object.keys(roomsData);
-
-        if (!roomKeys.includes('SKASA')) {
-          roomKeys.unshift('SKASA');
-        } else {
-          roomKeys = roomKeys.filter(r => r !== 'SKASA');
-          roomKeys.unshift('SKASA');
-        }
-
-        daftarRuanganAktif = roomKeys;
-        renderDropdownRuangan(roomKeys, targetRoom, roomsData);
-      });
-    }
-
-    function renderDropdownRuangan(roomKeys, targetRoom, roomsData) {
-      const selectSiswa = document.getElementById('selectSiswaRoom');
-      const selectGuru = document.getElementById('selectGuruRoom');
-
-      [selectSiswa, selectGuru].forEach(selectEl => {
-        if (!selectEl) return;
-        const currentVal = selectEl.value;
-        selectEl.innerHTML = '';
-
-        roomKeys.forEach(token => {
-          const roomMeta = (roomsData && roomsData[token] && roomsData[token].meta) ? roomsData[token].meta : {};
-          const progName = roomMeta.programName || (token === 'SKASA' ? 'Saluran Utama Studio' : 'Ruangan Kelas');
-          const isLive = token === 'SKASA' || roomMeta.status === 'live';
-
-          const opt = document.createElement('option');
-          opt.value = token;
-          opt.innerText = `${token} — ${progName} [${isLive ? 'LIVE' : 'STANDBY'}]`;
-          selectEl.appendChild(opt);
-        });
-
-        // Pertahankan opsi ruangan yang dipilih sebelumnya
-        if (targetRoom && roomKeys.includes(targetRoom)) {
-          selectEl.value = targetRoom;
-        } else if (currentVal && roomKeys.includes(currentVal)) {
-          selectEl.value = currentVal;
-        } else {
-          selectEl.value = 'SKASA';
-        }
-      });
-
-      const selectedToken = selectSiswa ? selectSiswa.value : 'SKASA';
-      document.getElementById('inputSiswaRoom').value = selectedToken;
-      document.getElementById('inputGuruRoom').value = selectedToken;
-    }
-
-    function sinkronPilihanRuanganSiswa(token) {
-      document.getElementById('inputSiswaRoom').value = token;
-      localStorage.setItem('skawan_room', token);
-      sessionStorage.setItem('skawan_room', token);
-    }
-
-    function sinkronPilihanRuanganGuru(token) {
-      document.getElementById('inputGuruRoom').value = token;
-      localStorage.setItem('skawan_room', token);
-      sessionStorage.setItem('skawan_room', token);
-    }
-
-    function tampilkanBannerAdminAktif(adminRole, targetRoom) {
-      const banner = document.getElementById('adminActiveSessionBanner');
-      const title = document.getElementById('lblAdminBannerTitle');
-      if (banner) {
-        banner.classList.remove('hidden');
-        if (title) {
-          title.innerText = adminRole === 'guru' ? 'SESI GURU SUPERVISOR AKTIF' : 'SESI SUPER ADMIN AKTIF';
-        }
-      }
-
-      // Isi otomatis nama kru dengan peran supervisor
-      const nameInput = document.getElementById('inputSiswaName');
-      if (nameInput && (!nameInput.value || nameInput.value.trim().length === 0)) {
-        nameInput.value = adminRole === 'guru' ? 'Guru Supervisor' : 'Super Admin';
-      }
-    }
-
-    // Fungsi otomatis bagi Admin untuk membuka modal peran tanpa terhalang PIN siswa
-    function bukaLobbyKruBypassAdmin(token, adminRole) {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-
-      const supervisorName = adminRole === 'guru' ? 'Guru Supervisor' : 'Super Admin';
-      document.getElementById('inputSiswaRoom').value = token;
-      document.getElementById('inputSiswaName').value = supervisorName;
-
-      activeDb.ref(`rooms/${token}/meta`).once('value', snap => {
-        const meta = snap.val() || {};
-        bukaModalPeranKru(token, supervisorName, meta.totalCameras || 3);
-      });
-    }
-
-    // Pastikan Ruangan Utama SKASA Selalu Terdaftar di Firebase
-    function pastikanRuanganSkasaAda() {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-
-      activeDb.ref('rooms/SKASA/meta').once('value', snap => {
-        if (!snap.exists()) {
-          activeDb.ref('rooms/SKASA').set({
-            meta: {
-              programName: "SKASA TV Live Broadcast",
-              episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
-              totalCameras: 3,
-              status: "live",
-              pin: "123456",
-              creatorRole: "admin",
-              defaultStandbyYtId: "Jnp3esoHb9k",
-              createdAt: Date.now()
-            },
-            roles: {
-              creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "",
-              cam_1: "", cam_2: "", cam_3: ""
-            },
-            live_state: { programSource: "vt", previewSource: "cam_1" },
-            vt_state: { status: "playing", currentTime: 0, youtubeId: "Jnp3esoHb9k", sourceType: "youtube", title: "SKAWAN TV Broadcast" },
-            vt_playlist: [
-              {
-                id: 'vt_default_skawan',
-                title: 'SKAWAN TV Broadcast',
-                sourceType: 'youtube',
-                youtubeId: 'Jnp3esoHb9k',
-                url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
-                durationSec: 120
-              }
-            ]
-          });
-        }
-      });
-    }
-
-    // Alih Tab Masuk (Siswa, Guru, Admin)
-    function switchLoginTab(tab) {
-      activeLoginTab = tab;
-      const btnSiswa = document.getElementById('tabBtnSiswa');
-      const btnGuru = document.getElementById('tabBtnGuru');
-      const btnAdmin = document.getElementById('tabBtnAdmin');
-
-      const secSiswa = document.getElementById('formSectionSiswa');
-      const secGuru = document.getElementById('formSectionGuru');
-      const secAdmin = document.getElementById('formSectionAdmin');
-
-      // Reset Gaya Tab
-      [btnSiswa, btnGuru, btnAdmin].forEach(b => {
-        b.className = "py-2.5 px-2 rounded-xl transition text-slate-600 hover:text-slate-900";
-      });
-      [secSiswa, secGuru, secAdmin].forEach(s => s.classList.add('hidden'));
-
-      if (tab === 'siswa') {
-        btnSiswa.className = "py-2.5 px-2 rounded-xl transition bg-white text-orange-600 shadow-sm border border-slate-200/80";
-        secSiswa.classList.remove('hidden');
-      } else if (tab === 'guru') {
-        btnGuru.className = "py-2.5 px-2 rounded-xl transition bg-white text-blue-600 shadow-sm border border-slate-200/80";
-        secGuru.classList.remove('hidden');
-      } else {
-        btnAdmin.className = "py-2.5 px-2 rounded-xl transition bg-white text-purple-600 shadow-sm border border-slate-200/80";
-        secAdmin.classList.remove('hidden');
-      }
-    }
-
-    // ==============================================
-    // LOGIKA AUTENTIKASI SISWA & PEMILIHAN PERAN
-    // ==============================================
-    function validasiDanBukaModalPeran() {
-      const roomInput = document.getElementById('inputSiswaRoom').value.trim();
-      const pinInput = document.getElementById('inputSiswaPin').value.trim();
-      const nameInput = document.getElementById('inputSiswaName').value.trim();
-
-      const token = roomInput.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-
-      // Cek apakah pengguna memiliki sesi Admin/Guru aktif (Bypass PIN)
-      const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
-      const urlParams = new URLSearchParams(window.location.search);
-      const isAdminBypass = isLoggedAdmin || urlParams.get('admin') === 'true';
-
-      if (!token) {
-        showNotice("Token Ruangan Kosong", "Masukkan Nama / Token Ruangan siaran terlebih dahulu.", false);
-        return;
-      }
-
-      // Siswa biasa wajib mengisi PIN, sedangkan Admin/Supervisor dibebaskan
-      if (!isAdminBypass && !pinInput) {
-        showNotice("PIN Sesi Kosong", "Masukkan 6-digit PIN sesi ruangan.", false);
-        return;
-      }
-
-      const activeUserName = nameInput || (isAdminBypass ? 'Super Admin' : '');
-
-      if (!activeUserName) {
-        showNotice("Nama Kru Kosong", "Harap masukkan nama lengkap Anda agar dikenali oleh Sutradara dan Guru.", false);
-        return;
-      }
+    function muatStatusRuangan(token) {
+      token = (token || '').toUpperCase().trim();
+      if (!token) return;
 
       const activeDb = getDatabase();
       if (!activeDb) {
-        showNotice("Database Terputus", "Koneksi ke database belum siap. Silakan refresh halaman.", false);
+        setTimeout(() => muatStatusRuangan(token), 300);
         return;
       }
 
-      // Verifikasi keberadaan ruangan
-      activeDb.ref(`rooms/${token}/meta`).once('value', snap => {
-        if (!snap.exists()) {
-          showNotice("Ruangan Tidak Ditemukan", `Ruangan "${token}" belum dibuat oleh Guru atau Admin di admin.html.`, false);
-          return;
-        }
+      if (roomListenerRef) roomListenerRef.off();
 
-        const meta = snap.val() || {};
-        const expectedPin = String(meta.pin || '123456');
-
-        // Jika bukan admin, periksa kecocokan PIN
-        if (!isAdminBypass && pinInput !== expectedPin) {
-          showNotice("PIN Sesi Salah", `PIN sesi yang Anda masukkan tidak cocok untuk ruangan "${token}".`, false);
-          return;
-        }
-
-        // Simpan preferensi pengguna
-        localStorage.setItem('skawan_room', token);
-        localStorage.setItem('skawan_user', activeUserName);
-        sessionStorage.setItem('skawan_room', token);
-        sessionStorage.setItem('skawan_user', activeUserName);
-
-        bukaModalPeranKru(token, activeUserName, meta.totalCameras || 3);
-      }).catch(err => {
-        showNotice("Galat Database", err.message, false);
+      roomListenerRef = activeDb.ref(`rooms/${token}`);
+      roomListenerRef.on('value', snapshot => {
+        cachedRoomData = snapshot.val() || null;
+        renderRolesUI(cachedRoomData);
       });
     }
 
-    function bukaModalPeranKru(token, studentName, totalCameras) {
-      document.getElementById('modalRoleRoomBadge').innerText = token;
-      document.getElementById('modalRoleUserBadge').innerText = studentName;
+    function renderRolesUI(roomData) {
+      const grid = document.getElementById('rolesGrid');
+      grid.innerHTML = '';
 
-      const activeDb = getDatabase();
-      if (!activeDb) return;
+      const roles = (roomData && roomData.roles) || {};
+      const meta = (roomData && roomData.meta) || {};
+      const status = tokenIsLive(meta) ? 'LIVE ON-AIR' : 'GLADI BERSIH';
 
-      // Bersihkan listener lama jika ada
-      if (activeRolesListener) {
-        activeDb.ref(`rooms/${token}/roles`).off('value', activeRolesListener);
-      }
+      document.getElementById('lblRoomStatusText').innerText = meta.programName || 'Studio Siaran';
+      const badge = document.getElementById('lblRoomBadge');
+      badge.innerText = status;
+      badge.className = tokenIsLive(meta) 
+        ? "px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white animate-pulse" 
+        : "px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800";
 
-      // Pantau status keterisian peran secara real-time
-      activeRolesListener = activeDb.ref(`rooms/${token}/roles`).on('value', snap => {
-        cachedRoomRoles = snap.val() || {};
-        renderRolesSelectionGrid(token, studentName, totalCameras);
-      });
+      let availableCount = 0;
 
-      document.getElementById('modalPilihPeran').classList.remove('hidden');
-    }
-
-    // Fungsi Pemantau Status Koneksi Firebase Real-Time ke .info/connected
-    function pantauStatusKoneksiFirebase() {
-      const activeDb = getDatabase();
-      const badge = document.getElementById('connStatusBadge');
-      const dot = document.getElementById('connStatusDot');
-
-      if (!activeDb) {
-        if (badge) {
-          badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 text-rose-700 border border-rose-300 shadow-sm cursor-help";
-          badge.title = "Database Terputus (Firebase belum siap)";
-        }
-        if (dot) {
-          dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-        }
-        return;
-      }
-
-      activeDb.ref('.info/connected').on('value', snap => {
-        const isConnected = Boolean(snap.val());
-        if (isConnected) {
-          if (badge) {
-            badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-sm transition-all duration-300 cursor-help";
-            badge.title = "Database Firebase Terhubung (Online)";
-          }
-          if (dot) {
-            dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
-          }
-        } else {
-          if (badge) {
-            badge.className = "inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-700 border border-amber-300 shadow-sm transition-all duration-300 cursor-help";
-            badge.title = "Menghubungkan Database...";
-          }
-          if (dot) {
-            dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping";
-          }
-        }
-      });
-    }
-
-    function tutupModalPeran() {
-      const activeDb = getDatabase();
-      const token = document.getElementById('inputSiswaRoom').value.trim().toUpperCase();
-      if (activeDb && activeRolesListener && token) {
-        activeDb.ref(`rooms/${token}/roles`).off('value', activeRolesListener);
-        activeRolesListener = null;
-      }
-      document.getElementById('modalPilihPeran').classList.add('hidden');
-    }
-
-    function renderRolesSelectionGrid(token, studentName, totalCameras) {
-      const container = document.getElementById('rolesGridContainer');
-      container.innerHTML = '';
-
-      CREW_ROLES_CATALOG.forEach(role => {
-        // Sembunyikan Cam 3 jika ruangan disetel hanya 2 kamera
-        if (role.key === 'cam_3' && totalCameras < 3) return;
-
-        const occupant = cachedRoomRoles[role.key];
-        const isOccupied = Boolean(occupant && typeof occupant === 'string' && occupant.trim().length > 0);
-        const isSelf = isOccupied && (occupant === studentName);
+      ROLE_DEFS.forEach(r => {
+        const occupant = roles[r.key] || '';
+        const isOccupied = Boolean(occupant && occupant.trim().length > 0);
+        if (!isOccupied) availableCount++;
 
         const card = document.createElement('div');
-        let cardStyle = "p-3 rounded-2xl border transition text-left flex flex-col justify-between space-y-2 ";
+        let cardStyle = "p-3 rounded-2xl border text-center transition flex flex-col justify-between space-y-1.5 ";
 
-        if (isSelf) {
-          cardStyle += "bg-orange-950/70 border-orange-500 text-orange-200 ring-2 ring-orange-500 cursor-pointer shadow-lg";
-        } else if (isOccupied) {
-          cardStyle += "bg-slate-950 border-slate-800 text-slate-500 opacity-60 cursor-not-allowed";
+        if (isOccupied) {
+          cardStyle += "bg-slate-950 border-slate-800 opacity-60 cursor-not-allowed";
         } else {
-          cardStyle += "bg-slate-900 border-slate-700 hover:border-emerald-500 hover:bg-slate-850 text-white cursor-pointer shadow hover:shadow-emerald-950/40";
+          cardStyle += "bg-slate-900 border-slate-700 hover:border-red-500 hover:bg-slate-850 cursor-pointer deck-btn shadow-md";
         }
 
         card.className = cardStyle;
         card.onclick = () => {
-          const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
-          // Jika slot kosong, atau milik sendiri, ATAU pengguna adalah Super Admin/Guru (akses supervisor)
-          if (!isOccupied || isSelf || isLoggedAdmin) {
-            klaimPeranDanMasukStudio(token, role.key, role.label, role.page, studentName);
-          } else {
-            showNotice("Slot Terisi", `Posisi ${role.label} sedang diambil oleh "${occupant}". Harap pilih posisi yang masih kosong.`, false);
+          if (isOccupied) {
+            alert(`Slot "${r.name}" sudah diambil oleh ${occupant}. Pilih slot lain atau minta Admin melepas slot.`);
+            return;
           }
+          eksekusiPilihPeran(r);
         };
 
-        let badgeHtml = '';
-        const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
-
-        if (isSelf) {
-          badgeHtml = '<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-orange-600 text-white animate-pulse">POSISI ANDA</span>';
-        } else if (isOccupied) {
-          if (isLoggedAdmin) {
-            badgeHtml = `<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700 truncate max-w-[100px]">${occupant} (SUPERVISE)</span>`;
-          } else {
-            badgeHtml = `<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800 truncate max-w-[100px]">${occupant}</span>`;
-          }
-        } else {
-          badgeHtml = '<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">KOSONG</span>';
-        }
-
         card.innerHTML = `
-          <div class="flex items-center justify-between gap-1">
-            <span class="text-xl">${role.icon}</span>
-            ${badgeHtml}
-          </div>
+          <div class="text-2xl">${r.icon}</div>
           <div>
-            <span class="font-brand font-black text-xs block text-white leading-snug">${role.label}</span>
-            <span class="text-[10px] font-mono text-slate-400 block">${role.short}</span>
+            <span class="font-brand font-bold text-xs text-white block truncate">${r.name}</span>
+            <span class="text-[10px] font-mono ${isOccupied ? 'text-rose-400 font-bold' : 'text-emerald-400'} block truncate">
+              ${isOccupied ? `Terisi: ${occupant}` : 'Tersedia (Kosong)'}
+            </span>
           </div>
+          <button class="w-full py-1 rounded-lg text-[10px] font-mono font-bold ${isOccupied ? 'bg-slate-800 text-slate-500' : 'bg-red-600 text-white shadow'}">
+            ${isOccupied ? 'TERKUNCI' : 'PILIH PERAN'}
+          </button>
         `;
 
-        container.appendChild(card);
+        grid.appendChild(card);
       });
+
+      document.getElementById('lblSlotAvailable').innerText = `${availableCount} Slot Tersedia`;
     }
 
-    // Eksekusi Atomic Role Locking via Firebase Transaction
-    function klaimPeranDanMasukStudio(token, roleKey, roleTitle, pageUrl, studentName) {
+    function tokenIsLive(meta) {
+      return (meta && meta.status === 'live');
+    }
+
+    function eksekusiPilihPeran(roleObj) {
+      const token = document.getElementById('inputRoomToken').value.toUpperCase().trim();
+      const pin = document.getElementById('inputRoomPin').value.trim();
+      const userName = document.getElementById('inputUserName').value.trim();
+
+      if (!token) {
+        alert("Harap masukkan token ruangan.");
+        return;
+      }
+      if (!pin) {
+        alert("Harap masukkan PIN sesi ruangan dari guru.");
+        return;
+      }
+      if (!userName) {
+        alert("Harap masukkan nama lengkap Anda.");
+        return;
+      }
+
+      // Verifikasi PIN Ruangan
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      const isLoggedAdmin = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
-      const roleRef = activeDb.ref(`rooms/${token}/roles/${roleKey}`);
-
-      // Jika yang masuk adalah Super Admin atau Guru, berikan akses langsung tanpa menendang siswa asli
-      if (isLoggedAdmin) {
-        localStorage.setItem('skawan_room', token);
-        sessionStorage.setItem('skawan_room', token);
-        localStorage.setItem('skawan_role', roleKey);
-        sessionStorage.setItem('skawan_role', roleKey);
-        localStorage.setItem('skawan_role_title', roleTitle);
-        sessionStorage.setItem('skawan_role_title', roleTitle);
-        localStorage.setItem('skawan_user', studentName);
-        sessionStorage.setItem('skawan_user', studentName);
-
-        tutupModalPeran();
-        window.location.href = `${pageUrl}?room=${token}&role=${roleKey}&supervisor=true`;
-        return;
-      }
-
-      roleRef.transaction(currentOccupant => {
-        // Jika masih kosong atau sudah diisi oleh dirinya sendiri, izinkan klaim
-        if (!currentOccupant || currentOccupant === "" || currentOccupant === studentName) {
-          return studentName;
-        }
-        // Jika sudah diisi oleh orang lain, batalkan transaksi
-        return undefined;
-      }, (error, committed, snapshot) => {
-        if (error) {
-          showNotice("Galat Transaksi", error.message, false);
+      activeDb.ref(`rooms/${token}`).once('value', snapshot => {
+        if (!snapshot.exists()) {
+          alert(`Ruangan ${token} belum dibuat oleh guru.`);
           return;
         }
 
-        if (!committed) {
-          const actualOccupant = snapshot ? snapshot.val() : "orang lain";
-          showNotice("Slot Keduluan", `Maaf, posisi ${roleTitle} baru saja diambil oleh "${actualOccupant}". Silakan pilih posisi lain.`, false);
+        const data = snapshot.val();
+        const expectedPin = String(data.meta?.pin || '123456');
+
+        if (pin !== expectedPin) {
+          alert("PIN sesi ruangan salah! Minta PIN yang benar kepada guru.");
           return;
         }
 
-        // Simpan peran di penyimpanan browser
-        localStorage.setItem('skawan_role', roleKey);
-        localStorage.setItem('skawan_role_title', roleTitle);
-        sessionStorage.setItem('skawan_role', roleKey);
-        sessionStorage.setItem('skawan_role_title', roleTitle);
+        // Verifikasi Ulang apakah slot masih kosong (Anti Balapan / Race Condition)
+        const currentOccupant = data.roles?.[roleObj.key];
+        if (currentOccupant && currentOccupant.trim().length > 0) {
+          alert(`Peran ${roleObj.name} baru saja diambil oleh ${currentOccupant}. Silakan pilih peran lain.`);
+          return;
+        }
 
-        // Lepaskan listener
-        tutupModalPeran();
-
-        // Alihkan kru ke halaman workstation-nya
-        window.location.href = `${pageUrl}?room=${token}&role=${roleKey}`;
-      });
-    }
-
-    // ==============================================
-    // LOGIKA LOGIN GURU PENGAMPU
-    // ==============================================
-    function prosesLoginGuru() {
-      const roomInput = document.getElementById('inputGuruRoom').value.trim();
-      const passcodeInput = document.getElementById('inputGuruPasscode').value.trim();
-      const token = roomInput.toUpperCase().replace(/[^A-Z0-9_-]/g, '') || 'SKASA';
-
-      if (!passcodeInput) {
-        showNotice("Sandi Kosong", "Masukkan Kata Sandi Master Guru atau PIN Sesi Ruangan.", false);
-        return;
-      }
-
-      // 1. Cek Kata Sandi Master Guru (PESPETETV)
-      if (passcodeInput === MASTER_GURU_PASSCODE) {
-        sessionStorage.setItem('skawan_admin_logged', 'true');
-        sessionStorage.setItem('skawan_role', 'guru');
-        sessionStorage.setItem('skawan_user_level', 'guru');
-        sessionStorage.setItem('skawan_user', 'Guru Pengampu');
-        sessionStorage.setItem('skawan_room', token);
-        localStorage.setItem('skawan_admin_logged', 'true');
-        localStorage.setItem('skawan_role', 'guru');
-        localStorage.setItem('skawan_user_level', 'guru');
-        localStorage.setItem('skawan_user', 'Guru Pengampu');
-        localStorage.setItem('skawan_room', token);
-        window.location.href = `admin.html?role=guru&room=${token}`;
-        return;
-      }
-
-      // 2. Cek apakah cocok dengan PIN Sesi Ruangan yang bersangkutan
-      const activeDb = getDatabase();
-      if (!activeDb) {
-        showNotice("Database Terputus", "Koneksi database belum siap.", false);
-        return;
-      }
-
-      activeDb.ref(`rooms/${token}/meta/pin`).once('value', snap => {
-        const expectedPin = snap.exists() ? String(snap.val()) : "123456";
-        if (passcodeInput === expectedPin) {
-          sessionStorage.setItem('skawan_admin_logged', 'true');
-          sessionStorage.setItem('skawan_role', 'guru');
-          sessionStorage.setItem('skawan_user_level', 'guru');
-          sessionStorage.setItem('skawan_user', 'Guru Pengampu');
-          sessionStorage.setItem('skawan_room', token);
-          localStorage.setItem('skawan_admin_logged', 'true');
-          localStorage.setItem('skawan_role', 'guru');
-          localStorage.setItem('skawan_user_level', 'guru');
-          localStorage.setItem('skawan_user', 'Guru Pengampu');
+        // Kunci slot peran di database untuk siswa ini
+        activeDb.ref(`rooms/${token}/roles/${roleObj.key}`).set(userName).then(() => {
           localStorage.setItem('skawan_room', token);
-          window.location.href = `admin.html?role=guru&room=${token}`;
-        } else {
-          showNotice("Sandi Ditolak", "Kata Sandi Guru atau PIN Sesi Ruangan yang Anda masukkan tidak cocok.", false);
-        }
+          sessionStorage.setItem('skawan_room', token);
+          localStorage.setItem('skawan_role', roleObj.key);
+          sessionStorage.setItem('skawan_role', roleObj.key);
+          localStorage.setItem('skawan_user', userName);
+          sessionStorage.setItem('skawan_user', userName);
+
+          const glue = roleObj.url.includes('?') ? '&' : '?';
+          window.location.href = `${roleObj.url}${glue}room=${token}&role=${roleObj.key}`;
+        }).catch(err => {
+          alert("Gagal mengunci slot peran: " + err.message);
+        });
       });
     }
 
-    // ==============================================
-    // LOGIKA LOGIN SUPER ADMIN
-    // ==============================================
-    function prosesLoginAdmin() {
-      const passcodeInput = document.getElementById('inputAdminPasscode').value.trim();
+    function bukaModalAdmin() {
+      document.getElementById('modalAdminAccess').classList.remove('hidden');
+    }
+    function tutupModalAdmin() {
+      document.getElementById('modalAdminAccess').classList.add('hidden');
+    }
 
-      if (!passcodeInput) {
-        showNotice("Kunci Kosong", "Masukkan Kunci Sandi Super Admin.", false);
-        return;
-      }
-
-      if (passcodeInput === MASTER_ADMIN_PASSCODE) {
+    function eksekusiLoginAdmin() {
+      const pin = document.getElementById('inputAdminMasterPin').value.trim();
+      if (pin === '123456' || pin === '999999') {
+        const roleLevel = pin === '999999' ? 'admin' : 'guru';
         sessionStorage.setItem('skawan_admin_logged', 'true');
-        sessionStorage.setItem('skawan_role', 'admin');
-        sessionStorage.setItem('skawan_user_level', 'admin');
-        sessionStorage.setItem('skawan_user', 'Super Admin');
-        sessionStorage.setItem('skawan_room', 'SKASA');
+        sessionStorage.setItem('skawan_role', roleLevel);
         localStorage.setItem('skawan_admin_logged', 'true');
-        localStorage.setItem('skawan_role', 'admin');
-        localStorage.setItem('skawan_user_level', 'admin');
-        localStorage.setItem('skawan_user', 'Super Admin');
-        localStorage.setItem('skawan_room', 'SKASA');
-        window.location.href = "admin.html?role=admin";
+        localStorage.setItem('skawan_role', roleLevel);
+        window.location.href = `admin.html?role=${roleLevel}`;
       } else {
-        showNotice("Akses Ditolak", "Kunci Sandi Super Admin tidak valid!", false);
+        alert("PIN Master Salah!");
       }
     }
   </script>
