@@ -70,8 +70,9 @@
     })();
   </script>
 
-  <!-- Native WebRTC Streamer -->
+  <!-- Native WebRTC Streamer & YouTube Iframe API Resmi -->
   <script src="js/webrtc-stream.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     video, iframe, #pgmVtWrapper, #pgmCamVideo, #pgmBumperWrapper {
@@ -130,6 +131,7 @@
             class="h-10 sm:h-14 w-auto max-w-[240px] sm:max-w-[320px] object-contain bg-white rounded-xl sm:rounded-2xl px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-md transition-transform duration-200 group-hover:scale-105"
             onerror="handleNavLogoFallback(this)"
           >
+
           <div id="navBrandFallback" class="hidden items-center gap-2">
             <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-600 to-red-600 flex items-center justify-center font-brand font-black text-base text-white shadow-md shadow-orange-600/30">
               SK
@@ -169,7 +171,7 @@
   <main class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-5 w-full flex-1 flex flex-col justify-start items-center space-y-4">
     <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative border-2 border-red-600/90 shadow-2xl shadow-red-950/40 flex items-center justify-center group select-none">
 
-      <!-- BUMPER PRE-ROLL (7 DETIK DISSOLVE) -->
+      <!-- 0. BUMPER PRE-ROLL (7 DETIK DISSOLVE) -->
       <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-30 broadcast-dissolve opacity-100 flex items-center justify-center pointer-events-auto">
         <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <iframe
@@ -213,7 +215,7 @@
       <!-- 1. FEED KAMERA WEBRTC -->
       <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 opacity-0 pointer-events-none" autoplay playsinline muted></video>
 
-      <!-- 2. PEMUTAR VT MEDIA DENGAN BLACK SHIELD TRANSITION -->
+      <!-- 2. PEMUTAR VT MEDIA RESMI DENGAN BLACK SHIELD TRANSITION -->
       <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 opacity-0 pointer-events-none">
         <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
 
@@ -221,14 +223,7 @@
         <div id="pgmBlackShield" class="absolute inset-0 bg-black z-20 pointer-events-none transition-opacity duration-300 opacity-0"></div>
 
         <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
-          <iframe
-            id="pgmYtIframe"
-            class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center transition-transform duration-300"
-            src=""
-            allow="autoplay; encrypted-media; picture-in-picture"
-            tabindex="-1"
-          ></iframe>
-          <div class="absolute inset-0 z-20 pointer-events-auto bg-transparent cursor-default"></div>
+          <div id="pgmMasterYtEl" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"></div>
         </div>
 
         <iframe id="pgmGdriveIframe" class="absolute inset-0 w-full h-full border-0 pointer-events-none opacity-0" allow="autoplay"></iframe>
@@ -287,7 +282,7 @@
         <span>LIVE</span>
       </div>
 
-      <!-- KONTROL OVERLAY -->
+      <!-- KONTROL OVERLAY (BEBAS DARI TOMBOL REFRESH) -->
       <div class="absolute bottom-8 right-4 z-40 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
         <button id="btnToggleAudio" onclick="toggleAudioPlayback()" class="bg-black/80 hover:bg-black text-white p-2 sm:p-2.5 rounded-xl border border-white/20 backdrop-blur-md text-xs font-bold transition flex items-center gap-1.5 shadow-lg">
           <span id="iconAudioMute">🔇</span>
@@ -315,7 +310,7 @@
       </div>
     </div>
 
-    <!-- DAFTAR RUANGAN SIARAN -->
+    <!-- PANEL SALURAN RUANGAN -->
     <div class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
@@ -333,7 +328,7 @@
     SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026 &bull; Siaran Edukasi Digital
   </footer>
 
-  <!-- SCRIPT LOGIKA ENGINE -->
+  <!-- SCRIPT LOGIKA MASTER PGM -->
   <script>
     let currentRoomToken = 'SKASA';
     let streamerInstance = null;
@@ -341,9 +336,11 @@
 
     let isAudioUnmuted = false;
     let currentActiveYtId = '';
-    let lastKnownVtTime = 0;
-    let lastVtStatus = '';
     let serverClockOffset = 0;
+
+    // Instance Resmi YouTube API
+    let masterYtPlayer = null;
+    let isMasterYtReady = false;
 
     let isBumperActive = true;
     let bumperTimer = null;
@@ -387,18 +384,25 @@
       return match ? match[1] : 'Jnp3esoHb9k';
     }
 
-    // FORMULA WAKTU SERVER MUTLAK (SAMA DI SELURUH PERANGKAT)
+    // FORMULA WAKTU SERVER MUTLAK (OPSI A: DUKUNG IN-POINT DARI START-OFFSET)
     function calculateAbsoluteServerTime(vt) {
       if (!vt) return 0;
-      const dur = vt.totalDuration || 120;
+      const dur = (masterYtPlayer && typeof masterYtPlayer.getDuration === 'function' && masterYtPlayer.getDuration() > 0)
+        ? masterYtPlayer.getDuration()
+        : (vt.totalDuration || 0);
+
+      const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
+
       if (vt.status !== 'playing') {
-        return (vt.startOffset !== undefined ? vt.startOffset : (vt.currentTime || 0)) % dur;
+        return dur > 0 ? (offset % dur) : offset;
       }
+
       const serverNow = Date.now() + serverClockOffset;
       const baseStart = vt.startAt || vt.updatedAt || serverNow;
       const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
-      const offset = vt.startOffset !== undefined ? vt.startOffset : (vt.currentTime || 0);
-      return (offset + elapsed) % dur;
+      const target = offset + elapsed;
+
+      return (dur > 0) ? (target % dur) : target;
     }
 
     function startWibLiveClock() {
@@ -418,16 +422,54 @@
       setInterval(updateClock, 1000);
     }
 
-    function sendCommandToYtIframe(func, args = [], targetIframeId = 'pgmYtIframe') {
-      const ytIframe = document.getElementById(targetIframeId);
-      if (ytIframe && ytIframe.contentWindow) {
-        ytIframe.contentWindow.postMessage(JSON.stringify({
-          event: 'command',
-          func: func,
-          args: args
-        }), '*');
-      }
+    // INISIALISASI YOUTUBE PLAYER RESMI (MASTER INSTANCE)
+    function initMasterYtPlayer(initialYtId, initialTime) {
+      if (typeof YT === 'undefined' || !YT.Player) return;
+      if (masterYtPlayer && isMasterYtReady) return;
+
+      currentActiveYtId = initialYtId;
+      masterYtPlayer = new YT.Player('pgmMasterYtEl', {
+        height: '100%',
+        width: '100%',
+        host: 'https://www.youtube-nocookie.com',
+        videoId: initialYtId,
+        playerVars: {
+          playsinline: 1,
+          controls: 0,
+          rel: 0,
+          autoplay: 1,
+          mute: isAudioUnmuted ? 0 : 1,
+          modestbranding: 1,
+          iv_load_policy: 3,
+          disablekb: 1,
+          fs: 0,
+          start: Math.floor(initialTime),
+          origin: window.location.origin || 'http://localhost'
+        },
+        events: {
+          onReady: (e) => {
+            isMasterYtReady = true;
+            if (initialTime > 0) e.target.seekTo(initialTime, true);
+            if (latestVtState.status === 'playing') e.target.playVideo();
+            else e.target.pauseVideo();
+            if (isAudioUnmuted) e.target.unMute();
+            else e.target.mute();
+          },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.PLAYING) {
+              const shield = document.getElementById('pgmBlackShield');
+              if (shield) shield.classList.add('opacity-0');
+            }
+          }
+        }
+      });
     }
+
+    window.onYouTubeIframeAPIReady = () => {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+      initMasterYtPlayer(vidId, targetTime);
+    };
 
     function startInitialBumperStaging() {
       const bumperIframe = document.getElementById('pgmBumperIframe');
@@ -506,7 +548,7 @@
           pgmVtWrap.classList.add('opacity-100');
           pgmVtWrap.style.zIndex = '15';
         }
-        syncVtDisplay(true);
+        syncVtDisplay();
         return;
       }
 
@@ -532,7 +574,7 @@
           pgmVtWrap.style.zIndex = '10';
         }
 
-        syncVtDisplay(true);
+        syncVtDisplay();
         return;
       }
 
@@ -544,7 +586,7 @@
       if (lblActiveSrc) lblActiveSrc.innerText = pgmLabel;
       if (screenLabel) screenLabel.innerText = pgmLabel;
 
-      syncVtDisplay(false);
+      syncVtDisplay();
 
       if (activeSrc === 'vt' || activeSrc === 'sharescreen') {
         if (pgmVideo) {
@@ -558,9 +600,9 @@
           pgmVtWrap.style.zIndex = '15';
         }
 
-        if (isAudioUnmuted && activeSrc === 'vt') {
-          sendCommandToYtIframe('unMute');
-          sendCommandToYtIframe('setVolume', [100]);
+        if (isAudioUnmuted && activeSrc === 'vt' && isMasterYtReady && masterYtPlayer) {
+          masterYtPlayer.unMute();
+          masterYtPlayer.setVolume(100);
         }
       } else {
         if (pgmVtWrap) {
@@ -568,7 +610,7 @@
           pgmVtWrap.classList.add('opacity-0', 'pointer-events-none');
           pgmVtWrap.style.zIndex = '0';
         }
-        sendCommandToYtIframe('mute');
+        if (isMasterYtReady && masterYtPlayer) masterYtPlayer.mute();
 
         const stream = getCameraStream(activeSrc);
         if (stream && pgmVideo) {
@@ -596,76 +638,66 @@
       return null;
     }
 
-    // ZERO-RELOAD STATE GUARD & SOFT DRIFT CORRECTION
-    function syncVtDisplay(forceResync = false) {
-      const isPgmVt = liveState.programSource === 'vt';
-      const ytIframe = document.getElementById('pgmYtIframe');
-      const shield = document.getElementById('pgmBlackShield');
-
+    // ZERO-RELOAD ENGINE: GANTI KLIP HANYA DENGAN LOADVIDEOBYID, TIDAK MERESET IFRAME
+    function syncVtDisplay() {
       const ytId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
       const isPlaying = latestVtState.status === 'playing';
       const targetTime = calculateAbsoluteServerTime(latestVtState);
 
-      // KASUS 1: Inisialisasi awal ATAU berganti video klip yang berbeda
-      if (currentActiveYtId !== ytId || !ytIframe.src || ytIframe.src === 'about:blank') {
-        currentActiveYtId = ytId;
-        lastKnownVtTime = targetTime;
-        lastVtStatus = latestVtState.status;
-
-        // Tutup tirai hitam 300ms agar penonton tidak melihat kedipan iframe
-        if (shield) shield.classList.remove('opacity-0');
-
-        const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-        const autoPlayParam = isPlaying ? '1' : '0';
-        const muteParam = (isAudioUnmuted && isPgmVt) ? '0' : '1';
-        
-        ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=${muteParam}&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&start=${Math.floor(targetTime)}${originParam}`;
-
-        ytIframe.onload = () => {
-          setTimeout(() => {
-            if (shield) shield.classList.add('opacity-0');
-            if (isAudioUnmuted && isPgmVt) {
-              sendCommandToYtIframe('unMute');
-              sendCommandToYtIframe('setVolume', [100]);
-            }
-            if (isPlaying) sendCommandToYtIframe('playVideo');
-            else sendCommandToYtIframe('pauseVideo');
-          }, 350);
-        };
+      if (!isMasterYtReady || !masterYtPlayer) {
+        initMasterYtPlayer(ytId, targetTime);
         return;
       }
 
-      // KASUS 2: Video ID SAMA (JANGAN PERNAH RESET IFRAME.SRC!)
-      if (lastVtStatus !== latestVtState.status) {
-        lastVtStatus = latestVtState.status;
-        if (isPlaying) sendCommandToYtIframe('playVideo');
-        else sendCommandToYtIframe('pauseVideo');
+      // KASUS 1: Berganti Video Klip Baru (Gunakan Black Shield 300ms)
+      if (currentActiveYtId !== ytId) {
+        currentActiveYtId = ytId;
+        const shield = document.getElementById('pgmBlackShield');
+        if (shield) shield.classList.remove('opacity-0');
+
+        masterYtPlayer.loadVideoById({
+          videoId: ytId,
+          startSeconds: Math.floor(targetTime)
+        });
+
+        if (isPlaying) masterYtPlayer.playVideo();
+        else masterYtPlayer.pauseVideo();
+        return;
       }
 
-      // Koreksi waktu lembut (Hanya seek jika drift melampaui 2,5 detik)
-      const timeDiff = Math.abs(targetTime - lastKnownVtTime);
-      if (timeDiff > 2.5 || forceResync) {
-        lastKnownVtTime = targetTime;
-        sendCommandToYtIframe('seekTo', [targetTime, true]);
-        if (isPlaying) sendCommandToYtIframe('playVideo');
-      } else {
-        lastKnownVtTime = targetTime;
+      // KASUS 2: Status Play / Pause Berubah
+      const curState = masterYtPlayer.getPlayerState();
+      if (isPlaying && curState !== YT.PlayerState.PLAYING) {
+        masterYtPlayer.playVideo();
+      } else if (!isPlaying && curState !== YT.PlayerState.PAUSED) {
+        masterYtPlayer.pauseVideo();
+      }
+
+      // KASUS 3: Pengecekan Drift Nyata (Bandingkan Waktu Riil YouTube, Toleransi Longgar 4 Detik)
+      const actualSec = (typeof masterYtPlayer.getCurrentTime === 'function') ? masterYtPlayer.getCurrentTime() : 0;
+      const drift = Math.abs(actualSec - targetTime);
+
+      if (drift > 4.0) {
+        masterYtPlayer.seekTo(targetTime, true);
+        if (isPlaying) masterYtPlayer.playVideo();
       }
     }
 
-    // AUDIT SINKRONISASI DRIFT OTOMATIS (READ-ONLY DI PERANGKAT PENONTON)
-    function startLocalDriftAuditor() {
+    // AUDIT DRIFT LOKAL SANTAI: HANYA BERJALAN TIAP 5 DETIK, TIDAK MEMBANJIRI API
+    function startRelaxedDriftAuditor() {
       setInterval(() => {
         if (isBumperActive || liveState.programSource !== 'vt' || latestVtState.status !== 'playing') return;
-        const currentTarget = calculateAbsoluteServerTime(latestVtState);
-        const diff = Math.abs(currentTarget - lastKnownVtTime);
-        if (diff > 2.5) {
-          lastKnownVtTime = currentTarget;
-          sendCommandToYtIframe('seekTo', [currentTarget, true]);
-        } else {
-          lastKnownVtTime = currentTarget;
+        if (!isMasterYtReady || !masterYtPlayer || typeof masterYtPlayer.getCurrentTime !== 'function') return;
+
+        const actualSec = masterYtPlayer.getCurrentTime() || 0;
+        const targetTime = calculateAbsoluteServerTime(latestVtState);
+        const drift = Math.abs(actualSec - targetTime);
+
+        // Hanya seek jika selisih waktu sudah melebihi 4 detik (misal koneksi penonton sempat tersendat)
+        if (drift > 4.0) {
+          masterYtPlayer.seekTo(targetTime, true);
         }
-      }, 2500);
+      }, 5000);
     }
 
     function applyCgGraphics(cg) {
@@ -735,6 +767,7 @@
       if (cgStateRef) { cgStateRef.off(); cgStateRef = null; }
     }
 
+    // PENDENGAR SPESIFIK RUANGAN AKTIF (MENCEGAH OVER-TRIGGERING)
     function connectChannel(token) {
       const activeDb = getDatabase();
       currentRoomToken = token.toUpperCase();
@@ -755,7 +788,7 @@
 
       detachChannelListeners();
 
-      // Penyelarasan Waktu Server Global
+      // Sinkronisasi Waktu Server Nyata
       activeDb.ref('.info/serverTimeOffset').on('value', snap => {
         serverClockOffset = snap.val() || 0;
       });
@@ -769,7 +802,6 @@
           }
           if (roomData.vt_state) {
             latestVtState = { ...latestVtState, ...roomData.vt_state };
-            lastVtStatus = roomData.vt_state.status || 'playing';
           }
           if (roomData.cg_state) {
             cachedCgState = { ...cachedCgState, ...roomData.cg_state };
@@ -779,6 +811,7 @@
         }
       });
 
+      // 1. Live State Listener (Switching Kamera / VT)
       liveStateRef = activeDb.ref(`rooms/${currentRoomToken}/live_state`);
       liveStateRef.on('value', snapshot => {
         if (!snapshot.exists()) return;
@@ -792,19 +825,22 @@
         }
       });
 
+      // 2. VT State Listener (On-Air Media)
       vtStateRef = activeDb.ref(`rooms/${currentRoomToken}/vt_state`);
       vtStateRef.on('value', snapshot => {
         if (!snapshot.exists()) return;
         latestVtState = { ...latestVtState, ...snapshot.val() };
-        syncVtDisplay(false);
+        syncVtDisplay();
       });
 
+      // 3. CG State Listener
       cgStateRef = activeDb.ref(`rooms/${currentRoomToken}/cg_state`);
       cgStateRef.on('value', snapshot => {
         if (!snapshot.exists()) return;
         applyCgGraphics(snapshot.val());
       });
 
+      // 4. WebRTC Streamer
       if (typeof SkawanStreamer !== 'undefined') {
         const viewerRole = `viewer_${Math.random().toString(36).substring(2, 7)}`;
         streamerInstance = new SkawanStreamer({
@@ -831,14 +867,16 @@
       if (isAudioUnmuted) {
         if (icon) icon.innerText = '🔊';
         if (lbl) lbl.innerText = 'Bisu Suara';
-        if (liveState.programSource === 'vt') {
-          sendCommandToYtIframe('unMute');
-          sendCommandToYtIframe('setVolume', [100]);
+        if (liveState.programSource === 'vt' && isMasterYtReady && masterYtPlayer) {
+          masterYtPlayer.unMute();
+          masterYtPlayer.setVolume(100);
         }
       } else {
         if (icon) icon.innerText = '🔇';
         if (lbl) lbl.innerText = 'Buka Suara';
-        sendCommandToYtIframe('mute');
+        if (isMasterYtReady && masterYtPlayer) {
+          masterYtPlayer.mute();
+        }
       }
     }
 
@@ -964,7 +1002,7 @@
 
       startWibLiveClock();
       startInitialBumperStaging();
-      startLocalDriftAuditor();
+      startRelaxedDriftAuditor();
       connectChannel(targetRoom);
       listenChannelsDirectory();
 
