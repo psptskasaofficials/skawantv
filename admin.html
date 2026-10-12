@@ -13,6 +13,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
+  <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
+  <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
+
   <script>
     tailwind.config = {
       theme: {
@@ -28,7 +31,8 @@
               redHover: '#C70812',
               darkBg: '#090D14',
               cardDark: '#121824',
-              borderDark: '#1E293B'
+              borderDark: '#1E293B',
+              orange: '#EA580C'
             }
           }
         }
@@ -42,7 +46,6 @@
   <script src="js/firebase-config.js"></script>
 
   <script>
-    // Inisialisasi Otomatis Firebase jika berkas js/firebase-config.js belum termuat
     (function ensureFirebaseConnection() {
       const config = {
         apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
@@ -72,27 +75,22 @@
   <style>
     .deck-btn {
       transition: all 0.12s ease;
+      user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
     .deck-btn:active {
       transform: scale(0.97);
     }
-    .status-pulse-live {
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
-    }
-    .status-pulse-standby {
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
-    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-red-600 selection:text-white pb-8">
 
-  <!-- Top Navigation Bar -->
+  <!-- TOP NAVIGATION BAR -->
   <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="index.html" class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-md shadow-red-600/30">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-rose-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-md shadow-red-600/30">
             MCR
           </div>
           <div>
@@ -111,12 +109,12 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <a href="index.html" target="_blank" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition" title="Buka Layar Siaran Publik PGM">
+        <a href="index.html" target="_blank" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition" title="Buka Tab Layar Siaran Publik PGM">
           <span>📺</span>
-          <span>Layar PGM</span>
+          <span>Buka Tab PGM</span>
         </a>
 
-        <button onclick="keluarSesiAdmin()" class="px-3.5 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white font-bold text-xs transition flex items-center gap-1.5">
+        <button onclick="keluarSesiAdmin()" class="deck-btn px-3.5 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white font-bold text-xs transition flex items-center gap-1.5">
           <span>Keluar</span>
           <span>🚪</span>
         </button>
@@ -124,7 +122,7 @@
     </div>
   </nav>
 
-  <!-- Konten Utama Dashboard -->
+  <!-- KONTEN UTAMA DASHBOARD -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 space-y-6">
 
     <!-- Header & Ringkasan Peran -->
@@ -134,7 +132,7 @@
           <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700" id="lblHeaderRoleBadge">
             GURU PENGAMPU
           </span>
-          <span class="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <span id="dbStatusBadge" class="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Database Terhubung
           </span>
@@ -155,6 +153,79 @@
       </div>
     </div>
 
+    <!-- MODUL PEREKAM SIARAN STUDIO (RECORDING LOKAL + UPLOAD GOOGLE DRIVE) -->
+    <div class="bg-slate-900 border-2 border-indigo-900/60 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+        <div class="flex items-center gap-2.5">
+          <span id="recPulseIcon" class="w-3 h-3 rounded-full bg-slate-500"></span>
+          <div>
+            <h2 class="font-brand font-black text-sm uppercase tracking-wider text-white">
+              Studio Broadcast Recorder (Guru &amp; Supervisor)
+            </h2>
+            <span class="text-[11px] font-mono text-slate-400 block -mt-0.5">
+              Perekaman aman langsung ke berkas lokal dengan tautan unggah ke Google Drive
+            </span>
+          </div>
+        </div>
+
+        <!-- Timer & Status Rekaman -->
+        <div class="flex items-center gap-3">
+          <div class="bg-slate-950 px-3 py-1 rounded-xl border border-slate-800 font-mono text-xs flex items-center gap-2">
+            <span class="text-slate-500 uppercase font-bold text-[10px]">Durasi:</span>
+            <span id="lblRecordingDuration" class="font-black text-amber-400">00:00:00</span>
+          </div>
+          <span id="badgeRecordingStatus" class="font-mono text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 uppercase">
+            STANDBY
+          </span>
+        </div>
+      </div>
+
+      <!-- Barisan Kontrol Perekaman -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+        <div class="md:col-span-7 text-xs text-slate-400 font-mono space-y-1">
+          <p>• Klik <strong class="text-white">"Mulai Rekam"</strong> lalu pilih jendela tab <strong class="text-white">"SKAWAN TV | PGM"</strong> atau layar siaran Anda.</p>
+          <p>• Berkas video (<strong class="text-white">.webm</strong>) disimpan di penyimpanan lokal komputer Anda tanpa risiko putus kuota/koneksi.</p>
+        </div>
+
+        <div class="md:col-span-5 flex flex-wrap items-center justify-end gap-2">
+          <button id="btnStartRecord" onclick="mulaiRekamSiaran()" class="deck-btn px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-brand font-black text-xs flex items-center gap-2 shadow-lg shadow-red-600/30">
+            <span>🔴</span>
+            <span>Mulai Rekam Siaran</span>
+          </button>
+
+          <button id="btnStopRecord" onclick="hentikanRekamSiaran()" class="hidden deck-btn px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 font-brand font-black text-xs flex items-center gap-2 shadow">
+            <span>⏹</span>
+            <span>Hentikan &amp; Simpan</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hasil Rekaman Terakhir & Aksi Google Drive -->
+      <div id="boxLastRecordingResult" class="hidden p-3.5 bg-slate-950/80 rounded-2xl border border-indigo-800/60 space-y-2.5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2 overflow-hidden">
+            <span class="text-emerald-400 text-base">✓</span>
+            <div class="truncate">
+              <span class="font-mono font-bold text-white block truncate" id="lblRecordedFileName">SKAWAN_TV_SKASA_Rekaman.webm</span>
+              <span class="text-[10px] font-mono text-slate-400 block" id="lblRecordedFileSize">Ukuran: 0 MB &bull; Tersimpan otomatis di folder Downloads</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button id="btnDownloadAgain" onclick="unduhUlangRekaman()" class="deck-btn px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5">
+              <span>💾</span>
+              <span>Unduh Ulang</span>
+            </button>
+
+            <a href="https://drive.google.com" target="_blank" class="deck-btn px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-brand font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20">
+              <span>📁</span>
+              <span>Buka Google Drive</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- DAFTAR RUANGAN SIARAN AKTIF -->
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -168,9 +239,7 @@
       </div>
 
       <!-- Grid Kartu Ruangan -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="roomsListGrid">
-        <!-- Dirender otomatis oleh JavaScript -->
-      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="roomsListGrid"></div>
     </div>
 
     <!-- KONSOL KONTROL STUDIO LIVE -->
@@ -191,7 +260,6 @@
           </p>
         </div>
 
-        <!-- Status Saat Ini & Tombol Aksi Sesi -->
         <div class="flex items-center gap-2">
           <span id="consoleLiveStatusBadge" class="font-mono text-xs font-black px-3 py-1 rounded-xl bg-red-600 text-white animate-pulse shadow">
             ● ON-AIR (LIVE)
@@ -202,7 +270,6 @@
             <span>Akhiri Sesi</span>
           </button>
 
-          <!-- Tombol Hapus Ruangan Khusus Admin di Konsol -->
           <button id="btnTriggerDeleteSession" onclick="bukaModalHapusRuanganKonsol()" class="hidden deck-btn px-3.5 py-1.5 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700 text-red-300 font-bold text-xs flex items-center gap-1.5" title="Hapus ruangan ini secara permanen">
             <span>🗑️</span>
             <span>Hapus Room</span>
@@ -210,22 +277,20 @@
         </div>
       </div>
 
-      <!-- Pintas Masuk Langsung ke Workstation Kru (Akses Supervisor) -->
+      <!-- PINTAS MASUK LANGSUNG WORKSTATION KRU LENGKAP -->
       <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-2.5">
         <div class="flex items-center justify-between text-xs">
           <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">Pintas Masuk Workstation Kru (Akses Supervisor Bebas Slot):</span>
-          <span class="text-[10px] font-mono text-amber-400">Masuk tanpa mengunci peran siswa</span>
+          <span class="text-[10px] font-mono text-cyan-400">Termasuk Screen Share &amp; Kamera HP</span>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs font-brand font-bold" id="crewQuickLinksGrid">
-          <!-- Render via JavaScript -->
-        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 text-xs font-brand font-bold" id="crewQuickLinksGrid"></div>
       </div>
 
-      <!-- Kontrol Status Siaran & Simulator Krisis -->
+      <!-- KENDALI SIARAN & PANIC KILL-SWITCH -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
-        <!-- Kolom Kiri: Tombol Transisi Status (5 Kolom) -->
+        <!-- Kolom Kiri: Mode Studio (5 Kolom) -->
         <div class="lg:col-span-5 bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col justify-between">
           <div class="space-y-2">
             <span class="font-brand font-bold text-xs uppercase tracking-wider text-slate-300 block">Kendali Mode Siaran Studio:</span>
@@ -233,7 +298,7 @@
             <div class="grid grid-cols-2 gap-2.5">
               <button onclick="setStudioMode('standby')" id="btnModeStandby" class="deck-btn p-3 rounded-xl border border-amber-600/60 bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 font-brand font-bold text-xs flex flex-col items-center justify-center gap-1 text-center">
                 <span>🟠 GLADI BERSIH</span>
-                <span class="text-[9px] font-mono text-slate-400">Kru Standby / Persiapan</span>
+                <span class="text-[9px] font-mono text-slate-400">Kru Standby / Bumper Loop</span>
               </button>
 
               <button onclick="setStudioMode('live')" id="btnModeLive" class="deck-btn p-3 rounded-xl border border-red-500 bg-red-600 hover:bg-red-500 text-white font-brand font-black text-xs flex flex-col items-center justify-center gap-1 text-center shadow-lg shadow-red-600/30">
@@ -244,36 +309,48 @@
           </div>
 
           <div class="text-[11px] font-mono text-slate-400 p-2.5 bg-slate-900 rounded-xl border border-slate-800">
-            ℹ️ Mode <strong>Standby</strong> mempersiapkan seluruh gawai kru tanpa memotong siaran PGM publik. Mode <strong>ON-AIR</strong> membuka seluruh siaran studio ke publik.
+            ℹ️ Mode <strong>Standby</strong> memutar identitas Bumper Station secara otomatis. Mode <strong>ON-AIR</strong> membuka saluran switcher publik ke penonton.
           </div>
         </div>
 
-        <!-- Kolom Kanan: Crisis Injection Engine (7 Kolom) -->
+        <!-- Kolom Kanan: Panic Emergency Kill-Switch & Krisis (7 Kolom) -->
         <div class="lg:col-span-7 bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
-            <span class="font-brand font-bold text-red-400 uppercase tracking-wider">⚡ Crisis Injection Engine (Latihan Tanggap Darurat):</span>
+            <span class="font-brand font-bold text-red-400 uppercase tracking-wider">⚡ Master Panic Controls &amp; Simulator Krisis:</span>
             <span id="badgeActiveCrisis" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Normal</span>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-brand font-bold">
-            <button onclick="triggerCrisis('CAM_FAIL', 'Kamera 1 Mati Mendadak! PD segera instruksikan CUT ke Cam 2!')" class="deck-btn p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-rose-300 flex flex-col items-center justify-center gap-0.5 text-center">
-              <span>📹 Cam 1 Loss</span>
-              <span class="text-[8px] font-mono text-slate-400 font-normal">Kamera 1 Glitch</span>
+          <!-- Tombol Darurat Nyata -->
+          <div class="grid grid-cols-3 gap-2 text-xs font-brand font-bold">
+            <button onclick="emergencyForceBumper()" class="deck-btn p-2 rounded-xl bg-orange-950/60 hover:bg-orange-900 border border-orange-700 text-orange-300 flex flex-col items-center justify-center gap-0.5 text-center">
+              <span>🎬 Force Bumper</span>
+              <span class="text-[8px] font-mono text-slate-400 font-normal">Ambil Alih Ident</span>
             </button>
 
-            <button onclick="triggerCrisis('VT_FAIL', 'Video VT Macet / Freeze! Audio segera naikkan Mic Host!')" class="deck-btn p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-300 flex flex-col items-center justify-center gap-0.5 text-center">
-              <span>🎬 VT Freeze</span>
-              <span class="text-[8px] font-mono text-slate-400 font-normal">VT Rusak</span>
+            <button onclick="emergencyClearCg()" class="deck-btn p-2 rounded-xl bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-700 text-cyan-300 flex flex-col items-center justify-center gap-0.5 text-center">
+              <span>🏷️ Clear CG</span>
+              <span class="text-[8px] font-mono text-slate-400 font-normal">Kosongkan Grafis</span>
             </button>
 
-            <button onclick="triggerCrisis('TIME_CUT', 'Waktu Segmen Dipotong! FD segera beri isyarat 1 Menit & Wrap Up!')" class="deck-btn p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-300 flex flex-col items-center justify-center gap-0.5 text-center">
-              <span>⏱️ Time Crunch</span>
-              <span class="text-[8px] font-mono text-slate-400 font-normal">Potong -60 Detik</span>
+            <button onclick="flushWebRtcSignals()" class="deck-btn p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 flex flex-col items-center justify-center gap-0.5 text-center">
+              <span>🔄 Flush WebRTC</span>
+              <span class="text-[8px] font-mono text-slate-400 font-normal">Reset Sinyal Peer</span>
             </button>
+          </div>
 
-            <button onclick="triggerCrisis('CG_ERROR', 'Sistem Grafis Crash! Kosongkan Lower Third segera!')" class="deck-btn p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-blue-300 flex flex-col items-center justify-center gap-0.5 text-center">
-              <span>🏷️ CG Crash</span>
-              <span class="text-[8px] font-mono text-slate-400 font-normal">Grafis Error</span>
+          <!-- Simulator Krisis Latihan Kru -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-brand font-bold pt-1">
+            <button onclick="triggerCrisis('CAM_FAIL', 'Kamera 1 Mati Mendadak! PD segera instruksikan CUT ke Cam 2!')" class="deck-btn p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-rose-300 text-center">
+              📹 Cam 1 Loss
+            </button>
+            <button onclick="triggerCrisis('VT_FAIL', 'Video VT Macet / Freeze! Audio segera naikkan Mic Host!')" class="deck-btn p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-300 text-center">
+              🎬 VT Freeze
+            </button>
+            <button onclick="triggerCrisis('TIME_CUT', 'Waktu Segmen Dipotong! FD segera beri isyarat 1 Menit & Wrap Up!')" class="deck-btn p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-300 text-center">
+              ⏱️ Time Crunch
+            </button>
+            <button onclick="triggerCrisis('SCREEN_FAIL', 'Layar Presenter Hilang! Kembalikan ke Kamera Utama!')" class="deck-btn p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-cyan-300 text-center">
+              🖥️ Screen Drop
             </button>
           </div>
 
@@ -285,28 +362,24 @@
 
       </div>
 
-      <!-- Status Okupansi Kru Studio & Fitur Kick / Lepas Slot Kru -->
+      <!-- Status Okupansi Kru Studio Termasuk Screen Share -->
       <div class="space-y-2 pt-2 border-t border-slate-800">
         <div class="flex items-center justify-between text-xs">
           <div class="flex items-center gap-2">
             <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">Status Okupansi Kru Siaran:</span>
             <span class="text-[10px] font-mono text-slate-500 hidden sm:inline">(Klik tombol ✕ untuk melepas slot siswa)</span>
           </div>
-          <span id="lblOccupancyRatio" class="font-mono text-[11px] text-slate-400">0/9 Terisi</span>
+          <span id="lblOccupancyRatio" class="font-mono text-[11px] text-slate-400">0/10 Terisi</span>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" id="crewOccupancyCardsGrid">
-          <!-- Render via JavaScript -->
-        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" id="crewOccupancyCardsGrid"></div>
       </div>
 
     </div>
 
   </main>
 
-  <!-- ============================================== -->
-  <!-- MODAL: BUAT RUANGAN BARU                      -->
-  <!-- ============================================== -->
+  <!-- MODAL: BUAT RUANGAN BARU LENGKAP -->
   <div id="modalBuatRuangan" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-white">
       <div class="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -355,7 +428,7 @@
         </div>
 
         <p class="text-[11px] text-slate-400 leading-relaxed font-mono">
-          * PIN ini akan dibagikan kepada siswa untuk masuk melalui portal <strong>login.html</strong> dan diperlukan Guru saat mengakhiri sesi.
+          * Seluruh modul (PD Rundown, CG Staging, VT Linier, dan Screen Share) akan diinisialisasi otomatis.
         </p>
       </div>
 
@@ -370,9 +443,7 @@
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- MODAL: KELUARKAN / LEPAS SLOT KRU             -->
-  <!-- ============================================== -->
+  <!-- MODAL: KELUARKAN KRU -->
   <div id="modalKickCrew" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-amber-600 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
       <div class="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-2xl font-bold">
@@ -381,7 +452,7 @@
       <div>
         <h4 class="text-base font-brand font-black text-white">Lepaskan Slot Kru?</h4>
         <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Keluarkan siswa <strong id="lblKickStudentName" class="text-amber-400">Dimas</strong> dari peran <strong id="lblKickRoleTitle" class="text-white">Video Switcher</strong>? Slot akan langsung kembali kosong di studio.
+          Keluarkan siswa <strong id="lblKickStudentName" class="text-amber-400">Dimas</strong> dari peran <strong id="lblKickRoleTitle" class="text-white">Video Switcher</strong>? Slot akan langsung kembali kosong[cite: 1].
         </p>
       </div>
 
@@ -396,9 +467,7 @@
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- MODAL: AKHIRI SESI SIARAN RUANGAN              -->
-  <!-- ============================================== -->
+  <!-- MODAL: AKHIRI SESI -->
   <div id="modalAkhiriSesi" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-rose-800 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
       <div class="w-14 h-14 rounded-full bg-rose-600/20 text-rose-500 border border-rose-500/40 flex items-center justify-center mx-auto text-2xl font-bold">
@@ -407,15 +476,14 @@
       <div>
         <h4 class="text-base font-brand font-black text-white">Akhiri Sesi Siaran?</h4>
         <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Sesi ruangan <strong id="lblEndSessionTargetToken" class="text-red-400 font-mono">STUDIO-1</strong> akan ditutup. Seluruh layar kru akan otomatis dialihkan kembali ke pemilihan peran.
+          Sesi ruangan <strong id="lblEndSessionTargetToken" class="text-red-400 font-mono">STUDIO-1</strong> akan ditutup. Seluruh layar kru akan otomatis dialihkan ke pemilihan peran[cite: 1].
         </p>
       </div>
 
-      <!-- Verifikasi PIN Khusus Akun Guru -->
       <div id="boxPinVerification" class="space-y-1.5 text-left">
         <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">Masukkan PIN Sesi Ruangan:</label>
         <input type="password" id="inputVerificationPin" placeholder="6-digit PIN" maxlength="6" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-center font-mono font-bold tracking-widest text-amber-400 text-sm outline-none focus:border-red-500">
-        <span id="lblPinHelperText" class="text-[10px] text-slate-500 block font-mono leading-tight">* Masukkan 6-digit PIN yang Anda buat untuk ruangan ini.</span>
+        <span id="lblPinHelperText" class="text-[10px] text-slate-500 block font-mono leading-tight">* Masukkan PIN yang Anda buat untuk ruangan ini.</span>
       </div>
 
       <div class="grid grid-cols-2 gap-2 pt-2">
@@ -429,9 +497,7 @@
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- MODAL: HAPUS RUANGAN PERMANEN (KHUSUS ADMIN)  -->
-  <!-- ============================================== -->
+  <!-- MODAL: HAPUS RUANGAN PERMANEN -->
   <div id="modalHapusRuangan" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-red-600 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
       <div class="w-14 h-14 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-2xl font-bold">
@@ -440,12 +506,12 @@
       <div>
         <h4 class="text-base font-brand font-black text-white">Hapus Ruangan Permanen?</h4>
         <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Ruangan <strong id="lblDeleteTargetToken" class="text-red-400 font-mono">STUDIO-1</strong> akan dihapus permanen dari sistem beserta seluruh live state, okupansi kru, dan playlist.
+          Ruangan <strong id="lblDeleteTargetToken" class="text-red-400 font-mono">STUDIO-1</strong> akan dihapus permanen dari sistem[cite: 1].
         </p>
       </div>
 
       <div class="p-3 bg-red-950/40 border border-red-800/60 rounded-xl text-[11px] text-red-300 text-left font-mono">
-        ⚠️ Tindakan ini tidak dapat dibatalkan. Seluruh kru yang sedang terhubung akan langsung dikeluarkan ke pemilihan peran.
+        ⚠️ Tindakan ini tidak dapat dibatalkan.
       </div>
 
       <div class="grid grid-cols-2 gap-2 pt-2">
@@ -459,7 +525,7 @@
     </div>
   </div>
 
-  <!-- Dialog Notifikasi Modal Kustom -->
+  <!-- DIALOG NOTIFIKASI MODAL -->
   <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
       <div id="noticeIcon" class="w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl font-bold">!</div>
@@ -471,11 +537,9 @@
     </div>
   </div>
 
-  <!-- ============================================== -->
-  <!-- LOGIKA JAVASCRIPT MASTER CONTROL              -->
-  <!-- ============================================== -->
+  <!-- LOGIKA JAVASCRIPT MASTER CONTROL & RECORDER OPSI B -->
   <script>
-    let userRole = 'guru'; // 'guru' atau 'admin'
+    let userRole = 'guru';
     let currentControlledRoom = '';
     let targetEndRoom = '';
     let targetDeleteRoom = '';
@@ -483,35 +547,26 @@
     let maskedPinsState = {};
     let pendingKickData = { roleKey: '', studentName: '', roleLabel: '' };
 
-    const DEFAULT_SKASA_CLIP = {
-      id: 'vt_default_skawan',
-      title: 'Profil SKAWAN TV Studio',
+    // Variable Perekaman MediaRecorder (Opsi B)
+    let mediaRecorderInstance = null;
+    let recordedChunks = [];
+    let recordStartTime = 0;
+    let recordDurationInterval = null;
+    let activeRecordingStream = null;
+    let lastRecordedBlob = null;
+    let lastRecordedFileName = '';
+
+    const DEFAULT_BUMPER_CLIP = {
+      id: 'vt_bumper_skawan',
+      title: 'Ident Opening SKAWAN TV',
       sourceType: 'youtube',
-      youtubeId: 'XhwSTlXTJRc',
-      url: 'https://www.youtube.com/watch?v=XhwSTlXTJRc',
+      youtubeId: 'Jnp3esoHb9k',
+      url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k',
       durationSec: 120
     };
 
     function getDatabase() {
-      if (window.db) return window.db;
-      if (typeof firebase !== 'undefined' && firebase.database) {
-        if (!firebase.apps || !firebase.apps.length) {
-          try {
-            firebase.initializeApp({
-              apiKey: "AIzaSyAtSTgrBWY5aDahE6hq_yr4oSxpxl3QtcQ",
-              authDomain: "skawan-tv.firebaseapp.com",
-              databaseURL: "https://skawan-tv-default-rtdb.asia-southeast1.firebasedatabase.app",
-              projectId: "skawan-tv",
-              storageBucket: "skawan-tv.firebasestorage.app",
-              messagingSenderId: "501619282826",
-              appId: "1:501619282826:web:81e624ac35e9798062ae73"
-            });
-          } catch (e) {}
-        }
-        window.db = firebase.database();
-        return window.db;
-      }
-      return null;
+      return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
     }
 
     function showNotice(title, message, isSuccess = false) {
@@ -535,7 +590,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const paramRole = urlParams.get('role');
-      const sessionRole = sessionStorage.getItem('skawan_role') || localStorage.getItem('skawan_role') || sessionStorage.getItem('skawan_user_level') || localStorage.getItem('skawan_user_level');
+      const sessionRole = sessionStorage.getItem('skawan_role') || localStorage.getItem('skawan_role');
       const isLogged = (sessionStorage.getItem('skawan_admin_logged') === 'true') || (localStorage.getItem('skawan_admin_logged') === 'true');
 
       if (!isLogged && !paramRole) {
@@ -544,17 +599,12 @@
       }
 
       userRole = (paramRole || sessionRole || 'guru').toLowerCase();
-
-      // Sinkronkan ke localStorage dan sessionStorage agar tab baru tetap terautentikasi
       sessionStorage.setItem('skawan_admin_logged', 'true');
       sessionStorage.setItem('skawan_role', userRole);
-      sessionStorage.setItem('skawan_user_level', userRole);
       localStorage.setItem('skawan_admin_logged', 'true');
       localStorage.setItem('skawan_role', userRole);
-      localStorage.setItem('skawan_user_level', userRole);
 
       applyRolePrivileges(userRole);
-
       generateRandomPin();
       ensureDefaultSkasaRoom();
       pantauStatusKoneksiAdmin();
@@ -563,7 +613,7 @@
 
     function pantauStatusKoneksiAdmin() {
       const activeDb = getDatabase();
-      const statusBadge = document.querySelector('.bg-emerald-950\\/60');
+      const statusBadge = document.getElementById('dbStatusBadge');
       if (!activeDb || !statusBadge) return;
 
       activeDb.ref('.info/connected').on('value', snap => {
@@ -605,28 +655,134 @@
       if (input) input.value = pin;
     }
 
-    // Fungsi khusus untuk men-generate PIN baru pada ruangan SKASA oleh Super Admin
-    function generatePinKhususSkasa() {
-      if (userRole !== 'admin') {
-        showNotice("Akses Ditolak", "Hanya Super Admin yang berwenang membuat atau mengacak PIN ruangan SKASA.", false);
-        return;
-      }
-      const activeDb = getDatabase();
-      if (!activeDb) return;
+    // ========================================================
+    // ENGINE PEREKAMAN SIARAN STUDIO LOKAL (OPSI B)
+    // ========================================================
+    async function mulaiRekamSiaran() {
+      try {
+        // Ambil aliran tangkapan tab PGM atau layar studio bersama audio sistem
+        activeRecordingStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            cursor: "always",
+            frameRate: { ideal: 30, max: 60 },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: true
+        });
 
-      const newPin = Math.floor(100000 + Math.random() * 900000).toString();
-      activeDb.ref('rooms/SKASA/meta/pin').set(newPin).then(() => {
-        maskedPinsState['SKASA'] = true;
-        if (allRoomsCache['SKASA'] && allRoomsCache['SKASA'].meta) {
-          allRoomsCache['SKASA'].meta.pin = newPin;
+        recordedChunks = [];
+        let mimeType = 'video/webm;codecs=vp8,opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'video/webm';
         }
-        renderAdminRoomsList(allRoomsCache);
-        showNotice("PIN SKASA Diperbarui", `PIN sesi baru untuk ruangan SKASA berhasil digenerate: ${newPin}. Bagikan PIN ini kepada kru yang berhak masuk melalui login.html.`, true);
-      }).catch(err => {
-        showNotice("Galat Database", "Gagal memperbarui PIN SKASA: " + err.message, false);
-      });
+
+        mediaRecorderInstance = new MediaRecorder(activeRecordingStream, { mimeType: mimeType });
+
+        mediaRecorderInstance.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        };
+
+        mediaRecorderInstance.onstop = () => {
+          selesaikanDanSimpanRekaman();
+        };
+
+        // Jika guru menghentikan dari pop-up bawaan browser
+        activeRecordingStream.getVideoTracks()[0].onended = () => {
+          hentikanRekamSiaran();
+        };
+
+        mediaRecorderInstance.start(1000); // Kumpulkan potongan tiap detik
+        recordStartTime = Date.now();
+
+        // UI Rekaman Aktif
+        document.getElementById('btnStartRecord').classList.add('hidden');
+        document.getElementById('btnStopRecord').classList.remove('hidden');
+        document.getElementById('boxLastRecordingResult').classList.add('hidden');
+
+        const pulse = document.getElementById('recPulseIcon');
+        pulse.className = "w-3 h-3 rounded-full bg-red-600 animate-ping";
+        const badge = document.getElementById('badgeRecordingStatus');
+        badge.className = "font-mono text-[10px] font-bold px-2.5 py-1 rounded-lg bg-red-600 text-white animate-pulse uppercase";
+        badge.innerText = "RECORDING (LIVE)";
+
+        recordDurationInterval = setInterval(() => {
+          const sec = Math.floor((Date.now() - recordStartTime) / 1000);
+          const h = Math.floor(sec / 3600);
+          const m = Math.floor((sec % 3600) / 60);
+          const s = sec % 60;
+          document.getElementById('lblRecordingDuration').innerText = 
+            `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }, 1000);
+
+      } catch (err) {
+        console.warn("Perekaman dibatalkan:", err);
+      }
     }
 
+    function hentikanRekamSiaran() {
+      if (recordDurationInterval) {
+        clearInterval(recordDurationInterval);
+        recordDurationInterval = null;
+      }
+
+      if (mediaRecorderInstance && mediaRecorderInstance.state !== 'inactive') {
+        mediaRecorderInstance.stop();
+      }
+
+      if (activeRecordingStream) {
+        activeRecordingStream.getTracks().forEach(t => t.stop());
+        activeRecordingStream = null;
+      }
+
+      document.getElementById('btnStartRecord').classList.remove('hidden');
+      document.getElementById('btnStopRecord').classList.add('hidden');
+
+      const pulse = document.getElementById('recPulseIcon');
+      pulse.className = "w-3 h-3 rounded-full bg-slate-500";
+      const badge = document.getElementById('badgeRecordingStatus');
+      badge.className = "font-mono text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 uppercase";
+      badge.innerText = "STANDBY";
+    }
+
+    function selesaikanDanSimpanRekaman() {
+      if (recordedChunks.length === 0) return;
+
+      lastRecordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+      const nowStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const room = currentControlledRoom || 'SKASA';
+      lastRecordedFileName = `SKAWAN_TV_${room}_Rekaman_${nowStr}.webm`;
+
+      // Otomatis unduh ke folder lokal browser
+      unduhUlangRekaman();
+
+      // Perbarui Kartu Hasil & Tautan Google Drive
+      const sizeMb = (lastRecordedBlob.size / (1024 * 1024)).toFixed(2);
+      document.getElementById('lblRecordedFileName').innerText = lastRecordedFileName;
+      document.getElementById('lblRecordedFileSize').innerText = `Ukuran: ${sizeMb} MB • Berkas tersimpan di folder Downloads lokal komputer Anda`;
+      document.getElementById('boxLastRecordingResult').classList.remove('hidden');
+    }
+
+    function unduhUlangRekaman() {
+      if (!lastRecordedBlob) return;
+      const downloadUrl = URL.createObjectURL(lastRecordedBlob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = downloadUrl;
+      a.download = lastRecordedFileName || 'Rekaman_SKAWAN_TV.webm';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+      }, 200);
+    }
+
+    // ========================================================
+    // MEMASTIKAN ROOM SKASA SELALU SEHAT DENGAN SKEMA LENGKAP
+    // ========================================================
     function ensureDefaultSkasaRoom() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -641,24 +797,50 @@
               status: "live",
               pin: "123456",
               creatorRole: "admin",
-              defaultStandbyYtId: "XhwSTlXTJRc",
+              defaultStandbyYtId: "Jnp3esoHb9k",
               createdAt: Date.now()
             },
             roles: {
               creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "",
-              cam_1: "", cam_2: "", cam_3: ""
+              sharescreen: "", cam_1: "", cam_2: "", cam_3: ""
             },
-            live_state: { programSource: "vt", previewSource: "cam_1" },
-            vt_state: { status: "playing", currentTime: 0, youtubeId: "XhwSTlXTJRc", sourceType: "youtube", title: "Profil SKAWAN TV Studio" },
-            vt_playlist: [ { ...DEFAULT_SKASA_CLIP } ]
+            live_state: { programSource: "vt", previewSource: "cam_1", tally: { cam_1: "green" } },
+            vt_state: {
+              status: "playing",
+              startAt: Date.now(),
+              startOffset: 0,
+              totalDuration: 120,
+              youtubeId: "Jnp3esoHb9k",
+              sourceType: "youtube",
+              title: "Ident Opening SKAWAN TV",
+              loopMode: "playlist"
+            },
+            vt_playlist: [ { ...DEFAULT_BUMPER_CLIP } ],
+            cg_state: {
+              logoActive: true,
+              logoUrl: "",
+              isLiveBadgeActive: true,
+              lowerThirdActive: false,
+              title: "Drs. Eko Prasetyo, M.T.",
+              subtitle: "Kepala Sekolah SMK Negeri 1 Pacitan",
+              cueTitle: "Drs. Eko Prasetyo, M.T.",
+              cueSubtitle: "Kepala Sekolah SMK Negeri 1 Pacitan",
+              isCueReady: true,
+              tickerActive: false,
+              tickerText: "Selamat Datang di SKAWAN TV Studio Siaran Edukasi Digital SMKN 1 Pacitan"
+            },
+            cg_presets: [
+              { id: 'p1', title: 'Drs. Eko Prasetyo, M.T.', subtitle: 'Kepala Sekolah SMK Negeri 1 Pacitan' },
+              { id: 'p2', title: 'Siti Aminah, S.Sn.', subtitle: 'Kepala Program Keahlian Broadcast & Film' }
+            ],
+            rundown: [
+              { id: 'seg_1', title: 'Opening & Sapa Pemirsa', targetSource: 'cam_1', durationSec: 180, status: 'active' },
+              { id: 'seg_2', title: 'VT Profil Sekolah', targetSource: 'vt', durationSec: 120, status: 'pending' },
+              { id: 'seg_3', title: 'Paparan Presentasi Materi', targetSource: 'sharescreen', durationSec: 300, status: 'pending' }
+            ]
           });
         } else {
           activeDb.ref('rooms/SKASA/meta/status').set('live');
-          activeDb.ref('rooms/SKASA/vt_playlist').once('value', pSnap => {
-            if (!pSnap.exists()) {
-              activeDb.ref('rooms/SKASA/vt_playlist').set([ { ...DEFAULT_SKASA_CLIP } ]);
-            }
-          });
         }
       });
     }
@@ -677,8 +859,7 @@
               episode: "Siaran Utama Sekolah SMKN 1 Pacitan",
               status: "live",
               pin: "123456",
-              totalCameras: 3,
-              defaultStandbyYtId: "XhwSTlXTJRc"
+              totalCameras: 3
             }
           };
         }
@@ -706,7 +887,6 @@
       grid.innerHTML = '';
 
       let roomKeys = Object.keys(rooms);
-
       if (roomKeys.includes('SKASA')) {
         roomKeys = roomKeys.filter(k => k !== 'SKASA');
         roomKeys.unshift('SKASA');
@@ -724,100 +904,15 @@
 
         const card = document.createElement('div');
         let cardStyle = "p-4 rounded-2xl border transition flex flex-col justify-between space-y-3 ";
-        
         if (isSelected) {
-          cardStyle += "bg-slate-900 border-indigo-500 shadow-lg shadow-indigo-950/40 ring-1 ring-indigo-500";
+          cardStyle += "bg-slate-900 border-red-500 shadow-lg shadow-red-950/40 ring-1 ring-red-500";
         } else {
           cardStyle += "bg-slate-950 border-slate-800 hover:border-slate-700";
         }
-
         card.className = cardStyle;
 
         const isPinRevealed = maskedPinsState[token] === true;
         const displayedPin = isPinRevealed ? pin : '••••••';
-
-        let actionButtonsHtml = '';
-
-        if (isSkasa) {
-          if (userRole === 'admin') {
-            actionButtonsHtml = `
-              <div class="space-y-2 pt-1 border-t border-slate-800">
-                <div class="grid grid-cols-2 gap-2">
-                  <button onclick="pilihRuanganKontrol('${token}')" class="py-2 rounded-xl text-xs font-bold ${isSelected ? 'bg-red-600 text-white shadow' : 'bg-indigo-600 hover:bg-indigo-500 text-white'} transition flex items-center justify-center gap-1 shadow">
-                    <span>🎛️</span>
-                    <span>Kontrol Studio</span>
-                  </button>
-                  <a href="index.html" target="_blank" class="py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
-                    <span>📺</span>
-                    <span>Layar PGM</span>
-                  </a>
-                </div>
-
-                <div class="pt-1 border-t border-slate-850 flex items-center justify-between text-xs">
-                  <span class="text-[10px] font-mono text-purple-400 font-bold">Super Admin:</span>
-                  <div class="flex items-center gap-2">
-                    <button onclick="generatePinKhususSkasa()" class="text-[11px] font-mono font-bold text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-0.5" title="Generate PIN Baru untuk SKASA">
-                      <span>🎲</span>
-                      <span>Acak PIN</span>
-                    </button>
-                    <button onclick="bukaModalAkhiriSesiInternal('${token}')" class="text-[11px] font-mono font-bold text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1" title="Akhiri siaran SKASA (Khusus Admin)">
-                      <span>🛑</span>
-                      <span>Akhiri SKASA</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            `;
-          } else {
-            actionButtonsHtml = `
-              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                <button onclick="tolakAksesKontrolSkasa()" class="py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-750 text-slate-400 border border-slate-700 transition flex items-center justify-center gap-1 cursor-pointer" title="Ruangan utama SKASA dilindungi dan hanya dapat dikontrol oleh Super Admin">
-                  <span>🔒</span>
-                  <span>Khusus Admin</span>
-                </button>
-                <a href="index.html" target="_blank" class="py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
-                  <span>📺</span>
-                  <span>Layar PGM</span>
-                </a>
-              </div>
-            `;
-          }
-        } else {
-          actionButtonsHtml = `
-            <div class="space-y-2 pt-1 border-t border-slate-800">
-              <div class="grid grid-cols-2 gap-2">
-                <button onclick="pilihRuanganKontrol('${token}')" class="py-2 rounded-xl text-xs font-bold ${isSelected ? 'bg-red-600 text-white shadow' : 'bg-indigo-600 hover:bg-indigo-500 text-white'} transition flex items-center justify-center gap-1 shadow">
-                  <span>🎛️</span>
-                  <span>Kontrol Studio</span>
-                </button>
-                <a href="login.html?room=${token}" target="_blank" class="py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
-                  <span>🔗</span>
-                  <span>Lobby Kru</span>
-                </a>
-              </div>
-
-              <div class="pt-1 border-t border-slate-850 flex items-center justify-between text-xs">
-                <span class="text-[10px] font-mono text-slate-500">${userRole === 'admin' ? 'Aksi Admin:' : 'Kelola Sesi:'}</span>
-                <div class="flex items-center gap-2">
-                  <button onclick="bukaLobbyKruSebagaiAdmin('${token}')" class="text-[11px] font-mono font-bold text-sky-400 hover:text-sky-300 hover:underline flex items-center gap-1" title="Masuk ke Lobby Pemilihan Peran Kru Ruangan Ini">
-                    <span>🎬</span>
-                    <span>Lobby Kru</span>
-                  </button>
-                  <button onclick="bukaModalAkhiriSesiInternal('${token}')" class="text-[11px] font-mono font-bold text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1" title="Akhiri sesi ruangan">
-                    <span>🛑</span>
-                    <span>Akhiri</span>
-                  </button>
-                  ${userRole === 'admin' ? `
-                    <button onclick="bukaModalHapusRuangan('${token}')" class="text-[11px] font-mono font-bold text-rose-500 hover:text-rose-400 hover:underline flex items-center gap-1" title="Hapus ruangan secara permanen">
-                      <span>🗑️</span>
-                      <span>Hapus Room</span>
-                    </button>
-                  ` : ''}
-                </div>
-              </div>
-            </div>
-          `;
-        }
 
         card.innerHTML = `
           <div>
@@ -837,28 +932,45 @@
           <div class="flex items-center justify-between bg-slate-900 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[11px] font-mono">
             <span class="text-slate-400">PIN Sesi:</span>
             <div class="flex items-center gap-1.5">
-              <span id="pin-text-${token}" class="font-bold text-amber-400 tracking-wider">${displayedPin}</span>
-              <button onclick="toggleMaskPin('${token}')" class="text-slate-500 hover:text-slate-300 text-xs" title="Tampilkan / Sembunyikan PIN">
+              <span class="font-bold text-amber-400 tracking-wider">${displayedPin}</span>
+              <button onclick="toggleMaskPin('${token}')" class="text-slate-500 hover:text-slate-300 text-xs">
                 ${isPinRevealed ? '👁️' : '🙈'}
               </button>
-              ${(isSkasa && userRole === 'admin') ? `
-                <button onclick="generatePinKhususSkasa()" class="ml-1 px-1.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[9px] font-bold transition flex items-center gap-0.5" title="Generate PIN Baru untuk SKASA (Khusus Super Admin)">
-                  <span>🎲</span>
-                  <span>Acak</span>
-                </button>
-              ` : ''}
             </div>
           </div>
 
-          ${actionButtonsHtml}
-        `;
+          <div class="space-y-2 pt-1 border-t border-slate-800">
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="pilihRuanganKontrol('${token}')" class="py-2 rounded-xl text-xs font-bold ${isSelected ? 'bg-red-600 text-white shadow' : 'bg-slate-800 hover:bg-slate-700 text-white'} transition flex items-center justify-center gap-1">
+                <span>🎛️</span>
+                <span>Kontrol Studio</span>
+              </button>
+              <a href="index.html?room=${token}" target="_blank" class="py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
+                <span>📺</span>
+                <span>Buka Tab PGM</span>
+              </a>
+            </div>
 
+            <div class="pt-1 border-t border-slate-850 flex items-center justify-between text-xs">
+              <span class="text-[10px] font-mono text-slate-500">Pintas:</span>
+              <div class="flex items-center gap-2">
+                <a href="screen.html?room=${token}" target="_blank" class="text-[11px] font-mono font-bold text-cyan-400 hover:underline">
+                  🖥️ Screen
+                </a>
+                <button onclick="bukaModalAkhiriSesiInternal('${token}')" class="text-[11px] font-mono font-bold text-amber-400 hover:underline">
+                  🛑 Akhiri
+                </button>
+                ${(userRole === 'admin' && !isSkasa) ? `
+                  <button onclick="bukaModalHapusRuangan('${token}')" class="text-[11px] font-mono font-bold text-rose-500 hover:underline">
+                    🗑️ Hapus
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
         grid.appendChild(card);
       });
-    }
-
-    function tolakAksesKontrolSkasa() {
-      showNotice("Proteksi Ruangan SKASA", "Ruangan SKASA adalah saluran siaran utama permanen sekolah yang khusus dikendalikan oleh Super Admin. Sebagai Guru, Anda dapat membuka dan mengontrol ruangan kelas lainnya.", false);
     }
 
     function toggleMaskPin(token) {
@@ -867,10 +979,6 @@
     }
 
     function pilihRuanganKontrol(token) {
-      if (token === 'SKASA' && userRole !== 'admin') {
-        tolakAksesKontrolSkasa();
-        return;
-      }
       initRoomConsole(token);
     }
 
@@ -905,24 +1013,18 @@
       if (isSkasa) {
         if (userRole === 'admin') {
           btnEnd.classList.remove('opacity-40', 'cursor-not-allowed');
-          btnEnd.title = "Akhiri siaran SKASA (Khusus Super Admin)";
           btnEnd.onclick = () => bukaModalAkhiriSesiInternal('SKASA');
         } else {
           btnEnd.classList.add('opacity-40', 'cursor-not-allowed');
-          btnEnd.title = "Ruangan SKASA terkunci untuk Guru (hanya Super Admin yang berwenang)";
           btnEnd.onclick = () => showNotice("Proteksi Ruangan SKASA", "Ruangan SKASA hanya dapat diakhiri oleh Super Admin.", false);
         }
-        if (btnDelete) btnDelete.classList.add('hidden'); // SKASA tidak boleh dihapus
+        if (btnDelete) btnDelete.classList.add('hidden');
       } else {
         btnEnd.classList.remove('opacity-40', 'cursor-not-allowed');
-        btnEnd.title = "Akhiri sesi ruangan ini";
         btnEnd.onclick = () => bukaModalAkhiriSesi();
         if (btnDelete) {
-          if (userRole === 'admin') {
-            btnDelete.classList.remove('hidden');
-          } else {
-            btnDelete.classList.add('hidden');
-          }
+          if (userRole === 'admin') btnDelete.classList.remove('hidden');
+          else btnDelete.classList.add('hidden');
         }
       }
 
@@ -935,24 +1037,25 @@
       grid.innerHTML = '';
 
       const roles = [
-        { key: 'switcher', name: 'Video Switcher', page: 'switcher.html', icon: '🎛️' },
-        { key: 'pd', name: 'Program Director', page: 'pd.html', icon: '🎬' },
-        { key: 'audio_vt', name: 'Audio & VT', page: 'audio-vt.html', icon: '🎧' },
+        { key: 'switcher', name: 'Switcher', page: 'switcher.html', icon: '🎛️' },
+        { key: 'pd', name: 'Sutradara', page: 'pd.html', icon: '🎬' },
+        { key: 'audio_vt', name: 'Audio/VT', page: 'audio-vt.html', icon: '🎧' },
         { key: 'cg', name: 'Graphic (CG)', page: 'cg.html', icon: '🏷️' },
-        { key: 'fd', name: 'Floor Director', page: 'fd.html', icon: '📋' },
-        { key: 'creative', name: 'Tim Kreatif', page: 'creative.html', icon: '📝' }
+        { key: 'sharescreen', name: 'Screen Share', page: 'screen.html', icon: '🖥️' },
+        { key: 'cam_1', name: 'Kamera 1', page: 'cam.html?cam=1', icon: '📹' },
+        { key: 'cam_2', name: 'Kamera 2', page: 'cam.html?cam=2', icon: '📹' },
+        { key: 'cam_3', name: 'Kamera 3', page: 'cam.html?cam=3', icon: '📹' }
       ];
 
       roles.forEach(r => {
         const btn = document.createElement('button');
         btn.onclick = () => bukaWorkstationSupervisor(r.page, token, r.key, r.name);
-        btn.className = "deck-btn p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-500 text-slate-200 hover:text-white transition flex items-center justify-center gap-1.5 shadow text-xs font-brand font-bold";
-        btn.innerHTML = `<span>${r.icon}</span><span class="truncate">${r.name}</span>`;
+        btn.className = "deck-btn p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-500 text-slate-200 hover:text-white transition flex flex-col items-center justify-center gap-1 shadow text-[11px] font-brand font-bold text-center";
+        btn.innerHTML = `<span class="text-sm">${r.icon}</span><span class="truncate w-full">${r.name}</span>`;
         grid.appendChild(btn);
       });
     }
 
-    // Fungsi membuka Workstation Kru dengan kredensial Supervisor penuh
     function bukaWorkstationSupervisor(page, token, roleKey, roleName) {
       const supervisorName = userRole === 'admin' ? 'Super Admin' : 'Guru Supervisor';
       localStorage.setItem('skawan_room', token);
@@ -964,20 +1067,8 @@
       localStorage.setItem('skawan_admin_logged', 'true');
       sessionStorage.setItem('skawan_admin_logged', 'true');
 
-      window.open(`${page}?room=${token}&role=${roleKey}&supervisor=true`, '_blank');
-    }
-
-    // Fungsi membuka Lobby Pemilihan Peran Kru dengan Bypass Hak Akses Admin
-    function bukaLobbyKruSebagaiAdmin(token) {
-      const supervisorName = userRole === 'admin' ? 'Super Admin' : 'Guru Supervisor';
-      localStorage.setItem('skawan_room', token);
-      sessionStorage.setItem('skawan_room', token);
-      localStorage.setItem('skawan_user', supervisorName);
-      sessionStorage.setItem('skawan_user', supervisorName);
-      localStorage.setItem('skawan_admin_logged', 'true');
-      sessionStorage.setItem('skawan_admin_logged', 'true');
-
-      window.open(`login.html?room=${token}&admin=true&role=${userRole}`, '_blank');
+      const glue = page.includes('?') ? '&' : '?';
+      window.open(`${page}${glue}room=${token}&role=${roleKey}&supervisor=true`, '_blank');
     }
 
     function renderCrewOccupancy(roles, totalCams) {
@@ -990,6 +1081,7 @@
         { key: 'switcher', label: 'Switcher' },
         { key: 'audio_vt', label: 'Audio & VT' },
         { key: 'cg', label: 'Graphic (CG)' },
+        { key: 'sharescreen', label: 'Screen Share' },
         { key: 'fd', label: 'Floor Director' }
       ];
 
@@ -999,7 +1091,6 @@
 
       let occupiedCount = 0;
       const isSkasa = currentControlledRoom === 'SKASA';
-      // Pada room SKASA hanya Admin yang bisa kick. Pada room lain: Guru dan Admin bisa kick.
       const canKick = !isSkasa || (userRole === 'admin');
 
       standardRoles.forEach(r => {
@@ -1018,15 +1109,13 @@
         if (isFilled) {
           if (canKick) {
             kickButtonHtml = `
-              <button onclick="bukaModalKickCrew('${r.key}', '${occupant.replace(/'/g, "\\'")}', '${r.label}')" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow transition border border-rose-400" title="Keluarkan / Lepaskan slot ini">
+              <button onclick="bukaModalKickCrew('${r.key}', '${occupant.replace(/'/g, "\\'")}', '${r.label}')" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow transition border border-rose-400" title="Keluarkan slot">
                 ✕
               </button>
             `;
           } else {
             kickButtonHtml = `
-              <span class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-800 text-slate-500 text-[10px] font-bold flex items-center justify-center border border-slate-700 cursor-not-allowed" title="Hanya Super Admin yang dapat melepas slot di room SKASA">
-                🔒
-              </span>
+              <span class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-800 text-slate-500 text-[10px] font-bold flex items-center justify-center border border-slate-700">🔒</span>
             `;
           }
         }
@@ -1052,7 +1141,6 @@
         showNotice("Proteksi SKASA", "Hanya Super Admin yang berwenang melepas slot kru di ruangan utama SKASA.", false);
         return;
       }
-
       pendingKickData = { roleKey, studentName, roleLabel };
       document.getElementById('lblKickStudentName').innerText = studentName;
       document.getElementById('lblKickRoleTitle').innerText = roleLabel;
@@ -1066,29 +1154,19 @@
 
     function eksekusiKickCrew() {
       const { roleKey, studentName, roleLabel } = pendingKickData;
-      if (!currentControlledRoom || !roleKey) {
-        tutupModalKickCrew();
-        return;
-      }
+      if (!currentControlledRoom || !roleKey) return;
 
       const activeDb = getDatabase();
-      if (!activeDb) {
-        tutupModalKickCrew();
-        return;
-      }
+      if (!activeDb) return;
 
       activeDb.ref(`rooms/${currentControlledRoom}/roles/${roleKey}`).set("").then(() => {
         tutupModalKickCrew();
-        showNotice("Slot Dikosongkan", `Siswa "${studentName}" berhasil dikeluarkan dari posisi ${roleLabel}. Slot sekarang terbuka kembali.`, true);
-      }).catch(err => {
-        tutupModalKickCrew();
-        showNotice("Galat", err.message, false);
+        showNotice("Slot Dikosongkan", `Slot ${roleLabel} berhasil dikosongkan.`, true);
       });
     }
 
     function setStudioMode(status) {
       if (!currentControlledRoom) return;
-
       if (currentControlledRoom === 'SKASA' && status !== 'live') {
         showNotice("Proteksi SKASA", "Ruangan utama SKASA dikunci berstatus ON-AIR permanen.", false);
         return;
@@ -1099,6 +1177,57 @@
 
       activeDb.ref(`rooms/${currentControlledRoom}/meta/status`).set(status).then(() => {
         showNotice("Status Diperbarui", `Ruangan "${currentControlledRoom}" kini berstatus: ${status.toUpperCase()}`, true);
+      });
+    }
+
+    // ========================================================
+    // MASTER EMERGENCY CONTROLS
+    // ========================================================
+    function emergencyForceBumper() {
+      if (!currentControlledRoom) return;
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref(`rooms/${currentControlledRoom}/live_state`).update({
+        programSource: 'vt',
+        previewSource: 'cam_1',
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      activeDb.ref(`rooms/${currentControlledRoom}/vt_state`).set({
+        status: 'playing',
+        startAt: firebase.database.ServerValue.TIMESTAMP,
+        startOffset: 0,
+        totalDuration: 120,
+        youtubeId: 'Jnp3esoHb9k',
+        title: 'Bumper Station Ident',
+        loopMode: 'playlist',
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      showNotice("Bumper Diambil Alih", `Seluruh layar publik ${currentControlledRoom} dipaksa memutar Bumper Station Ident.`, true);
+    }
+
+    function emergencyClearCg() {
+      if (!currentControlledRoom) return;
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref(`rooms/${currentControlledRoom}/cg_state`).update({
+        lowerThirdActive: false,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      showNotice("CG Dikosongkan", `Seluruh lower third pada ruangan ${currentControlledRoom} diturunkan seketika.`, true);
+    }
+
+    function flushWebRtcSignals() {
+      if (!currentControlledRoom) return;
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref(`webrtc_signals/${currentControlledRoom}`).remove().then(() => {
+        showNotice("Sinyal Dibersihkan", `Sinyal peer WebRTC ruangan ${currentControlledRoom} berhasil di-reset.`, true);
       });
     }
 
@@ -1115,7 +1244,7 @@
       }).then(() => {
         document.getElementById('badgeActiveCrisis').innerText = type;
         document.getElementById('badgeActiveCrisis').className = "text-[10px] font-mono px-2 py-0.5 rounded bg-red-600 text-white animate-pulse";
-        showNotice("Krisis Disuntikkan", `Kendala ${type} telah disuntikkan ke seluruh layar kru studio ${currentControlledRoom}.`, true);
+        showNotice("Krisis Disuntikkan", `Kendala ${type} telah dikirim ke seluruh layar studio ${currentControlledRoom}.`, true);
       });
     }
 
@@ -1132,7 +1261,7 @@
       }).then(() => {
         document.getElementById('badgeActiveCrisis').innerText = "Normal";
         document.getElementById('badgeActiveCrisis').className = "text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400";
-        showNotice("Kondisi Normal", "Seluruh simulasi krisis telah dihentikan.", true);
+        showNotice("Kondisi Normal", "Simulasi krisis telah dihentikan.", true);
       });
     }
 
@@ -1153,13 +1282,8 @@
       const totalCams = parseInt(document.getElementById('selectNewTotalCams').value) || 3;
       const pin = document.getElementById('inputNewRoomPin').value.trim() || '123456';
 
-      if (!token) {
-        showNotice("Peringatan", "Harap masukkan Token / Nama Ruangan yang valid!");
-        return;
-      }
-
-      if (token === 'SKASA') {
-        showNotice("Peringatan", "Token SKASA adalah saluran utama yang sudah ada dan tidak dapat dibuat ulang.");
+      if (!token || token === 'SKASA') {
+        showNotice("Peringatan", "Token tidak valid atau SKASA sudah digunakan!");
         return;
       }
 
@@ -1167,7 +1291,7 @@
       if (!activeDb) return;
 
       const initialRoles = {
-        creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: ""
+        creative: "", pd: "", switcher: "", audio_vt: "", cg: "", fd: "", sharescreen: ""
       };
       for (let i = 1; i <= totalCams; i++) {
         initialRoles[`cam_${i}`] = "";
@@ -1181,7 +1305,7 @@
           status: "standby",
           pin: pin,
           creatorRole: userRole,
-          defaultStandbyYtId: "XhwSTlXTJRc",
+          defaultStandbyYtId: "Jnp3esoHb9k",
           createdAt: Date.now()
         },
         roles: initialRoles,
@@ -1192,17 +1316,42 @@
         },
         vt_state: {
           status: "playing",
-          currentTime: 0,
-          youtubeId: "XhwSTlXTJRc",
+          startAt: Date.now(),
+          startOffset: 0,
+          totalDuration: 120,
+          youtubeId: "Jnp3esoHb9k",
           sourceType: "youtube",
-          title: "Profil SKAWAN TV Studio"
+          title: "Ident Opening SKAWAN TV",
+          loopMode: "playlist"
         },
-        vt_playlist: [ { ...DEFAULT_SKASA_CLIP } ]
+        vt_playlist: [ { ...DEFAULT_BUMPER_CLIP } ],
+        cg_state: {
+          logoActive: true,
+          logoUrl: "",
+          isLiveBadgeActive: true,
+          lowerThirdActive: false,
+          title: "Drs. Eko Prasetyo, M.T.",
+          subtitle: "Kepala Sekolah SMK Negeri 1 Pacitan",
+          cueTitle: "Drs. Eko Prasetyo, M.T.",
+          cueSubtitle: "Kepala Sekolah SMK Negeri 1 Pacitan",
+          isCueReady: true,
+          tickerActive: false,
+          tickerText: `Selamat Datang di Studio ${token} \u2022 SKAWAN TV Siaran Edukasi Digital`
+        },
+        cg_presets: [
+          { id: 'p1', title: 'Drs. Eko Prasetyo, M.T.', subtitle: 'Kepala Sekolah SMK Negeri 1 Pacitan' },
+          { id: 'p2', title: 'Presenter Siaran', subtitle: 'News Anchor SKAWAN TV' }
+        ],
+        rundown: [
+          { id: 'seg_1', title: 'Opening & Sapa Pemirsa', targetSource: 'cam_1', durationSec: 180, status: 'active' },
+          { id: 'seg_2', title: 'VT Profil Materi', targetSource: 'vt', durationSec: 120, status: 'pending' },
+          { id: 'seg_3', title: 'Paparan Presentasi Layar', targetSource: 'sharescreen', durationSec: 300, status: 'pending' }
+        ]
       };
 
       activeDb.ref(`rooms/${token}`).set(newRoomData).then(() => {
         tutupModalBuatRuangan();
-        showNotice("Ruangan Berhasil Dibuat", `Ruangan "${token}" berhasil dibuat dengan PIN: ${pin}. Bagikan token & PIN ini kepada kru siswa.`, true);
+        showNotice("Ruangan Berhasil Dibuat", `Ruangan "${token}" berhasil dibuat dengan PIN: ${pin}. Seluruh skema CG, Rundown, VT Linier, dan Screen Share siap digunakan.`, true);
         initRoomConsole(token);
       }).catch(err => {
         showNotice("Galat Database", err.message);
@@ -1229,7 +1378,7 @@
       } else {
         boxPin.classList.remove('hidden');
         document.getElementById('inputVerificationPin').value = '';
-        pinHelper.innerText = `* Masukkan 6-digit PIN yang Anda buat untuk ruangan ${token}.`;
+        pinHelper.innerText = `* Masukkan PIN yang Anda buat untuk ruangan ${token}.`;
       }
 
       document.getElementById('modalAkhiriSesi').classList.remove('hidden');
@@ -1247,12 +1396,11 @@
 
     function bukaModalHapusRuangan(token) {
       if (userRole !== 'admin') {
-        showNotice("Akses Ditolak", "Hanya Super Admin yang memiliki hak akses untuk menghapus ruangan permanen.", false);
+        showNotice("Akses Ditolak", "Hanya Super Admin yang berhak menghapus ruangan.", false);
         return;
       }
-
       if (token === 'SKASA') {
-        showNotice("Proteksi Utama", "Ruangan SKASA dilindungi dan tidak dapat dihapus.");
+        showNotice("Proteksi Utama", "Ruangan utama SKASA dilindungi dan tidak dapat dihapus.");
         return;
       }
 
@@ -1268,32 +1416,26 @@
 
     function eksekusiHapusRuangan() {
       if (!targetDeleteRoom || targetDeleteRoom === 'SKASA') return;
-
       const activeDb = getDatabase();
       if (!activeDb) return;
 
       const roomToDelete = targetDeleteRoom;
-
       activeDb.ref(`rooms/${roomToDelete}/meta/status`).set('ended').then(() => {
         setTimeout(() => {
           activeDb.ref(`rooms/${roomToDelete}`).remove().then(() => {
             tutupModalHapusRuangan();
-            showNotice("Ruangan Dihapus", `Ruangan "${roomToDelete}" telah dihapus secara permanen dari sistem.`, true);
-
+            showNotice("Ruangan Dihapus", `Ruangan "${roomToDelete}" telah dihapus permanen.`, true);
             if (currentControlledRoom === roomToDelete) {
               currentControlledRoom = 'SKASA';
               initRoomConsole('SKASA');
             }
-          }).catch(err => {
-            showNotice("Galat Penghapusan", err.message, false);
           });
-        }, 800);
+        }, 600);
       });
     }
 
     function eksekusiAkhiriSesi() {
       if (!targetEndRoom) return;
-
       if (targetEndRoom === 'SKASA' && userRole !== 'admin') {
         showNotice("Proteksi Utama", "Hanya Super Admin yang berwenang mengakhiri siaran SKASA.", false);
         return;
@@ -1308,7 +1450,7 @@
       if (userRole !== 'admin') {
         const inputPin = document.getElementById('inputVerificationPin').value.trim();
         if (inputPin !== expectedPin) {
-          showNotice("PIN Salah", `PIN verifikasi yang Anda masukkan tidak cocok dengan PIN ruangan ${targetEndRoom}!`, false);
+          showNotice("PIN Salah", "PIN yang Anda masukkan salah!", false);
           return;
         }
       }
@@ -1319,22 +1461,15 @@
           Object.keys(roomData.roles).forEach(k => resetRoles[k] = "");
           activeDb.ref(`rooms/${targetEndRoom}/roles`).set(resetRoles);
         }
-
         tutupModalAkhiriSesi();
-        showNotice("Sesi Diakhiri", `Sesi ruangan "${targetEndRoom}" telah berhasil diakhiri. Seluruh kru telah dialihkan ke portal peran.`, true);
-      }).catch(err => {
-        showNotice("Galat", err.message);
+        showNotice("Sesi Diakhiri", `Sesi ruangan "${targetEndRoom}" telah diakhiri.`, true);
       });
     }
 
     function keluarSesiAdmin() {
-      sessionStorage.removeItem('skawan_admin_logged');
-      sessionStorage.removeItem('skawan_role');
-      sessionStorage.removeItem('skawan_user_level');
-      sessionStorage.removeItem('skawan_user');
+      sessionStorage.clear();
       localStorage.removeItem('skawan_admin_logged');
       localStorage.removeItem('skawan_role');
-      localStorage.removeItem('skawan_user_level');
       localStorage.removeItem('skawan_user');
       window.location.href = "login.html";
     }
