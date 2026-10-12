@@ -610,4 +610,916 @@
     </div>
   </div>
 
-  <!--
+  <!-- MODAL NOTIFIKASI -->
+  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl text-white space-y-3">
+      <div id="noticeIcon" class="w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+      <h4 id="noticeTitle" class="text-base font-bold text-white mb-1">Pemberitahuan</h4>
+      <p id="noticeMessage" class="text-xs text-slate-300 leading-relaxed"></p>
+      <button onclick="closeNotice()" class="deck-btn w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-600">Tutup</button>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI KELUAR -->
+  <div id="exitConfirmModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
+      <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl font-bold">🔄</div>
+      <div>
+        <h4 class="text-base font-brand font-black text-white">Keluar / Ganti Peran?</h4>
+        <p class="text-xs text-slate-300 mt-1 leading-relaxed">Slot kru Anda akan dikosongkan pada sesi studio.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-2">
+        <button onclick="tutupModalKeluar()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition">Batal</button>
+        <button onclick="eksekusiKeluarSesi()" class="deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm">Ya, Keluar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC ENGINE -->
+  <script>
+    let currentRoomToken = 'SKASA';
+    let currentRoleKey = 'audio_vt';
+    let currentSiswaUser = '';
+
+    let vtPlaylist = [];
+    let cuedClip = null;
+    let cuedIndex = -1;
+    let isTestPlaying = false;
+    let serverClockOffset = 0; // Kompensasi jam server
+
+    let onAirVtState = {
+      status: 'playing',
+      startAt: Date.now(),
+      startOffset: 0,
+      totalDuration: 120,
+      title: 'SKAWAN TV Broadcast',
+      sourceType: 'youtube',
+      youtubeId: 'Jnp3esoHb9k',
+      url: 'https://www.youtube.com/watch?v=Jnp3esoHb9k'
+    };
+
+    let liveState = { programSource: 'cam_1', previewSource: 'cam_2' };
+    let cachedCgState = {
+      isLiveBadgeActive: false,
+      logoActive: false,
+      logoUrl: '',
+      lowerThirdActive: false,
+      tickerActive: false
+    };
+
+    let loopMode = localStorage.getItem('skawan_vt_loop_mode') || 'playlist';
+    let currentPgmActiveYtId = '';
+    let lastPgmKnownVtTime = 0;
+
+    let audioMixerState = {
+      ch1: { fader: 85, isMuted: false, source: 'mic_hardware' },
+      ch2: { fader: 80, isMuted: false, source: 'cam_2' },
+      ch3: { fader: 50, isMuted: false, source: 'cam_3' },
+      ch4: { fader: 90, isMuted: false, source: 'vt_audio' },
+      ch5: { fader: 65, isMuted: false, source: 'bgm' },
+      master: { fader: 95, isMuted: false }
+    };
+
+    let cueYtPlayer = null;
+    let isCueYtReady = false;
+
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
+
+    let audioCtx = null;
+    let micMediaStream = null;
+    let micSourceNode = null;
+    let micAnalyserNode = null;
+    let headphoneMonitorGain = null;
+    let isHardwareMicConnected = false;
+    let isHeadphoneMonitorOn = false;
+
+    function getDatabase() {
+      return window.db || (typeof firebase !== 'undefined' ? firebase.database() : null);
+    }
+
+    function showNotice(title, message, isSuccess = true) {
+      document.getElementById('noticeTitle').innerText = title;
+      document.getElementById('noticeMessage').innerText = message;
+      document.getElementById('noticeModal').classList.remove('hidden');
+    }
+
+    function closeNotice() {
+      document.getElementById('noticeModal').classList.add('hidden');
+    }
+
+    function extractCleanYtId(raw) {
+      if (!raw) return 'Jnp3esoHb9k';
+      const str = String(raw).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+      const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      return match ? match[1] : 'Jnp3esoHb9k';
+    }
+
+    function formatTimecode(sec) {
+      sec = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function calculateAbsoluteServerTime(vt) {
+      if (!vt) return 0;
+      const dur = vt.totalDuration || 120;
+      if (vt.status !== 'playing') {
+        return (vt.startOffset !== undefined ? vt.startOffset : (vt.currentTime || 0)) % dur;
+      }
+      const serverNow = Date.now() + serverClockOffset;
+      const baseStart = vt.startAt || vt.updatedAt || serverNow;
+      const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
+      const offset = vt.startOffset !== undefined ? vt.startOffset : (vt.currentTime || 0);
+      return (offset + elapsed) % dur;
+    }
+
+    function sendCommandToPgmYtIframe(func, args = []) {
+      const ytIframe = document.getElementById('pgmYtIframe');
+      if (ytIframe && ytIframe.contentWindow) {
+        ytIframe.contentWindow.postMessage(JSON.stringify({
+          event: 'command',
+          func: func,
+          args: args
+        }), '*');
+      }
+    }
+
+    function startWibLiveClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        const wibStr = `${formatter.format(now).replace('.', ':')} WIB`;
+        const clockEl = document.getElementById('indexTickerWibHeader');
+        if (clockEl) clockEl.innerText = wibStr;
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    function paksaSinkronKeIndex() {
+      const badge = document.getElementById('pgmSyncStatusBadge');
+      const dot = document.getElementById('pgmSyncDot');
+      const label = document.getElementById('pgmSyncLabel');
+
+      if (badge && dot && label) {
+        badge.className = "flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-950 text-amber-400 border border-amber-700/60 font-mono text-[10px] font-bold";
+        dot.className = "w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse";
+        label.innerText = "SYNCING...";
+      }
+
+      syncPgmVtDisplay(true);
+
+      setTimeout(() => {
+        if (badge && dot && label) {
+          badge.className = "flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-700/60 font-mono text-[10px] font-bold";
+          dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-400";
+          label.innerText = "SYNCED";
+        }
+      }, 600);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      currentRoomToken = (urlParams.get('room') || sessionStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
+      currentSiswaUser = sessionStorage.getItem('skawan_user') || 'Audio/VT Operator';
+
+      document.getElementById('navRoomToken').innerText = currentRoomToken;
+      startWibLiveClock();
+      startStudioTimecodeTicker();
+      startVuMeterRealtimeEngine();
+      updateLoopModeUI();
+      initAudioVtSystem(currentRoomToken);
+    });
+
+    function initAudioVtSystem(token) {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref('.info/serverTimeOffset').on('value', snap => {
+        serverClockOffset = snap.val() || 0;
+      });
+
+      activeDb.ref(`rooms/${token}/meta`).on('value', snap => {
+        const meta = snap.val() || {};
+        const isLive = (token === 'SKASA') || (meta.status === 'live');
+        const standbyOverlay = document.getElementById('pgmStandbyCardOverlay');
+        const cardToken = document.getElementById('standbyOverlayToken');
+        const cardProgram = document.getElementById('standbyOverlayProgram');
+
+        if (cardToken) cardToken.innerText = token;
+        if (cardProgram) cardProgram.innerText = meta.programName || "Gladi Bersih Studio";
+
+        if (!isLive) {
+          if (standbyOverlay) standbyOverlay.classList.remove('hidden');
+        } else {
+          if (standbyOverlay) standbyOverlay.classList.add('hidden');
+        }
+      });
+
+      activeDb.ref(`rooms/${token}/vt_playlist`).on('value', snap => {
+        if (snap.exists()) {
+          const data = snap.val();
+          vtPlaylist = Array.isArray(data) ? data : Object.values(data);
+        } else {
+          vtPlaylist = [];
+        }
+        localStorage.setItem(`skawan_vt_playlist_${token}`, JSON.stringify(vtPlaylist));
+        renderPlaylistUI();
+      });
+
+      activeDb.ref(`rooms/${token}/vt_state`).on('value', snap => {
+        if (!snap.exists()) return;
+        onAirVtState = { ...onAirVtState, ...snap.val() };
+        renderPlaylistUI();
+        syncPgmVtDisplay(false);
+        updatePgmMonitors();
+      });
+
+      activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
+        if (!snap.exists()) return;
+        const live = snap.val();
+        liveState.programSource = live.programSource || liveState.programSource;
+        liveState.previewSource = live.previewSource || liveState.previewSource;
+        updatePgmMonitors();
+      });
+
+      activeDb.ref(`rooms/${token}/cg_state`).on('value', snap => {
+        if (!snap.exists()) return;
+        applyCgGraphics(snap.val());
+      });
+
+      if (typeof SkawanStreamer !== 'undefined') {
+        streamerInstance = new SkawanStreamer({
+          roomToken: token,
+          roleKey: 'audio_vt',
+          onRemoteStream: (camKey, stream) => {
+            const normKey = camKey.includes('_') ? camKey : camKey.replace('cam', 'cam_');
+            remoteCamStreams.set(normKey, stream);
+            remoteCamStreams.set(camKey, stream);
+            updatePgmMonitors();
+          }
+        });
+      }
+    }
+
+    function updatePgmMonitors() {
+      const pgmVideo = document.getElementById('pgmCamVideo');
+      const pgmFallback = document.getElementById('pgmFallbackBox');
+      const pgmVtWrap = document.getElementById('pgmVtWrapper');
+      const lblActiveSrc = document.getElementById('lblActivePgmSource');
+      const screenLabel = document.getElementById('pgmScreenLabel');
+
+      const activeSrc = liveState.programSource || 'cam_1';
+      const pgmLabel = activeSrc.toUpperCase().replace('_', ' ');
+
+      if (lblActiveSrc) lblActiveSrc.innerText = pgmLabel;
+      if (screenLabel) screenLabel.innerText = pgmLabel;
+
+      syncPgmVtDisplay(false);
+
+      if (activeSrc === 'vt' || activeSrc === 'sharescreen') {
+        if (pgmVideo) {
+          pgmVideo.classList.remove('opacity-100');
+          pgmVideo.classList.add('opacity-0', 'pointer-events-none');
+        }
+        if (pgmFallback) pgmFallback.classList.add('hidden');
+        if (pgmVtWrap) {
+          pgmVtWrap.classList.remove('opacity-0', 'pointer-events-none');
+          pgmVtWrap.classList.add('opacity-100');
+          pgmVtWrap.style.zIndex = '15';
+        }
+      } else {
+        if (pgmVtWrap) {
+          pgmVtWrap.classList.remove('opacity-100');
+          pgmVtWrap.classList.add('opacity-0', 'pointer-events-none');
+          pgmVtWrap.style.zIndex = '0';
+        }
+
+        const stream = getCameraStream(activeSrc);
+        if (stream && pgmVideo) {
+          if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+          pgmVideo.classList.remove('opacity-0', 'pointer-events-none');
+          pgmVideo.classList.add('opacity-100');
+          pgmVideo.style.zIndex = '15';
+          if (pgmFallback) pgmFallback.classList.add('hidden');
+          pgmVideo.play().catch(() => {});
+        } else {
+          if (pgmVideo) {
+            pgmVideo.classList.remove('opacity-100');
+            pgmVideo.classList.add('opacity-0', 'pointer-events-none');
+          }
+          if (pgmFallback) pgmFallback.classList.remove('hidden');
+        }
+      }
+    }
+
+    function getCameraStream(key) {
+      if (!key) return null;
+      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
+      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
+      return null;
+    }
+
+    function syncPgmVtDisplay(forceResync = false) {
+      const ytIframe = document.getElementById('pgmYtIframe');
+      const html5Vid = document.getElementById('pgmHtml5Video');
+      const gdriveEl = document.getElementById('pgmGdriveIframe');
+
+      const ytId = extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url);
+      const isPlaying = onAirVtState.status === 'playing';
+      const targetTime = calculateAbsoluteServerTime(onAirVtState);
+
+      if (onAirVtState.sourceType === 'youtube' || !onAirVtState.sourceType) {
+        if (html5Vid) {
+          html5Vid.classList.add('opacity-0', 'pointer-events-none');
+          html5Vid.pause();
+        }
+        if (gdriveEl) gdriveEl.classList.add('opacity-0', 'pointer-events-none');
+
+        // Parameter Privasi Bebas Iklan & Mute Permanen
+        if (currentPgmActiveYtId !== ytId || !ytIframe.src || ytIframe.src === 'about:blank') {
+          currentPgmActiveYtId = ytId;
+          lastPgmKnownVtTime = targetTime;
+
+          const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+          const autoPlayParam = isPlaying ? '1' : '0';
+          
+          ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=1&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&start=${Math.floor(targetTime)}${originParam}`;
+
+          ytIframe.onload = () => {
+            if (!isPlaying) {
+              setTimeout(() => sendCommandToPgmYtIframe('pauseVideo'), 400);
+            } else {
+              setTimeout(() => sendCommandToPgmYtIframe('playVideo'), 400);
+            }
+          };
+          return;
+        }
+
+        const timeDiff = Math.abs(targetTime - lastPgmKnownVtTime);
+        if (timeDiff > 2.5 || forceResync) {
+          lastPgmKnownVtTime = targetTime;
+          sendCommandToPgmYtIframe('seekTo', [targetTime, true]);
+          if (isPlaying) sendCommandToPgmYtIframe('playVideo');
+        } else {
+          lastPgmKnownVtTime = targetTime;
+        }
+      }
+    }
+
+    function applyCgGraphics(cg) {
+      if (!cg) return;
+      cachedCgState = cg;
+
+      const ltBox = document.getElementById('cgLowerThirdBox');
+      const ltTitle = document.getElementById('cgLtTitle');
+      const ltSub = document.getElementById('cgLtSubtitleText');
+      const logoBox = document.getElementById('cgBugLogo');
+      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
+      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
+      const tickerBox = document.getElementById('cgTickerBar');
+      const tickerText = document.getElementById('cgTickerText');
+      const badgeLive = document.getElementById('badgeLiveOnAir');
+
+      if (cg.lowerThirdActive) {
+        if (ltBox) ltBox.classList.remove('hidden');
+        if (ltTitle) ltTitle.innerText = cg.title || 'NAMA PRESENTER';
+        if (ltSub) ltSub.innerText = cg.subtitle || 'Keterangan Jabatan';
+      } else {
+        if (ltBox) ltBox.classList.add('hidden');
+      }
+
+      if (cg.logoActive) {
+        if (logoBox) logoBox.classList.remove('hidden');
+        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
+          if (logoCustomImg) {
+            logoCustomImg.src = cg.logoUrl;
+            logoCustomImg.classList.remove('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+        } else {
+          if (logoCustomImg) {
+            logoCustomImg.src = '';
+            logoCustomImg.classList.add('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+        }
+      } else {
+        if (logoBox) logoBox.classList.add('hidden');
+      }
+
+      if (cg.tickerActive) {
+        if (tickerBox) tickerBox.classList.remove('hidden');
+        if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live Broadcast';
+      } else {
+        if (tickerBox) tickerBox.classList.add('hidden');
+      }
+
+      if (badgeLive) {
+        if (cg.isLiveBadgeActive) {
+          badgeLive.classList.remove('hidden');
+        } else {
+          badgeLive.classList.add('hidden');
+        }
+      }
+    }
+
+    function initCueYtPlayer(vidId) {
+      const ytWrap = document.getElementById('audioVtYtWrap');
+      const fallbackBox = document.getElementById('audioVtFallback');
+      if (fallbackBox) fallbackBox.classList.add('hidden');
+      if (ytWrap) ytWrap.classList.remove('hidden');
+
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.loadVideoById === 'function') {
+        cueYtPlayer.loadVideoById({ videoId: vidId, startSeconds: 0 });
+        cueYtPlayer.pauseVideo();
+        isTestPlaying = false;
+        updateTestPlayBtnUI();
+        return;
+      }
+
+      if (typeof YT === 'undefined' || !YT.Player) return;
+
+      try {
+        cueYtPlayer = new YT.Player('audioVtYtEl', {
+          height: '100%',
+          width: '100%',
+          host: 'https://www.youtube-nocookie.com',
+          videoId: vidId,
+          playerVars: {
+            playsinline: 1,
+            controls: 0,
+            rel: 0,
+            autoplay: 0,
+            mute: 0,
+            modestbranding: 1,
+            iv_load_policy: 3,
+            disablekb: 1,
+            origin: window.location.origin || 'http://localhost'
+          },
+          events: {
+            onReady: (e) => {
+              isCueYtReady = true;
+              e.target.pauseVideo();
+              updateAudioFaderVolume();
+            },
+            onStateChange: (e) => {
+              if (e.data === YT.PlayerState.PLAYING) {
+                isTestPlaying = true;
+                updateTestPlayBtnUI();
+              } else if (e.data === YT.PlayerState.PAUSED) {
+                isTestPlaying = false;
+                updateTestPlayBtnUI();
+              } else if (e.data === YT.PlayerState.ENDED) {
+                isTestPlaying = false;
+                updateTestPlayBtnUI();
+                e.target.seekTo(0, true);
+              }
+            }
+          }
+        });
+      } catch (err) {}
+    }
+
+    function pilihKlipPlaylist(index) {
+      if (index < 0 || index >= vtPlaylist.length) return;
+      cuedIndex = index;
+      cuedClip = vtPlaylist[index];
+
+      document.getElementById('lblActiveClipTitle').innerText = cuedClip.title;
+      document.getElementById('sliderVtProgress').max = cuedClip.durationSec || 120;
+      document.getElementById('lblCueStatusDetail').innerText = `Klip: ${cuedClip.title} (Siap)`;
+
+      const badgeStatus = document.getElementById('badgeVtOnAirStatus');
+      badgeStatus.className = "font-mono text-[10px] font-black px-2 py-0.5 rounded bg-amber-500 text-black shadow uppercase";
+      badgeStatus.innerText = "CUE READY";
+
+      const vidId = cuedClip.youtubeId || extractCleanYtId(cuedClip.url);
+      initCueYtPlayer(vidId);
+      renderPlaylistUI();
+    }
+
+    function eksekusiCueLokal() {
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.seekTo === 'function') {
+        cueYtPlayer.seekTo(0, true);
+        cueYtPlayer.pauseVideo();
+        isTestPlaying = false;
+        updateTestPlayBtnUI();
+      }
+    }
+
+    function toggleTestPlayLokal() {
+      if (!cuedClip) return;
+      if (!cueYtPlayer || !isCueYtReady) return;
+
+      if (isTestPlaying) {
+        cueYtPlayer.pauseVideo();
+      } else {
+        cueYtPlayer.playVideo();
+      }
+    }
+
+    function updateTestPlayBtnUI() {
+      const btn = document.getElementById('btnTestPlay');
+      const icon = document.getElementById('iconTestPlay');
+      const lbl = document.getElementById('lblTestPlay');
+      if (isTestPlaying) {
+        btn.className = "col-span-3 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-amber-600 text-black font-brand font-bold text-xs flex items-center justify-center gap-1 shadow";
+        icon.innerText = "⏸";
+        lbl.innerText = "PAUSE";
+      } else {
+        btn.className = "col-span-3 sm:col-span-2 deck-btn py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-brand font-bold text-xs flex items-center justify-center gap-1 border border-amber-600/40";
+        icon.innerText = "▶";
+        lbl.innerText = "TEST";
+      }
+    }
+
+    function seekCuePosition(val) {
+      const sec = parseFloat(val) || 0;
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.seekTo === 'function') {
+        cueYtPlayer.seekTo(sec, true);
+      }
+    }
+
+    // SINGLE WRITER: EKSEKUSI ROLL TO PGM DENGAN SERVER TIMESTAMP FIREBASE
+    function eksekusiRollToPgm() {
+      if (!cuedClip) {
+        showNotice("Peringatan", "Pilih klip terlebih dahulu di antrean playlist sebelum menekan ROLL TO PGM.", false);
+        return;
+      }
+
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const vidId = cuedClip.youtubeId || extractCleanYtId(cuedClip.url);
+      const cueTime = (cueYtPlayer && typeof cueYtPlayer.getCurrentTime === 'function') ? (cueYtPlayer.getCurrentTime() || 0) : 0;
+
+      // Update state resmi ke Firebase dengan ServerValue.TIMESTAMP
+      activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
+        status: 'playing',
+        startAt: firebase.database.ServerValue.TIMESTAMP,
+        startOffset: cueTime,
+        totalDuration: cuedClip.durationSec || 120,
+        title: cuedClip.title || 'VT Playout',
+        sourceType: cuedClip.sourceType || 'youtube',
+        youtubeId: vidId,
+        url: cuedClip.url || '',
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      }).then(() => {
+        showNotice("Klip Mengudara (On-Air)", `Klip "${cuedClip.title}" telah disiarkan ke PGM seluruh perangkat penonton!`, true);
+      });
+
+      if (cueYtPlayer && typeof cueYtPlayer.pauseVideo === 'function') {
+        cueYtPlayer.pauseVideo();
+        isTestPlaying = false;
+        updateTestPlayBtnUI();
+      }
+    }
+
+    function cycleLoopMode() {
+      if (loopMode === 'off') loopMode = 'single';
+      else if (loopMode === 'single') loopMode = 'playlist';
+      else loopMode = 'off';
+
+      localStorage.setItem('skawan_vt_loop_mode', loopMode);
+      updateLoopModeUI();
+    }
+
+    function updateLoopModeUI() {
+      const lbl = document.getElementById('lblLoopMode');
+      if (lbl) lbl.innerText = loopMode.toUpperCase();
+    }
+
+    function renderPlaylistUI() {
+      const container = document.getElementById('playlistItemsContainer');
+      container.innerHTML = '';
+      document.getElementById('lblPlaylistCount').innerText = `Total Klip: ${vtPlaylist.length} Video`;
+
+      if (vtPlaylist.length === 0) {
+        container.innerHTML = `
+          <div class="p-4 text-center text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
+            Belum ada klip dalam antrean. Masukkan judul dan link YouTube di atas.
+          </div>
+        `;
+        return;
+      }
+
+      const onAirYtId = extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url);
+
+      vtPlaylist.forEach((item, idx) => {
+        const itemYtId = extractCleanYtId(item.youtubeId || item.url);
+        const isOnAirNow = (itemYtId === onAirYtId && onAirVtState.status === 'playing');
+        const isCuedNow = (idx === cuedIndex);
+
+        let borderStyle = 'border-slate-800 bg-slate-950 hover:border-slate-700';
+        if (isOnAirNow) borderStyle = 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/60';
+        else if (isCuedNow) borderStyle = 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500/60';
+
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${borderStyle}`;
+        card.onclick = () => pilihKlipPlaylist(idx);
+
+        let badgeLabel = item.sourceType ? item.sourceType.toUpperCase() : 'YT';
+        let badgeStyle = 'bg-slate-800 text-slate-400';
+
+        if (isOnAirNow) {
+          badgeLabel = '● ON-AIR';
+          badgeStyle = 'bg-emerald-600 text-white animate-pulse font-black';
+        } else if (isCuedNow) {
+          badgeLabel = 'CUE READY';
+          badgeStyle = 'bg-amber-500 text-black font-black';
+        }
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-5 h-5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-mono text-[10px] font-bold text-slate-400 shrink-0">${idx + 1}</span>
+            <div class="min-w-0">
+              <span class="font-brand font-bold text-xs text-white block truncate">${item.title}</span>
+              <span class="text-[10px] font-mono text-slate-400 block truncate">${formatTimecode(item.durationSec || 120)}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${badgeStyle}">${badgeLabel}</span>
+            <button onclick="hapusKlipDariFirebase(event, ${idx})" class="deck-btn w-6 h-6 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800 text-rose-300 flex items-center justify-center text-xs transition" title="Hapus klip ini">
+              ✕
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function eksekusiQuickAdd() {
+      const titleInput = document.getElementById('quickAddTitle');
+      const urlInput = document.getElementById('quickAddUrl');
+      const title = titleInput.value.trim() || 'Klip Segmen';
+      const rawUrl = urlInput.value.trim();
+      if (!rawUrl) return;
+
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const newItem = {
+        id: `vt_${Date.now()}`,
+        title: title,
+        sourceType: 'youtube',
+        youtubeId: extractCleanYtId(rawUrl),
+        url: rawUrl,
+        durationSec: 120
+      };
+
+      const updatedPlaylist = [...vtPlaylist, newItem];
+      activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(updatedPlaylist).then(() => {
+        titleInput.value = '';
+        urlInput.value = '';
+      });
+    }
+
+    function hapusKlipDariFirebase(e, idx) {
+      e.stopPropagation();
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const removed = vtPlaylist[idx];
+      const updatedPlaylist = vtPlaylist.filter((_, i) => i !== idx);
+
+      activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set(updatedPlaylist).then(() => {
+        if (cuedIndex === idx) {
+          cuedIndex = -1;
+          cuedClip = null;
+        }
+        showNotice("Klip Dihapus", `Klip "${removed.title}" telah dihapus dari Firebase.`, true);
+      });
+    }
+
+    function kosongkanPlaylistManual() {
+      if (!confirm("Kosongkan seluruh daftar playlist di Firebase?")) return;
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set([]).then(() => {
+        cuedIndex = -1;
+        cuedClip = null;
+      });
+    }
+
+    function gantiPatchSource(ch, newSrc) {
+      audioMixerState[ch].source = newSrc;
+      updateAudioFaderVolume();
+    }
+
+    function updateChannelFader(ch, val) {
+      audioMixerState[ch].fader = parseInt(val) || 0;
+      document.getElementById(`lbl-val-${ch}`).innerText = `${val}%`;
+      updateAudioFaderVolume();
+    }
+
+    function toggleChannelMute(ch) {
+      audioMixerState[ch].isMuted = !audioMixerState[ch].isMuted;
+      const btn = document.getElementById(`btn-mute-${ch}`);
+      if (audioMixerState[ch].isMuted) {
+        btn.className = "deck-btn w-full py-1.5 rounded-lg border border-red-800 bg-red-950 text-red-400 font-mono text-[10px] font-bold";
+        btn.innerText = "MUTED";
+      } else {
+        btn.className = "deck-btn w-full py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold";
+        btn.innerText = "MUTE";
+      }
+      updateAudioFaderVolume();
+    }
+
+    function updateAudioFaderVolume() {
+      const masterFactor = audioMixerState.master.isMuted ? 0 : (audioMixerState.master.fader / 100);
+
+      let vtFaderVal = 0;
+      ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
+        if (audioMixerState[ch].source === 'vt_audio' && !audioMixerState[ch].isMuted) {
+          vtFaderVal = Math.max(vtFaderVal, audioMixerState[ch].fader);
+        }
+      });
+
+      const finalVolume = Math.round(masterFactor * (vtFaderVal / 100) * 100);
+      if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.setVolume === 'function') {
+        cueYtPlayer.setVolume(finalVolume);
+        if (isHeadphoneMonitorOn && finalVolume > 0) cueYtPlayer.unMute();
+        else cueYtPlayer.mute();
+      }
+
+      if (headphoneMonitorGain) {
+        let micFaderVal = 0;
+        ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
+          if (audioMixerState[ch].source === 'mic_hardware' && !audioMixerState[ch].isMuted) {
+            micFaderVal = Math.max(micFaderVal, audioMixerState[ch].fader);
+          }
+        });
+        const micGain = isHeadphoneMonitorOn ? (masterFactor * (micFaderVal / 100)) : 0;
+        headphoneMonitorGain.gain.setValueAtTime(micGain, audioCtx ? audioCtx.currentTime : 0);
+      }
+    }
+
+    function toggleHeadphoneMonitoring() {
+      isHeadphoneMonitorOn = !isHeadphoneMonitorOn;
+      const btn = document.getElementById('btnHeadphoneMonitor');
+      const lbl = document.getElementById('lblHeadphone');
+
+      if (isHeadphoneMonitorOn) {
+        btn.className = "deck-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-950/60 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition shadow";
+        lbl.innerText = "Monitor Headphone: ON";
+      } else {
+        btn.className = "deck-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition";
+        lbl.innerText = "Monitor Headphone: OFF";
+      }
+
+      updateAudioFaderVolume();
+    }
+
+    async function toggleHardwareInputAudio() {
+      if (isHardwareMicConnected) {
+        if (micMediaStream) micMediaStream.getTracks().forEach(t => t.stop());
+        isHardwareMicConnected = false;
+        document.getElementById('lblHardwareMic').innerText = "Sambungkan Mic / Line-In Fisik";
+        document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-amber-600/60 bg-amber-950/40 hover:bg-amber-900 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition";
+        return;
+      }
+
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+        micMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        micSourceNode = audioCtx.createMediaStreamSource(micMediaStream);
+        micAnalyserNode = audioCtx.createAnalyser();
+        micAnalyserNode.fftSize = 64;
+
+        headphoneMonitorGain = audioCtx.createGain();
+        headphoneMonitorGain.gain.value = 0;
+
+        micSourceNode.connect(micAnalyserNode);
+        micSourceNode.connect(headphoneMonitorGain);
+        headphoneMonitorGain.connect(audioCtx.destination);
+
+        isHardwareMicConnected = true;
+        document.getElementById('lblHardwareMic').innerText = "Mic Fisik: Terhubung (Live)";
+        document.getElementById('btnHardwareMic').className = "deck-btn px-3 py-1.5 rounded-xl border border-emerald-500 bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md";
+
+        updateAudioFaderVolume();
+        showNotice("Mic Fisik Terhubung", "Mikrofon / Line-in terdeteksi dan terpetakan ke mixer audio.", true);
+      } catch (err) {
+        showNotice("Gagal Membuka Mic", "Izin mikrofon ditolak oleh browser.", false);
+      }
+    }
+
+    function startVuMeterRealtimeEngine() {
+      const micBuffer = new Uint8Array(32);
+
+      setInterval(() => {
+        let realMicLevel = 0;
+        if (isHardwareMicConnected && micAnalyserNode) {
+          micAnalyserNode.getByteFrequencyData(micBuffer);
+          let sum = 0;
+          for (let i = 0; i < micBuffer.length; i++) sum += micBuffer[i];
+          realMicLevel = Math.min(100, Math.round((sum / micBuffer.length) * 1.5));
+        }
+
+        const isVtPlayingOnAir = onAirVtState.status === 'playing';
+
+        ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
+          const cfg = audioMixerState[ch];
+          const bar = document.getElementById(`vu-bar-${ch}`);
+          if (!bar) return;
+
+          let rawSignal = 0;
+          if (cfg.isMuted) rawSignal = 0;
+          else if (cfg.source === 'mic_hardware') rawSignal = realMicLevel;
+          else if (cfg.source === 'vt_audio') rawSignal = isVtPlayingOnAir ? (65 + Math.random() * 25) : 0;
+          else rawSignal = (cfg.fader > 0) ? (35 + Math.random() * 20) : 0;
+
+          const targetHeight = Math.min(100, Math.round(rawSignal * (cfg.fader / 100)));
+          bar.style.height = `${targetHeight}%`;
+        });
+
+        const masterBar = document.getElementById(`vu-bar-master`);
+        if (masterBar) {
+          const masterCfg = audioMixerState.master;
+          let combined = 0;
+          if (!masterCfg.isMuted) {
+            ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach(ch => {
+              if (!audioMixerState[ch].isMuted) combined = Math.max(combined, audioMixerState[ch].fader);
+            });
+            if (isVtPlayingOnAir || realMicLevel > 0) {
+              combined = Math.min(100, Math.round(combined * (masterCfg.fader / 100) * 0.95));
+            }
+          }
+          masterBar.style.height = `${combined}%`;
+        }
+      }, 80);
+    }
+
+    function startStudioTimecodeTicker() {
+      setInterval(() => {
+        if (cueYtPlayer && isCueYtReady && typeof cueYtPlayer.getCurrentTime === 'function') {
+          const curTime = cueYtPlayer.getCurrentTime() || 0;
+          const totalD = cueYtPlayer.getDuration() || (cuedClip ? cuedClip.durationSec : 120);
+
+          document.getElementById('lblTimecodeCurrent').innerText = formatTimecode(curTime);
+          document.getElementById('lblTimecodeTotal').innerText = formatTimecode(totalD);
+          document.getElementById('sliderVtProgress').max = Math.floor(totalD);
+          document.getElementById('sliderVtProgress').value = Math.floor(curTime);
+
+          const pct = totalD > 0 ? Math.round((curTime / totalD) * 100) : 0;
+          document.getElementById('lblVtPercent').innerText = `${pct}%`;
+        }
+      }, 500);
+    }
+
+    function bukaModalTambahKlip() {
+      document.getElementById('modalTambahKlip').classList.remove('hidden');
+    }
+    function tutupModalTambahKlip() {
+      document.getElementById('modalTambahKlip').classList.add('hidden');
+    }
+    function eksekusiModalTambahKlip() {
+      const title = document.getElementById('modalInputClipTitle').value.trim() || 'Klip Segmen';
+      const url = document.getElementById('modalInputClipUrl').value.trim();
+      const dur = parseInt(document.getElementById('modalInputClipDuration').value) || 120;
+      const type = document.getElementById('modalSelectSourceType').value;
+
+      if (!url) return;
+
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const newItem = {
+        id: `vt_${Date.now()}`,
+        title: title,
+        sourceType: type,
+        youtubeId: extractCleanYtId(url),
+        url: url,
+        durationSec: dur
+      };
+
+      activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set([...vtPlaylist, newItem]).then(() => {
+        tutupModalTambahKlip();
+      });
+    }
+
+    function bukaModalKeluar() {
+      document.getElementById('exitConfirmModal').classList.remove('hidden');
+    }
+    function tutupModalKeluar() {
+      document.getElementById('exitConfirmModal').classList.add('hidden');
+    }
+    function eksekusiKeluarSesi() {
+      window.location.href = 'login.html';
+    }
+  </script>
+</body>
+</html>
