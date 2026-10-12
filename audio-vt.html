@@ -154,7 +154,7 @@
     </div>
   </nav>
 
-  <!-- BANNER KOMANDO SUTRADARA -->
+  <!-- BANNER KOMANDO INTERCOM -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 w-full">
     <div id="directorCueBanner" class="bg-gradient-to-r from-amber-600 via-orange-600 to-red-700 text-white p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 transition border border-amber-400/40">
       <div class="flex items-center gap-2.5">
@@ -305,6 +305,9 @@
             <!-- 2. PEMUTAR VT MEDIA (CLEAN EMBED NOCOOKIE, MUTED PERMANEN) -->
             <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 opacity-0 pointer-events-none">
               <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
+
+              <!-- Tirai Hitam Transisi Anti-Flicker -->
+              <div id="pgmReturnBlackShield" class="absolute inset-0 bg-black z-20 pointer-events-none transition-opacity duration-300 opacity-0"></div>
 
               <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
                 <iframe
@@ -645,7 +648,7 @@
     let cuedClip = null;
     let cuedIndex = -1;
     let isTestPlaying = false;
-    let serverClockOffset = 0; // Kompensasi jam server
+    let serverClockOffset = 0;
 
     let onAirVtState = {
       status: 'playing',
@@ -929,50 +932,46 @@
       return null;
     }
 
+    // ZERO-RELOAD STATE GUARD PADA MONITOR PGM RETURN AUDIO-VT
     function syncPgmVtDisplay(forceResync = false) {
       const ytIframe = document.getElementById('pgmYtIframe');
-      const html5Vid = document.getElementById('pgmHtml5Video');
-      const gdriveEl = document.getElementById('pgmGdriveIframe');
+      const shield = document.getElementById('pgmReturnBlackShield');
 
       const ytId = extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url);
       const isPlaying = onAirVtState.status === 'playing';
       const targetTime = calculateAbsoluteServerTime(onAirVtState);
 
-      if (onAirVtState.sourceType === 'youtube' || !onAirVtState.sourceType) {
-        if (html5Vid) {
-          html5Vid.classList.add('opacity-0', 'pointer-events-none');
-          html5Vid.pause();
-        }
-        if (gdriveEl) gdriveEl.classList.add('opacity-0', 'pointer-events-none');
+      // Inisialisasi awal atau pergantian ID video baru
+      if (currentPgmActiveYtId !== ytId || !ytIframe.src || ytIframe.src === 'about:blank') {
+        currentPgmActiveYtId = ytId;
+        lastPgmKnownVtTime = targetTime;
 
-        // Parameter Privasi Bebas Iklan & Mute Permanen
-        if (currentPgmActiveYtId !== ytId || !ytIframe.src || ytIframe.src === 'about:blank') {
-          currentPgmActiveYtId = ytId;
-          lastPgmKnownVtTime = targetTime;
+        if (shield) shield.classList.remove('opacity-0');
 
-          const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-          const autoPlayParam = isPlaying ? '1' : '0';
-          
-          ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=1&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&start=${Math.floor(targetTime)}${originParam}`;
+        const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+        const autoPlayParam = isPlaying ? '1' : '0';
+        
+        // Selalu dikunci mute=1 di monitor return lokal
+        ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=1&controls=0&rel=0&loop=1&playlist=${ytId}&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&start=${Math.floor(targetTime)}${originParam}`;
 
-          ytIframe.onload = () => {
-            if (!isPlaying) {
-              setTimeout(() => sendCommandToPgmYtIframe('pauseVideo'), 400);
-            } else {
-              setTimeout(() => sendCommandToPgmYtIframe('playVideo'), 400);
-            }
-          };
-          return;
-        }
+        ytIframe.onload = () => {
+          setTimeout(() => {
+            if (shield) shield.classList.add('opacity-0');
+            if (isPlaying) sendCommandToPgmYtIframe('playVideo');
+            else sendCommandToPgmYtIframe('pauseVideo');
+          }, 350);
+        };
+        return;
+      }
 
-        const timeDiff = Math.abs(targetTime - lastPgmKnownVtTime);
-        if (timeDiff > 2.5 || forceResync) {
-          lastPgmKnownVtTime = targetTime;
-          sendCommandToPgmYtIframe('seekTo', [targetTime, true]);
-          if (isPlaying) sendCommandToPgmYtIframe('playVideo');
-        } else {
-          lastPgmKnownVtTime = targetTime;
-        }
+      // ID video sama: Dilarang reset .src, cukup sesuaikan posisi detik jika drift > 2.5s
+      const timeDiff = Math.abs(targetTime - lastPgmKnownVtTime);
+      if (timeDiff > 2.5 || forceResync) {
+        lastPgmKnownVtTime = targetTime;
+        sendCommandToPgmYtIframe('seekTo', [targetTime, true]);
+        if (isPlaying) sendCommandToPgmYtIframe('playVideo');
+      } else {
+        lastPgmKnownVtTime = targetTime;
       }
     }
 
@@ -1014,7 +1013,7 @@
           if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
         }
       } else {
-        if (logoBox) logoBox.classList.add('hidden');
+        logoBox.classList.add('hidden');
       }
 
       if (cg.tickerActive) {
@@ -1033,6 +1032,7 @@
       }
     }
 
+    // PEMUTAR CUE MANDIRI OPERATOR
     function initCueYtPlayer(vidId) {
       const ytWrap = document.getElementById('audioVtYtWrap');
       const fallbackBox = document.getElementById('audioVtFallback');
@@ -1150,7 +1150,7 @@
       }
     }
 
-    // SINGLE WRITER: EKSEKUSI ROLL TO PGM DENGAN SERVER TIMESTAMP FIREBASE
+    // SINGLE WRITER: EKSEKUSI ROLL TO PGM KE SELURUH PENONTON
     function eksekusiRollToPgm() {
       if (!cuedClip) {
         showNotice("Peringatan", "Pilih klip terlebih dahulu di antrean playlist sebelum menekan ROLL TO PGM.", false);
@@ -1163,7 +1163,6 @@
       const vidId = cuedClip.youtubeId || extractCleanYtId(cuedClip.url);
       const cueTime = (cueYtPlayer && typeof cueYtPlayer.getCurrentTime === 'function') ? (cueYtPlayer.getCurrentTime() || 0) : 0;
 
-      // Update state resmi ke Firebase dengan ServerValue.TIMESTAMP
       activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
         status: 'playing',
         startAt: firebase.database.ServerValue.TIMESTAMP,
@@ -1175,7 +1174,7 @@
         url: cuedClip.url || '',
         updatedAt: firebase.database.ServerValue.TIMESTAMP
       }).then(() => {
-        showNotice("Klip Mengudara (On-Air)", `Klip "${cuedClip.title}" telah disiarkan ke PGM seluruh perangkat penonton!`, true);
+        showNotice("Klip Mengudara (On-Air)", `Klip "${cuedClip.title}" telah disiarkan ke PGM seluruh perangkat!`, true);
       });
 
       if (cueYtPlayer && typeof cueYtPlayer.pauseVideo === 'function') {
