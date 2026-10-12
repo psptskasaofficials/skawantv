@@ -65,6 +65,16 @@
         }
       }
     })();
+
+    function handleBrandLogoFallback(imgEl) {
+      if (imgEl.src.indexOf('assets/img/') !== -1) {
+        imgEl.src = 'logo-skawan-full.webp';
+      } else {
+        imgEl.style.display = 'none';
+        const fallback = document.getElementById('brandFallbackBadge');
+        if (fallback) fallback.classList.remove('hidden');
+      }
+    }
   </script>
 
   <style>
@@ -80,44 +90,56 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-red-600 selection:text-white p-4 sm:p-6">
 
-  <!-- HEADER -->
-  <header class="max-w-4xl mx-auto w-full flex items-center justify-between pb-6 border-b border-slate-900">
+  <!-- HEADER BRAND -->
+  <header class="max-w-4xl mx-auto w-full flex items-center justify-between pb-5 border-b border-slate-900">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center font-brand font-black text-xl text-white shadow-lg shadow-red-600/30">
-        SK
-      </div>
-      <div>
-        <div class="flex items-center gap-1.5">
-          <span class="font-brand font-black tracking-wide text-white text-lg leading-none">SKAWAN</span>
-          <span class="font-brand font-black text-red-500 text-lg leading-none">TV</span>
+      <a href="index.html" class="flex items-center gap-2.5">
+        <img
+          id="brandLogoImg"
+          src="assets/img/logo-skawan-full.webp"
+          alt="SKAWAN TV | SKASA WAHANA TELEVISI"
+          class="h-10 sm:h-12 w-auto max-w-[220px] sm:max-w-[280px] object-contain bg-white rounded-xl px-2.5 py-1 shadow-sm"
+          onerror="handleBrandLogoFallback(this)"
+        >
+        <div id="brandFallbackBadge" class="hidden items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center font-brand font-black text-lg text-white shadow-md">
+            SK
+          </div>
+          <div>
+            <div class="flex items-center gap-1">
+              <span class="font-brand font-black tracking-wide text-white text-base leading-none">SKAWAN</span>
+              <span class="font-brand font-black text-red-500 text-base leading-none">TV</span>
+            </div>
+            <span class="text-[9px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">SMKN 1 Pacitan</span>
+          </div>
         </div>
-        <span class="text-[10px] tracking-wider font-semibold uppercase text-slate-400 block -mt-0.5">SMK Negeri 1 Pacitan &bull; Broadcast Studio</span>
-      </div>
+      </a>
     </div>
 
-    <button onclick="bukaModalAdmin()" class="deck-btn px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5">
-      <span>🔑</span>
-      <span>Akses Guru/Admin</span>
+    <!-- Tombol Akses Khusus Guru / Supervisor / Admin -->
+    <button onclick="bukaModalAdmin()" class="deck-btn px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold transition flex items-center gap-2 shadow-md">
+      <span>🔒</span>
+      <span>Akses Guru / Admin (MCR)</span>
     </button>
   </header>
 
-  <!-- KONTEN FORM PEMILIHAN RUANGAN & IDENTITAS -->
+  <!-- FORM UTAMA IDENTITAS SISWA & RUANGAN -->
   <main class="max-w-4xl mx-auto w-full my-auto py-6 space-y-6">
 
-    <div class="text-center space-y-2">
+    <div class="text-center space-y-1.5">
       <h1 class="text-2xl sm:text-3xl font-brand font-black text-white">
         Portal Masuk Ruang Siaran
       </h1>
       <p class="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-        Masukkan token ruangan, PIN sesi dari guru, nama Anda, lalu pilih posisi tugas siaran.
+        Ketik token ruangan &amp; PIN sesi dari guru, tulis nama Anda, lalu ambil slot posisi kru siaran.
       </p>
     </div>
 
-    <!-- KARTU INPUT TOKEN, PIN, NAMA -->
+    <!-- KARTU TOKEN, PIN RUANGAN, DAN NAMA KRU -->
     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl max-w-xl mx-auto space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label class="block text-[11px] font-mono font-bold text-slate-400 uppercase mb-1">Ruangan / Studio:</label>
+          <label class="block text-[11px] font-mono font-bold text-slate-400 uppercase mb-1">Token Ruangan / Studio:</label>
           <input type="text" id="inputRoomToken" oninput="muatStatusRuangan(this.value)" placeholder="SKASA" value="SKASA" class="w-full uppercase bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-mono font-bold text-sm outline-none focus:border-red-500">
         </div>
         <div>
@@ -127,7 +149,7 @@
       </div>
 
       <div>
-        <label class="block text-[11px] font-mono font-bold text-slate-400 uppercase mb-1">Nama Siswa / Kru:</label>
+        <label class="block text-[11px] font-mono font-bold text-slate-400 uppercase mb-1">Nama Siswa / Kru yang Bertugas:</label>
         <input type="text" id="inputUserName" placeholder="Masukkan nama lengkap Anda" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-medium text-sm outline-none focus:border-red-500">
       </div>
 
@@ -137,10 +159,10 @@
       </div>
     </div>
 
-    <!-- GRID PEMILIHAN PERAN (1 SISWA = 1 SLOT KETAT) -->
+    <!-- DAFTAR SLOT POSISI TUGAS (1 PERAN = 1 SISWA KETAT) -->
     <div class="space-y-3">
       <div class="flex items-center justify-between text-xs font-mono text-slate-400 max-w-xl mx-auto">
-        <span class="font-bold uppercase tracking-wider text-slate-300">Pilih Posisi Tugas (1 Peran = 1 Siswa):</span>
+        <span class="font-bold uppercase tracking-wider text-slate-300">Pilih Posisi Tugas Siswa:</span>
         <span id="lblSlotAvailable">Memuat slot...</span>
       </div>
 
@@ -151,25 +173,34 @@
 
   </main>
 
-  <!-- MODAL AKSES GURU / ADMIN -->
+  <!-- MODAL MASUK GURU / ADMIN KE MCR (admin.html) -->
   <div id="modalAdminAccess" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4 text-white">
       <div class="w-12 h-12 rounded-full bg-red-600/20 text-red-500 border border-red-500/40 flex items-center justify-center mx-auto text-xl font-bold">
         🔑
       </div>
       <div>
-        <h4 class="text-base font-brand font-black text-white">Masuk Master Control</h4>
-        <p class="text-xs text-slate-400 mt-0.5">Khusus Guru Pengampu &amp; Teknisi Studio</p>
+        <h4 class="text-base font-brand font-black text-white">Masuk Master Control Room</h4>
+        <p class="text-xs text-slate-400 mt-0.5">Guru Pengampu &bull; Teknisi &bull; Super Admin</p>
       </div>
 
-      <div class="space-y-2 text-left">
-        <label class="block text-[11px] font-mono font-bold text-slate-400 uppercase">PIN Master Guru / Admin:</label>
-        <input type="password" id="inputAdminMasterPin" maxlength="6" placeholder="PIN Master" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-center font-mono font-bold tracking-widest text-amber-400 text-sm outline-none focus:border-red-500">
+      <div class="space-y-3 text-left">
+        <div>
+          <label class="block text-[10px] font-mono font-bold text-slate-400 uppercase mb-1">Target Ruangan Praktik:</label>
+          <input type="text" id="inputAdminTargetRoom" placeholder="SKASA" value="SKASA" class="w-full uppercase bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold text-xs outline-none focus:border-red-500">
+        </div>
+        <div>
+          <label class="block text-[10px] font-mono font-bold text-amber-400 uppercase mb-1">Kode Akses / PIN Ruangan:</label>
+          <input type="password" id="inputAdminMasterPin" placeholder="PIN Ruangan / Kode Master" class="w-full bg-slate-950 border border-amber-600/60 rounded-xl px-3 py-2.5 text-center font-mono font-bold tracking-wider text-amber-400 text-sm outline-none focus:border-amber-400">
+          <span class="text-[9px] font-mono text-slate-500 block mt-1 leading-tight">
+            * Masukkan kode admin <strong>SKASAONETV*</strong> atau <strong>PIN 6-digit</strong> ruangan sesi Anda.
+          </span>
+        </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 pt-1">
+      <div class="grid grid-cols-2 gap-2 pt-2">
         <button onclick="tutupModalAdmin()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-semibold">Batal</button>
-        <button onclick="eksekusiLoginAdmin()" class="deck-btn w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md">Masuk</button>
+        <button onclick="eksekusiLoginAdmin()" class="deck-btn w-full py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold text-xs shadow-md">Buka MCR</button>
       </div>
     </div>
   </div>
@@ -203,6 +234,7 @@
       const urlParams = new URLSearchParams(window.location.search);
       const urlRoom = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
       document.getElementById('inputRoomToken').value = urlRoom;
+      document.getElementById('inputAdminTargetRoom').value = urlRoom;
 
       muatStatusRuangan(urlRoom);
     });
@@ -232,12 +264,12 @@
 
       const roles = (roomData && roomData.roles) || {};
       const meta = (roomData && roomData.meta) || {};
-      const status = tokenIsLive(meta) ? 'LIVE ON-AIR' : 'GLADI BERSIH';
+      const isLive = (meta.status === 'live');
 
       document.getElementById('lblRoomStatusText').innerText = meta.programName || 'Studio Siaran';
       const badge = document.getElementById('lblRoomBadge');
-      badge.innerText = status;
-      badge.className = tokenIsLive(meta) 
+      badge.innerText = isLive ? 'LIVE ON-AIR' : 'GLADI BERSIH';
+      badge.className = isLive 
         ? "px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white animate-pulse" 
         : "px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800";
 
@@ -260,7 +292,7 @@
         card.className = cardStyle;
         card.onclick = () => {
           if (isOccupied) {
-            alert(`Slot "${r.name}" sudah diambil oleh ${occupant}. Pilih slot lain atau minta Admin melepas slot.`);
+            alert(`Slot "${r.name}" sudah diambil oleh ${occupant}. Pilih posisi lain atau minta Guru/Admin melepas slot.`);
             return;
           }
           eksekusiPilihPeran(r);
@@ -285,10 +317,6 @@
       document.getElementById('lblSlotAvailable').innerText = `${availableCount} Slot Tersedia`;
     }
 
-    function tokenIsLive(meta) {
-      return (meta && meta.status === 'live');
-    }
-
     function eksekusiPilihPeran(roleObj) {
       const token = document.getElementById('inputRoomToken').value.toUpperCase().trim();
       const pin = document.getElementById('inputRoomPin').value.trim();
@@ -307,13 +335,12 @@
         return;
       }
 
-      // Verifikasi PIN Ruangan
       const activeDb = getDatabase();
       if (!activeDb) return;
 
       activeDb.ref(`rooms/${token}`).once('value', snapshot => {
         if (!snapshot.exists()) {
-          alert(`Ruangan ${token} belum dibuat oleh guru.`);
+          alert(`Ruangan ${token} belum dibuat di sistem.`);
           return;
         }
 
@@ -321,18 +348,16 @@
         const expectedPin = String(data.meta?.pin || '123456');
 
         if (pin !== expectedPin) {
-          alert("PIN sesi ruangan salah! Minta PIN yang benar kepada guru.");
+          alert("PIN sesi ruangan salah! Konfirmasi PIN yang benar kepada guru.");
           return;
         }
 
-        // Verifikasi Ulang apakah slot masih kosong (Anti Balapan / Race Condition)
         const currentOccupant = data.roles?.[roleObj.key];
         if (currentOccupant && currentOccupant.trim().length > 0) {
-          alert(`Peran ${roleObj.name} baru saja diambil oleh ${currentOccupant}. Silakan pilih peran lain.`);
+          alert(`Peran ${roleObj.name} baru saja diambil oleh ${currentOccupant}. Silakan pilih peran yang lain.`);
           return;
         }
 
-        // Kunci slot peran di database untuk siswa ini
         activeDb.ref(`rooms/${token}/roles/${roleObj.key}`).set(userName).then(() => {
           localStorage.setItem('skawan_room', token);
           sessionStorage.setItem('skawan_room', token);
@@ -350,24 +375,62 @@
     }
 
     function bukaModalAdmin() {
+      const currentToken = document.getElementById('inputRoomToken').value.toUpperCase().trim() || 'SKASA';
+      document.getElementById('inputAdminTargetRoom').value = currentToken;
       document.getElementById('modalAdminAccess').classList.remove('hidden');
     }
+
     function tutupModalAdmin() {
       document.getElementById('modalAdminAccess').classList.add('hidden');
     }
 
+    // AUTENTIKASI DUAL LEVEL GURU & ADMIN KE MCR
     function eksekusiLoginAdmin() {
-      const pin = document.getElementById('inputAdminMasterPin').value.trim();
-      if (pin === '123456' || pin === '999999') {
-        const roleLevel = pin === '999999' ? 'admin' : 'guru';
-        sessionStorage.setItem('skawan_admin_logged', 'true');
-        sessionStorage.setItem('skawan_role', roleLevel);
-        localStorage.setItem('skawan_admin_logged', 'true');
-        localStorage.setItem('skawan_role', roleLevel);
-        window.location.href = `admin.html?role=${roleLevel}`;
-      } else {
-        alert("PIN Master Salah!");
+      const targetRoom = document.getElementById('inputAdminTargetRoom').value.toUpperCase().trim() || 'SKASA';
+      const inputPass = document.getElementById('inputAdminMasterPin').value.trim();
+
+      if (!inputPass) {
+        alert("Masukkan kode akses atau PIN ruangan!");
+        return;
       }
+
+      // 1. Validasi Kode Super Admin
+      if (inputPass === 'SKASAONETV*') {
+        sessionStorage.setItem('skawan_admin_logged', 'true');
+        sessionStorage.setItem('skawan_role', 'admin');
+        localStorage.setItem('skawan_admin_logged', 'true');
+        localStorage.setItem('skawan_role', 'admin');
+        localStorage.setItem('skawan_room', targetRoom);
+        sessionStorage.setItem('skawan_room', targetRoom);
+        window.location.href = `admin.html?role=admin&room=${targetRoom}`;
+        return;
+      }
+
+      // 2. Validasi Akses Guru Menggunakan PIN Sesi Ruangan
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref(`rooms/${targetRoom}`).once('value', snapshot => {
+        if (!snapshot.exists()) {
+          alert(`Ruangan ${targetRoom} tidak ditemukan.`);
+          return;
+        }
+
+        const roomData = snapshot.val();
+        const expectedPin = String(roomData.meta?.pin || '123456');
+
+        if (inputPass === expectedPin) {
+          sessionStorage.setItem('skawan_admin_logged', 'true');
+          sessionStorage.setItem('skawan_role', 'guru');
+          localStorage.setItem('skawan_admin_logged', 'true');
+          localStorage.setItem('skawan_role', 'guru');
+          localStorage.setItem('skawan_room', targetRoom);
+          sessionStorage.setItem('skawan_room', targetRoom);
+          window.location.href = `admin.html?role=guru&room=${targetRoom}`;
+        } else {
+          alert("Kode Super Admin atau PIN Ruangan salah!");
+        }
+      });
     }
   </script>
 </body>
