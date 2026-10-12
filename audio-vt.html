@@ -169,7 +169,7 @@
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- 1. CUE VIEWPORT (PREVIEW LOCAL OPERATOR) -->
+      <!-- 1. CUE VIEWPORT (PREVIEW OPERATOR) -->
       <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -266,12 +266,12 @@
 
             <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-            <!-- Video VT PGM (Muted Permanen di Deck Operator) -->
+            <!-- Video VT PGM (Muted Permanen Tanpa Parameter Auto-Loop) -->
             <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 pointer-events-none" style="display: none; opacity: 0;">
               <iframe id="pgmYtIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
             </div>
 
-            <!-- CG BUG LOGO WATERMARK (IDENTIK DENGAN INDEX.HTML) -->
+            <!-- CG BUG LOGO WATERMARK -->
             <div id="cgBugLogo" class="absolute top-2.5 right-2.5 z-30 flex items-center justify-center max-w-[130px] max-h-10 pointer-events-none select-none">
               <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-6 sm:h-7 w-auto object-contain drop-shadow-md">
               <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-white/95 rounded-lg px-2 py-0.5 shadow-md backdrop-blur-sm border border-white/20">
@@ -289,7 +289,7 @@
               </div>
             </div>
 
-            <!-- INDIKATOR TIMECODE RUNNING LIVE PGM -->
+            <!-- INDIKATOR TIMECODE LIVE PGM -->
             <div class="absolute bottom-2 right-2 bg-black/85 px-2 py-0.5 rounded font-mono text-[9px] font-bold text-amber-400 border border-white/10 z-20">
               🔴 PGM: <span id="lblPgmRunningTimecode">00:00 / 00:00</span>
             </div>
@@ -300,14 +300,13 @@
           </div>
         </div>
 
-        <!-- PANEL STATUS & TOMBOL REFRESH / HARD-SYNC KE INDEX -->
+        <!-- PANEL STATUS & TOMBOL HARD-SYNC KE PGM INDEX -->
         <div class="p-2 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>Umpan Balik: <strong id="lblPgmSyncText" class="text-emerald-400 font-bold">Sinkron Index</strong></span>
           </div>
 
-          <!-- TOMBOL REFRESH & SINKRON KE PGM INDEX -->
           <button onclick="paksaSinkronKeIndex()" id="btnForceSyncIndex" class="deck-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-600/40 text-[10px] font-bold flex items-center gap-1.5 shadow transition">
             <span>⚡</span>
             <span>Sinkronkan PGM</span>
@@ -317,7 +316,7 @@
 
     </div>
 
-    <!-- ANTREAN PLAYLIST KOMPAK (DRAG & DROP + DURASI ASLI OTOMATIS) -->
+    <!-- ANTREAN PLAYLIST KOMPAK -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-2">
         <div class="flex items-center gap-2">
@@ -349,7 +348,7 @@
         </span>
       </div>
 
-      <!-- Kontainer Rundown Kompak List View (Drag & Drop) -->
+      <!-- Kontainer Rundown Kompak List View -->
       <div class="space-y-1.5 max-h-[300px] overflow-y-auto pr-1" id="playlistItemsContainer"></div>
 
       <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
@@ -360,7 +359,7 @@
       </div>
     </div>
 
-    <!-- BROADCAST AUDIO CONSOLE (LENGKAP DENGAN TOMBOL MUTE SETIAP SALURAN & MUTE ALL) -->
+    <!-- BROADCAST AUDIO CONSOLE -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
         <div class="flex items-center gap-2">
@@ -369,7 +368,6 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- TOMBOL EMERGENCY MUTE ALL -->
           <button id="btnMuteAllMaster" onclick="toggleMuteAllChannels()" class="deck-btn px-3 py-1.5 rounded-xl border border-red-800 bg-red-950/60 hover:bg-red-900 text-red-300 text-xs font-bold flex items-center gap-1.5 transition">
             <span id="iconMuteAll">🔇</span>
             <span id="lblMuteAll">MUTE ALL</span>
@@ -551,17 +549,31 @@
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
-    function calculateAbsoluteServerTime(vt) {
+    // ========================================================
+    // PERBAIKAN UTAMA: PEMISAHAN WAKTU LINEAR MURNI & MODULO
+    // ========================================================
+    function getLinearServerTime(vt) {
       if (!vt) return 0;
-      const dur = vt.totalDuration || 120;
       const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
-      if (vt.status !== 'playing') return dur > 0 ? (offset % dur) : offset;
+      if (vt.status !== 'playing') return offset;
 
       const serverNow = Date.now() + serverClockOffset;
       const baseStart = vt.startAt || vt.updatedAt || serverNow;
       const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
-      const target = offset + elapsed;
-      return dur > 0 ? (target % dur) : target;
+      return offset + elapsed;
+    }
+
+    function calculateAbsoluteServerTime(vt) {
+      if (!vt) return 0;
+      const dur = vt.totalDuration || 120;
+      const linearTime = getLinearServerTime(vt);
+
+      // MODULO HANYA AKTIF JIKA PENGGUNA MEMILIH MODE SINGLE
+      const activeLoop = vt.loopMode || loopMode || 'playlist';
+      if (activeLoop === 'single' && dur > 0) {
+        return linearTime % dur;
+      }
+      return Math.min(linearTime, dur);
     }
 
     function sendCommandToPgmYtIframe(func, args = []) {
@@ -575,9 +587,7 @@
       }
     }
 
-    // ========================================================
     // SINKRONISASI AKTIF KE PGM INDEX (HARD-SYNC BUTTON)
-    // ========================================================
     function paksaSinkronKeIndex() {
       const btn = document.getElementById('btnForceSyncIndex');
       const text = document.getElementById('lblPgmSyncText');
@@ -596,7 +606,6 @@
             if (data.live_state) liveState = { ...liveState, ...data.live_state };
           }
           
-          // Paksa seek ke detik absolut server
           const targetTime = calculateAbsoluteServerTime(onAirVtState);
           sendCommandToPgmYtIframe('seekTo', [targetTime, true]);
           if (onAirVtState.status === 'playing') sendCommandToPgmYtIframe('playVideo');
@@ -615,14 +624,13 @@
       }
     }
 
-    // AUDIT PENYELARAS WAKTU PGM SECARA BERKALA (HEARTBEAT LOOP)
+    // AUDIT PENYELARAS WAKTU PGM BERKALA (HEARTBEAT LOOP)
     function startPgmDriftAuditor() {
       setInterval(() => {
         if (liveState.programSource !== 'vt') return;
         const targetServerTime = calculateAbsoluteServerTime(onAirVtState);
         const timeDiff = Math.abs(targetServerTime - lastPgmKnownVtTime);
 
-        // Jika terdeteksi jeda > 2.5 detik, paksa lompat untuk mengejar index
         if (timeDiff > 2.5) {
           lastPgmKnownVtTime = targetServerTime;
           sendCommandToPgmYtIframe('seekTo', [targetServerTime, true]);
@@ -631,7 +639,6 @@
           lastPgmKnownVtTime = targetServerTime;
         }
 
-        // Perbarui label durasi live PGM di viewport
         const pgmTimeLabel = document.getElementById('lblPgmRunningTimecode');
         if (pgmTimeLabel) {
           const totalD = onAirVtState.totalDuration || 120;
@@ -640,9 +647,7 @@
       }, 2500);
     }
 
-    // ========================================================
-    // DETEKSI JUDUL OTOMATIS (YOUTUBE OEMBED - TANPA API KEY)
-    // ========================================================
+    // DETEKSI JUDUL OTOMATIS (YOUTUBE OEMBED)
     async function handleAutoDetectTitle(url) {
       const vidId = extractCleanYtId(url);
       const titleInput = document.getElementById('quickAddTitle');
@@ -749,7 +754,7 @@
       initAudioVtSystem(currentRoomToken);
     });
 
-    // SINKRONISASI FIREBASE & RESTORASI STATE SETELAH REFRESH
+    // SINKRONISASI FIREBASE & RESTORASI STATE
     function initAudioVtSystem(token) {
       const activeDb = getDatabase();
       if (!activeDb) {
@@ -904,6 +909,7 @@
       }
     }
 
+    // PENGATURAN IFRAME TANPA LOOP=1 DAN TANPA PLAYLIST=${YTID}
     function syncPgmVtDisplay() {
       const ytIframe = document.getElementById('pgmYtIframe');
       const ytId = extractCleanYtId(onAirVtState.youtubeId || onAirVtState.url);
@@ -917,7 +923,7 @@
         lastPgmKnownVtTime = targetTime;
 
         const autoPlayParam = isPlaying ? '1' : '0';
-        ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=1&controls=0&rel=0&playlist=${ytId}&playsinline=1&enablejsapi=1&fs=0&start=${Math.floor(targetTime)}`;
+        ytIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=${autoPlayParam}&mute=1&controls=0&rel=0&playsinline=1&enablejsapi=1&fs=0&start=${Math.floor(targetTime)}`;
         return;
       }
 
@@ -930,7 +936,6 @@
       }
     }
 
-    // PENERAPAN CG BUG LOGO
     function applyCgGraphics(cg) {
       if (!cg) return;
       const logoBox = document.getElementById('cgBugLogo');
@@ -1228,7 +1233,7 @@
       }
     }
 
-    // MODE LOOPING: SINGLE -> PLAYLIST -> OFF
+    // MODE LOOPING
     function cycleLoopMode() {
       if (loopMode === 'playlist') loopMode = 'single';
       else if (loopMode === 'single') loopMode = 'off';
@@ -1284,14 +1289,18 @@
 
     let isAutoNextExecuting = false;
 
+    // ========================================================
+    // PERBAIKAN DETEKSI AKHIR KLIP (DURASI MURNI LINEAR)
+    // ========================================================
     function periksaOtomasiDurasiHabisOnAir() {
       if (isAutoNextExecuting) return;
       if (liveState.programSource !== 'vt' || onAirVtState.status !== 'playing') return;
 
       const dur = onAirVtState.totalDuration || 120;
-      const elapsed = calculateAbsoluteServerTime(onAirVtState);
+      const rawElapsed = getLinearServerTime(onAirVtState);
 
-      if (elapsed >= dur) {
+      // Pengecekan berbasis waktu linear murni tanpa terpotong modulo
+      if (dur > 0 && rawElapsed >= dur) {
         isAutoNextExecuting = true;
         eksekusiOtomasiSelesaiKlip();
         setTimeout(() => { isAutoNextExecuting = false; }, 2500);
@@ -1411,9 +1420,7 @@
       if (activeDb) activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).set([]);
     }
 
-    // ========================================================
-    // KONTROL FADER & MUTE AUDIO CONSOLE
-    // ========================================================
+    // KONTROL FADER & MUTE
     function updateChannelFader(ch, val) {
       audioMixerState[ch].fader = parseInt(val) || 0;
       document.getElementById(`lbl-val-${ch}`).innerText = `${val}%`;
