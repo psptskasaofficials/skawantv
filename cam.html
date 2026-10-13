@@ -62,6 +62,7 @@
 </head>
 <body class="flex flex-col justify-between text-white select-none">
 
+  <!-- FRAME VIEWPORT VIEW-FINDER KAMERA -->
   <div id="cameraViewport" class="absolute inset-0 w-full h-full border-4 border-slate-900 transition-all duration-300 flex items-center justify-center overflow-hidden">
     <video id="camVideoPreview" class="w-full h-full object-cover" autoplay playsinline muted></video>
 
@@ -77,7 +78,8 @@
     </div>
   </div>
 
-  <header class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+  <!-- HUD ATAS: IDENTITAS, STATUS TRANSMISI, RESOLUSI, FULLSCREEN & KELUAR -->
+  <header class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/85 via-black/40 to-transparent">
     <div class="flex items-center gap-2">
       <div id="badgeCamId" class="px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-white font-mono font-black text-xs sm:text-sm tracking-wider shadow">
         CAM 1
@@ -88,12 +90,13 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <!-- Indikator Status Transmisi WebRTC -->
+      <!-- Status Transmisi P2P WebRTC ke Switcher -->
       <div id="badgeStreamStatus" class="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/20 text-[10px] font-mono font-bold flex items-center gap-1.5 shadow">
         <span id="dotStreamStatus" class="w-2 h-2 rounded-full bg-slate-500"></span>
         <span id="lblStreamStatus" class="text-slate-300">Standby</span>
       </div>
 
+      <!-- Selector Resolusi Kamera -->
       <div class="bg-black/70 backdrop-blur-md rounded-xl border border-white/20 px-2 py-0.5 flex items-center gap-1 shadow">
         <span class="text-[10px] font-mono text-slate-400">RES:</span>
         <select id="selectResolution" onchange="ubahResolusiKamera(this.value)" class="bg-transparent text-amber-400 font-mono font-bold text-xs outline-none cursor-pointer">
@@ -103,15 +106,25 @@
         </select>
       </div>
 
+      <!-- Tombol Toggle Fullscreen Layar Penuh -->
+      <button id="btnToggleFullscreen" onclick="toggleFullscreen()" class="touch-btn bg-black/60 backdrop-blur-md hover:bg-black/90 border border-white/20 text-amber-400 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold shadow flex items-center gap-1" title="Layar Penuh">
+        <span id="iconFullscreen">⛶</span>
+        <span class="hidden sm:inline text-[11px]">Layar Penuh</span>
+      </button>
+
+      <!-- Label Ruangan -->
       <div class="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 text-[11px] font-mono font-bold text-amber-400">
         <span id="txtRoomLabel">SKASA</span>
       </div>
+
+      <!-- Tombol Keluar -->
       <button onclick="keluarKeLogin()" class="touch-btn bg-black/60 backdrop-blur-md border border-white/10 text-rose-400 p-1.5 rounded-lg text-xs" title="Keluar">
         🚪
       </button>
     </div>
   </header>
 
+  <!-- BANNER CUE ABA-ABA DARI SUTRADARA (PD) -->
   <div id="boxDirectorCueAlert" class="hidden relative z-20 mx-3 sm:mx-6 p-3 rounded-2xl bg-amber-500/95 text-slate-950 shadow-2xl backdrop-blur-md">
     <div class="flex items-center justify-between">
       <span class="text-[9px] font-mono font-black uppercase tracking-wider">ABA-ABA SUTRADARA (PD):</span>
@@ -122,6 +135,7 @@
     </p>
   </div>
 
+  <!-- HUD BAWAH: STATUS ANTI-SLEEP, RESOLUSI AKTIF & KONTROL KAMERA -->
   <footer class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-t from-black/90 via-black/50 to-transparent">
     <div class="flex items-center gap-2">
       <div class="text-[10px] font-mono text-slate-300 bg-black/60 px-2.5 py-1 rounded-lg border border-white/10">
@@ -176,7 +190,39 @@
       mulaiKamera();
       listenStudioTally(currentRoomToken, `cam_${currentCamId}`);
       listenDirectorCue(currentRoomToken);
+      setupFullscreenListener();
     });
+
+    // ========================================================
+    // ENGINE FULLSCREEN LAYAR PENUH
+    // ========================================================
+    function toggleFullscreen() {
+      const doc = document.documentElement;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (doc.requestFullscreen) {
+          doc.requestFullscreen().catch(() => {});
+        } else if (doc.webkitRequestFullscreen) {
+          doc.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    function setupFullscreenListener() {
+      const updateFullscreenBtn = () => {
+        const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        const icon = document.getElementById('iconFullscreen');
+        if (icon) icon.innerText = isFs ? '✕' : '⛶';
+      };
+
+      document.addEventListener('fullscreenchange', updateFullscreenBtn);
+      document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+    }
 
     async function aktifkanWakeLock() {
       if ('wakeLock' in navigator) {
@@ -189,6 +235,7 @@
       }
     }
 
+    // UPDATE STATUS TRANSMISI KE SWITCHER
     function updateStreamStatusUI(state) {
       const dot = document.getElementById('dotStreamStatus');
       const lbl = document.getElementById('lblStreamStatus');
@@ -233,6 +280,7 @@
         try {
           localStream = await navigator.mediaDevices.getUserMedia(constraints);
         } catch (strictErr) {
+          // Fallback jika constraint resolusi ideal ditolak hardware HP
           localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: isAudioEnabled
@@ -249,9 +297,7 @@
         if (vTrack) {
           const settings = vTrack.getSettings();
           const lblReal = document.getElementById('lblRealResolution');
-          if (lblReal) {
-            lblReal.innerText = `${settings.width || preset.width}x${settings.height || preset.height}`;
-          }
+          if (lblReal) lblReal.innerText = `${settings.width || preset.width}x${settings.height || preset.height}`;
         }
 
         const camRoleKey = `cam_${currentCamId}`;
