@@ -117,7 +117,7 @@
           <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
           <span id="navRoomToken" class="font-mono font-bold text-xs text-orange-400">SKASA</span>
         </div>
-        <a href="login.html" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition">
+        <a href="login.html" onclick="keluarKeLogin(event)" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition">
           Keluar
         </a>
       </div>
@@ -225,11 +225,12 @@
         const btnStop = document.getElementById('btnStopScreen');
 
         videoPreview.srcObject = localScreenStream;
+        videoPreview.muted = true;
+        videoPreview.play().catch(() => {});
         fallback.classList.add('hidden');
         btnStart.classList.add('hidden');
         btnStop.classList.remove('hidden');
 
-        // Inisialisasi WebRTC HANYA ketika stream layar sudah siap
         if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
           streamerInstance = new SkawanStreamer({
             roomToken: currentRoomToken,
@@ -243,7 +244,9 @@
 
         const activeDb = getDatabase();
         if (activeDb) {
-          activeDb.ref(`rooms/${currentRoomToken}/roles/sharescreen`).set("Presenter Aktif");
+          const roleRef = activeDb.ref(`rooms/${currentRoomToken}/roles/sharescreen`);
+          roleRef.set("Presenter Aktif");
+          roleRef.onDisconnect().set("");
         }
 
         const track = localScreenStream.getVideoTracks()[0];
@@ -365,6 +368,16 @@
 
       onAirBadge.classList.add('hidden');
       viewportCard.style.borderColor = "#1E293B";
+    }
+
+    function keluarKeLogin(event) {
+      if (event) event.preventDefault();
+      hentikanBerbagiLayar();
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+      window.location.href = `login.html?room=${currentRoomToken}`;
     }
 
     window.addEventListener('beforeunload', () => {
