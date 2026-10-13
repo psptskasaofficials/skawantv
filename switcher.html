@@ -634,6 +634,7 @@
         return;
       }
 
+      // Kunci slot peran dan daftarkan auto-release saat disconnect
       const studentName = localStorage.getItem('skawan_user') || 'Video Switcher (TD)';
       const roleRef = activeDb.ref(`rooms/${token}/roles/switcher`);
       roleRef.set(studentName);
@@ -928,7 +929,6 @@
         return;
       }
 
-      // Langsung sesuaikan ke detik berjalan saat beralih kembali ke PGM
       const actualSec = (typeof masterPgmYtPlayer.getCurrentTime === 'function') ? masterPgmYtPlayer.getCurrentTime() : 0;
       if (Math.abs(actualSec - targetTime) > 0.8) {
         masterPgmYtPlayer.seekTo(targetTime, true);
@@ -963,7 +963,6 @@
         return;
       }
 
-      // Langsung sesuaikan ke detik berjalan saat VT berpindah ke PVW
       const actualSec = (typeof masterPvwYtPlayer.getCurrentTime === 'function') ? masterPvwYtPlayer.getCurrentTime() : 0;
       if (Math.abs(actualSec - targetTime) > 0.8) {
         masterPvwYtPlayer.seekTo(targetTime, true);
