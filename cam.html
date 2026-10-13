@@ -88,6 +88,12 @@
     </div>
 
     <div class="flex items-center gap-2">
+      <!-- Indikator Status Transmisi WebRTC -->
+      <div id="badgeStreamStatus" class="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/20 text-[10px] font-mono font-bold flex items-center gap-1.5 shadow">
+        <span id="dotStreamStatus" class="w-2 h-2 rounded-full bg-slate-500"></span>
+        <span id="lblStreamStatus" class="text-slate-300">Standby</span>
+      </div>
+
       <div class="bg-black/70 backdrop-blur-md rounded-xl border border-white/20 px-2 py-0.5 flex items-center gap-1 shadow">
         <span class="text-[10px] font-mono text-slate-400">RES:</span>
         <select id="selectResolution" onchange="ubahResolusiKamera(this.value)" class="bg-transparent text-amber-400 font-mono font-bold text-xs outline-none cursor-pointer">
@@ -183,6 +189,30 @@
       }
     }
 
+    function updateStreamStatusUI(state) {
+      const dot = document.getElementById('dotStreamStatus');
+      const lbl = document.getElementById('lblStreamStatus');
+      if (!dot || !lbl) return;
+
+      if (state === 'connected') {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        lbl.className = "text-emerald-300";
+        lbl.innerText = "Terhubung";
+      } else if (state === 'connecting') {
+        dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+        lbl.className = "text-amber-300";
+        lbl.innerText = "Menghubungkan";
+      } else if (state === 'failed') {
+        dot.className = "w-2 h-2 rounded-full bg-rose-500 animate-pulse";
+        lbl.className = "text-rose-400";
+        lbl.innerText = "Terkendala";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-slate-500";
+        lbl.className = "text-slate-400";
+        lbl.innerText = "Standby";
+      }
+    }
+
     async function mulaiKamera() {
       try {
         if (localStream) {
@@ -203,7 +233,6 @@
         try {
           localStream = await navigator.mediaDevices.getUserMedia(constraints);
         } catch (strictErr) {
-          // Fallback tanpa batasan ketat jika kamera laptop/HP menolak
           localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: isAudioEnabled
@@ -220,14 +249,17 @@
         if (vTrack) {
           const settings = vTrack.getSettings();
           const lblReal = document.getElementById('lblRealResolution');
-          if (lblReal) lblReal.innerText = `${settings.width || preset.width}x${settings.height || preset.height}`;
+          if (lblReal) {
+            lblReal.innerText = `${settings.width || preset.width}x${settings.height || preset.height}`;
+          }
         }
 
         const camRoleKey = `cam_${currentCamId}`;
         if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
           streamerInstance = new SkawanStreamer({
             roomToken: currentRoomToken,
-            roleKey: camRoleKey
+            roleKey: camRoleKey,
+            onConnectionStateChange: (state) => updateStreamStatusUI(state)
           });
         }
 
@@ -246,6 +278,7 @@
       } catch (err) {
         console.warn("Gagal membuka kamera:", err);
         document.getElementById('camFallbackBox').classList.remove('hidden');
+        updateStreamStatusUI('failed');
       }
     }
 
