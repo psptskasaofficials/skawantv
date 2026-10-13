@@ -225,7 +225,7 @@
         </div>
       </div>
 
-      <!-- 2. MONITOR PROGRAM (PGM) - TALLY MERAH -->
+      <!-- 2. MONITOR PROGRAM (PGM) - TALLY MERAH (SINKRON BERSIH TANPA BUMPER) -->
       <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -240,9 +240,11 @@
 
           <!-- Viewport PGM -->
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative border-2 border-red-600 shadow-2xl flex items-center justify-center select-none">
-            <!-- Bumper Playout Fallback -->
-            <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-10 flex items-center justify-center" style="display: flex;">
-              <iframe id="pgmBumperIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="https://www.youtube-nocookie.com/embed/Jnp3esoHb9k?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=Jnp3esoHb9k&playsinline=1&enablejsapi=1&fs=0" allow="autoplay; encrypted-media"></iframe>
+            <!-- Fallback Bersih PGM saat kamera menunggu sinyal (Menggantikan Bumper Iframe) -->
+            <div id="pgmFallbackBox" class="text-center space-y-1 p-3 relative z-0">
+              <span class="text-3xl block">🔴</span>
+              <span id="pgmScreenLabel" class="font-brand font-black text-lg text-red-500 tracking-wider block">CAM 1</span>
+              <span class="text-[9px] font-mono text-red-400 block uppercase">SINYAL ON-AIR (STANDBY)</span>
             </div>
 
             <!-- Video Kamera / Screen PGM -->
@@ -486,6 +488,8 @@
       loopMode: 'playlist'
     };
 
+    let isAutoTransitioning = false;
+
     function getDatabase() {
       return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
     }
@@ -620,6 +624,7 @@
       initSwitcherSystem(currentRoomToken);
       startMasterWibClock();
       startVtAuditor();
+      startMultiviewWatchdog();
     });
 
     function initSwitcherSystem(token) {
@@ -709,6 +714,26 @@
             masterPgmYtPlayer.seekTo(targetServerTime, true);
             if (latestVtState.status === 'playing') masterPgmYtPlayer.playVideo();
           }
+        }
+      }, 1000);
+    }
+
+    // WATCHDOG UNTUK MEMASTIKAN FEED MULTIVIEW & PROGRAM TERKONEKSI
+    function startMultiviewWatchdog() {
+      setInterval(() => {
+        updateMultiviewVideos();
+        const pgmSrc = liveState.programSource || 'cam_1';
+        const pvwSrc = liveState.previewSource || 'cam_2';
+        const pgmStream = getCameraStream(pgmSrc);
+        const pvwStream = getCameraStream(pvwSrc);
+        const pgmVideo = document.getElementById('pgmCamVideo');
+        const pvwVideo = document.getElementById('pvwCamVideo');
+
+        if (pgmSrc !== 'vt' && pgmStream && pgmVideo && pgmVideo.srcObject !== pgmStream) {
+          updatePgmMonitor();
+        }
+        if (pvwSrc !== 'vt' && pvwStream && pvwVideo && pvwVideo.srcObject !== pvwStream) {
+          updatePvwMonitor();
         }
       }, 1000);
     }
@@ -833,244 +858,7 @@
       }
     }
 
+    // MONITOR PGM BERSIH (TANPA BUMPER IFRAME DI AWAL)
     function updatePgmMonitor() {
       const pgmSrc = liveState.programSource || 'cam_1';
       const pgmVideo = document.getElementById('pgmCamVideo');
-      const pgmVtWrap = document.getElementById('pgmVtWrapper');
-      const bumperWrap = document.getElementById('pgmBumperWrapper');
-
-      if (pgmSrc === 'vt') {
-        if (bumperWrap) bumperWrap.style.display = 'none';
-        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; pgmVideo.pause(); }
-        if (pgmVtWrap) { pgmVtWrap.style.display = 'flex'; pgmVtWrap.style.opacity = '1'; }
-        syncPgmVtPlayout();
-        return;
-      }
-
-      if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
-
-      const stream = getCameraStream(pgmSrc);
-      if (stream && pgmVideo) {
-        if (bumperWrap) bumperWrap.style.display = 'none';
-        if (pgmVideo.srcObject !== stream) {
-          pgmVideo.srcObject = stream;
-          pgmVideo.muted = true;
-        }
-        pgmVideo.style.objectFit = (pgmSrc === 'sharescreen') ? 'contain' : 'cover';
-        pgmVideo.style.display = 'block';
-        pgmVideo.style.opacity = '1';
-        pgmVideo.play().catch(() => {});
-      } else {
-        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
-        if (bumperWrap) bumperWrap.style.display = 'flex';
-      }
-    }
-
-    function syncPgmVtPlayout() {
-      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-      if (!vidId) return;
-
-      const targetTime = calculateAbsoluteServerTime(latestVtState);
-      const isPlaying = (latestVtState.status === 'playing');
-
-      if (!isMasterPgmYtReady || !masterPgmYtPlayer) {
-        initPgmYtPlayer(vidId, targetTime);
-        return;
-      }
-
-      if (currentPgmActiveYtId !== vidId) {
-        currentPgmActiveYtId = vidId;
-        const shield = document.getElementById('pgmBlackShield');
-        if (shield) shield.classList.remove('opacity-0');
-        masterPgmYtPlayer.loadVideoById({ videoId: vidId, startSeconds: Math.floor(targetTime) });
-        if (isPlaying) masterPgmYtPlayer.playVideo();
-        else masterPgmYtPlayer.pauseVideo();
-        return;
-      }
-
-      const pState = masterPgmYtPlayer.getPlayerState();
-      if (isPlaying && pState !== YT.PlayerState.PLAYING) {
-        masterPgmYtPlayer.playVideo();
-      } else if (!isPlaying && pState !== YT.PlayerState.PAUSED) {
-        masterPgmYtPlayer.pauseVideo();
-      }
-    }
-
-    function syncPvwVtPlayout() {
-      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-      if (!vidId) return;
-
-      const targetTime = calculateAbsoluteServerTime(latestVtState);
-      const isPlaying = (latestVtState.status === 'playing');
-
-      if (!isMasterPvwYtReady || !masterPvwYtPlayer) {
-        initPvwYtPlayer(vidId, targetTime);
-        return;
-      }
-
-      if (currentPvwActiveYtId !== vidId) {
-        currentPvwActiveYtId = vidId;
-        masterPvwYtPlayer.loadVideoById({ videoId: vidId, startSeconds: Math.floor(targetTime) });
-        if (isPlaying) masterPvwYtPlayer.playVideo();
-        else masterPvwYtPlayer.pauseVideo();
-        return;
-      }
-
-      const pState = masterPvwYtPlayer.getPlayerState();
-      if (isPlaying && pState !== YT.PlayerState.PLAYING) {
-        masterPvwYtPlayer.playVideo();
-      } else if (!isPlaying && pState !== YT.PlayerState.PAUSED) {
-        masterPvwYtPlayer.pauseVideo();
-      }
-    }
-
-    function syncVtSources() {
-      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-      const poster = document.getElementById('mvPoster-vt');
-      const fallback = document.getElementById('mvFallback-vt');
-
-      if (vidId) {
-        if (poster) { poster.src = `https://i.ytimg.com/vi/${vidId}/mqdefault.jpg`; poster.style.display = 'block'; }
-        if (fallback) fallback.style.display = 'none';
-      } else {
-        if (poster) poster.style.display = 'none';
-        if (fallback) fallback.style.display = 'flex';
-      }
-
-      if (liveState.programSource === 'vt') syncPgmVtPlayout();
-      if (liveState.previewSource === 'vt') syncPvwVtPlayout();
-    }
-
-    // ========================================================
-    // PERINTAH TRANSISI (CUT, AUTO, DIRECT PGM)
-    // ========================================================
-    function pilihPreview(srcKey) {
-      liveState.previewSource = srcKey;
-      updateAllMonitors();
-      commitLiveState();
-    }
-
-    function langsungTakePgm(srcKey) {
-      liveState.programSource = srcKey;
-      updateAllMonitors();
-      commitLiveState();
-    }
-
-    function eksekusiCut() {
-      const nextProgram = liveState.previewSource;
-      const nextPreview = liveState.programSource;
-
-      liveState.programSource = nextProgram;
-      liveState.previewSource = nextPreview;
-
-      updateAllMonitors();
-      commitLiveState();
-    }
-
-    function eksekusiAuto() {
-      const speed = parseInt(document.getElementById('selectDissolveSpeed').value) || 1000;
-      const pgmVideo = document.getElementById('pgmCamVideo');
-      if (pgmVideo) pgmVideo.style.transition = `opacity ${speed}ms ease-in-out`;
-
-      setTimeout(() => {
-        eksekusiCut();
-      }, speed);
-    }
-
-    function toggleFadeToBlack() {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-      
-      activeDb.ref(`rooms/${currentRoomToken}/live_state`).update({
-        programSource: 'vt',
-        updatedAt: firebase.database.ServerValue.TIMESTAMP
-      });
-
-      activeDb.ref(`rooms/${currentRoomToken}/vt_state/status`).set('ended');
-    }
-
-    // KOMIT STATE LIVE SINKRON KE SELURUH PENONTON & INDEX.HTML
-    function commitLiveState() {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-
-      const pgmSrc = liveState.programSource;
-      const pvwSrc = liveState.previewSource;
-      const tallyObj = { cam_1: 'off', cam_2: 'off', cam_3: 'off', vt: 'off', sharescreen: 'off' };
-      if (tallyObj.hasOwnProperty(pgmSrc)) tallyObj[pgmSrc] = 'red';
-      if (tallyObj.hasOwnProperty(pvwSrc)) tallyObj[pvwSrc] = 'green';
-
-      activeDb.ref(`rooms/${currentRoomToken}/live_state`).update({
-        programSource: pgmSrc,
-        previewSource: pvwSrc,
-        tally: tallyObj,
-        updatedAt: firebase.database.ServerValue.TIMESTAMP
-      });
-    }
-
-    function paksaSinkronKeIndex() {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-      activeDb.ref(`rooms/${currentRoomToken}`).once('value', snap => {
-        if (snap.exists()) {
-          const data = snap.val();
-          if (data.live_state) liveState = { ...liveState, ...data.live_state };
-          if (data.vt_state) latestVtState = { ...latestVtState, ...data.vt_state };
-        }
-        updateAllMonitors();
-      });
-    }
-
-    function tampilkanDirectorCue(msg) {
-      const promptEl = document.getElementById('txtDirectorCuePrompt');
-      const boxEl = document.getElementById('bannerDirectorCueBox');
-      if (promptEl) promptEl.innerText = msg;
-      if (boxEl) {
-        boxEl.classList.add('cue-active');
-        setTimeout(() => { boxEl.classList.remove('cue-active'); }, 5000);
-      }
-    }
-
-    function startMasterWibClock() {
-      const updateClock = () => {
-        const now = new Date();
-        const formatter = new Intl.DateTimeFormat('id-ID', {
-          timeZone: 'Asia/Jakarta',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
-        });
-        const clockEl = document.getElementById('tdClockWib');
-        if (clockEl) clockEl.innerText = `${formatter.format(now).replace(/\./g, ':')} WIB`;
-      };
-      updateClock();
-      setInterval(updateClock, 1000);
-    }
-
-    function keluarKeLogin(event) {
-      if (event) event.preventDefault();
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/roles/switcher`).set("");
-      }
-      if (streamerInstance) {
-        streamerInstance.destroy();
-        streamerInstance = null;
-      }
-      window.location.href = `login.html?room=${currentRoomToken}`;
-    }
-
-    window.addEventListener('beforeunload', () => {
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/roles/switcher`).set("");
-      }
-      if (streamerInstance) {
-        streamerInstance.destroy();
-        streamerInstance = null;
-      }
-    });
-  </script>
-</body>
-</html>
