@@ -76,7 +76,7 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    video, iframe, #pgmVtWrapper, #pgmCamVideo, #pgmBumperWrapper,#pgmFallbackBox {
+    video, iframe, #pgmVtWrapper, #pgmCamVideo {
       transform: translateZ(0);
       backface-visibility: hidden;
       -webkit-font-smoothing: antialiased;
@@ -182,7 +182,7 @@
           <span id="navRoomToken" class="font-mono font-bold text-xs text-cyan-400">SKASA</span>
         </div>
 
-        <a href="login.html" class="cg-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+        <a href="login.html" onclick="keluarKeLogin(event)" class="cg-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
           <span>🚪</span>
           <span class="hidden sm:inline">Keluar</span>
         </a>
@@ -261,7 +261,7 @@
         </div>
       </div>
 
-      <!-- 2. MONITOR PGM LIVE RETURN (100% IDENTIK DENGAN INDEX.HTML) -->
+      <!-- 2. MONITOR PGM LIVE RETURN (BERSIH TANPA BUMPER IFRAME DI AWAL) -->
       <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -276,30 +276,19 @@
             </div>
           </div>
 
-          <!-- Viewport PGM (Kembaran Identik index.html) -->
+          <!-- Viewport PGM -->
           <div id="pgmViewport" class="aspect-video bg-black rounded-xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl flex items-center justify-center select-none">
 
-            <!-- 1. Layer Bumper Playout -->
+            <!-- Fallback Sinyal PGM Bersih saat kamera belum terhubung -->
             <div id="pgmFallbackBox" class="text-center space-y-1 relative z-0 p-3">
-  <div class="w-8 h-8 mx-auto rounded-xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center text-sm font-bold">
-    🔴
-  </div>
-  <span id="pgmScreenLabel" class="font-brand font-black text-lg text-red-500 tracking-wider block">CAM 1</span>
-  <span class="text-[9px] font-mono text-red-400 block uppercase tracking-wider">PGM FEED (STANDBY)</span>
-</div>
-
-              <div id="bumperTagOverlay" class="hidden absolute top-4 left-4 z-30 items-center gap-2 bg-black/75 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-lg">
-                <span class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping"></span>
-                <span class="font-brand font-black text-xs text-orange-400 tracking-wider uppercase">IDENT OPENING</span>
-                <span class="text-[10px] font-mono text-slate-300 ml-1 border-l border-white/20 pl-2" id="lblBumperCountdown">7s</span>
+              <div class="w-8 h-8 mx-auto rounded-xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center text-sm font-bold">
+                🔴
               </div>
-
-              <div id="bumperProgressBarContainer" class="hidden absolute bottom-0 left-0 right-0 h-1.5 bg-slate-900 overflow-hidden z-30">
-                <div id="bumperProgressBar" class="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-red-500 transition-all duration-100 ease-linear w-0"></div>
-              </div>
+              <span id="pgmScreenLabel" class="font-brand font-black text-xl text-red-500 tracking-wider block">CAM 1</span>
+              <span class="text-[10px] font-mono text-red-400 block uppercase tracking-wider">PGM FEED (STANDBY)</span>
             </div>
 
-            <!-- 2. Kartu Standby Overlay (Gladi Bersih) -->
+            <!-- Kartu Standby Overlay (Gladi Bersih) -->
             <div id="pgmStandbyCardOverlay" class="hidden absolute inset-0 z-25 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 transition-opacity duration-300" style="display: none;">
               <div class="bg-slate-900/95 border border-amber-500/50 rounded-xl p-4 shadow-2xl max-w-sm w-full space-y-2">
                 <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold uppercase tracking-wider">
@@ -316,10 +305,10 @@
               </div>
             </div>
 
-            <!-- 3. Feed Kamera WebRTC -->
+            <!-- Feed Kamera / Screen Share WebRTC -->
             <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-            <!-- 4. Pemutar VT Media (YouTube API No-Cookie) -->
+            <!-- Pemutar VT Media (YouTube API No-Cookie) -->
             <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
               <video id="pgmHtml5Video" class="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none" playsinline muted autoplay></video>
               <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
@@ -328,7 +317,7 @@
               </div>
             </div>
 
-            <!-- 5. CG Bug Logo Watermark (Z-30) -->
+            <!-- CG Bug Logo Watermark (Z-30) -->
             <div id="cgBugLogo" class="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 z-30 flex items-center justify-center max-w-[130px] max-h-10 transition-all duration-200 pointer-events-none select-none">
               <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-6 sm:h-7 w-auto object-contain drop-shadow-md">
               <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-white/95 rounded-xl px-2 py-1 shadow-md backdrop-blur-sm border border-white/20">
@@ -346,7 +335,7 @@
               </div>
             </div>
 
-            <!-- 6. CG Lower Third Live (Identik dengan index.html) -->
+            <!-- CG Lower Third Live (Identik dengan index.html) -->
             <div id="cgLowerThirdBox" class="hidden absolute bottom-10 left-3 right-3 sm:left-6 sm:right-6 z-30 transition-all duration-300">
               <div id="cgLtTitle" class="bg-gradient-to-r from-orange-600 to-red-600 text-white font-brand font-black text-[11px] sm:text-xs px-3.5 py-1.5 rounded-t-xl shadow-lg inline-block tracking-wide">
                 NAMA PRESENTER
@@ -357,7 +346,7 @@
               </div>
             </div>
 
-            <!-- 7. CG Ticker Bar dengan Jam WIB & Marquee Teks -->
+            <!-- CG Ticker Bar dengan Jam WIB & Marquee Teks -->
             <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-r from-orange-700 to-red-700 text-white z-30 overflow-hidden flex items-center border-t border-orange-500 shadow-md">
               <div id="indexTickerWibHeader" class="bg-slate-950 px-2 h-full flex items-center font-mono font-black text-[9px] text-amber-400 shrink-0 border-r border-orange-900 tracking-wider">
                 00:00 WIB
@@ -367,7 +356,7 @@
               </div>
             </div>
 
-            <!-- 8. Kotak Merah "LIVE" On-Air di Pojok Kiri Atas -->
+            <!-- Kotak Merah "LIVE" On-Air -->
             <div id="badgeLiveOnAir" class="hidden absolute top-2.5 sm:top-3 left-2.5 sm:left-3 z-30 bg-red-600 text-white font-brand font-black text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1.5 shadow-lg animate-pulse">
               <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
               <span>LIVE</span>
@@ -546,7 +535,6 @@
     SKAWAN TV &bull; Character Generator Console &copy; 2026 SMK Negeri 1 Pacitan
   </footer>
 
-  <!-- SCRIPT LOGIKA CHARACTER GENERATOR DENGAN PERSISTENSI FIREBASE PENUH -->
   <script>
     let currentRoomToken = 'SKASA';
     let streamerInstance = null;
@@ -595,10 +583,9 @@
       cueSubtitle: 'Kepala Sekolah SMK Negeri 1 Pacitan',
       isCueReady: true,
       tickerActive: false,
-      tickerText: 'Selamat Datang di Siaran Simulasi Studio TV Edukasi Digital SMK Negeri 1 Pacitan \u2022 SKAWAN TV'
+      tickerText: 'Selamat Datang di Simulasi Studio Televisi SMK Negeri 1 Pacitan \u2022 SKAWAN TV'
     };
 
-    // Default Fallback Preset jika Firebase masih kosong
     let cgPresets = [
       { id: 'p1', title: 'Drs. Eko Prasetyo, M.T.', subtitle: 'Kepala Sekolah SMK Negeri 1 Pacitan' },
       { id: 'p2', title: 'Siti Aminah, S.Sn.', subtitle: 'Kepala Program Keahlian Broadcast & Film' },
@@ -618,7 +605,6 @@
       return match ? match[1] : '';
     }
 
-    // KALKULASI WAKTU LINIER MURNI (SINKRON DENGAN INDEX.HTML)
     function getLinearServerTime(vt) {
       if (!vt) return 0;
       const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
@@ -645,7 +631,6 @@
       return dur > 0 ? Math.min(linearTime, dur) : linearTime;
     }
 
-    // YOUTUBE API RESMI INITIALIZATION
     function initMasterYtPlayer(initialYtId, initialTime) {
       if (typeof YT === 'undefined' || !YT.Player) return;
       if (masterYtPlayer && isMasterYtReady) return;
@@ -709,11 +694,9 @@
       startLiveWibClock();
       renderPresetUI();
       updateLiveCueStaging();
+      startPgmVideoWatchdog();
     });
 
-    // ==============================================================
-    // SINKRONISASI REAL-TIME & PERSISTENSI FIREBASE
-    // ==============================================================
     function initCgSystem(token) {
       const activeDb = getDatabase();
       if (!activeDb) {
@@ -721,25 +704,30 @@
         return;
       }
 
+      // Kunci slot peran CG dan pasang auto-release saat tab ditutup
+      const studentName = localStorage.getItem('skawan_user') || 'CG Graphics Operator';
+      const roleRef = activeDb.ref(`rooms/${token}/roles/cg`);
+      roleRef.set(studentName);
+      roleRef.onDisconnect().set("");
+
       activeDb.ref('.info/serverTimeOffset').on('value', snap => {
         serverClockOffset = snap.val() || 0;
       });
 
-      // 1. SINKRONISASI DAFTAR PRESET DARI FIREBASE (cg_presets)
+      // 1. SINKRONISASI PRESET CLOUD
       activeDb.ref(`rooms/${token}/cg_presets`).on('value', snap => {
         if (snap.exists()) {
           const data = snap.val();
           cgPresets = Array.isArray(data) ? data : Object.values(data);
           cgPresets = cgPresets.filter(p => p && typeof p === 'object');
         } else {
-          // Inisialisasi awal ke Firebase jika masih kosong
           activeDb.ref(`rooms/${token}/cg_presets`).set(cgPresets);
         }
         localStorage.setItem(`skawan_cg_presets_${token}`, JSON.stringify(cgPresets));
         renderPresetUI();
       });
 
-      // 2. SINKRONISASI STATUS RUANGAN & CG STATE (cg_state)
+      // 2. SINKRONISASI STATUS RUANGAN & CG STATE
       activeDb.ref(`rooms/${token}`).on('value', snapshot => {
         if (!snapshot.exists()) {
           currentRoomMeta = { status: (token === 'SKASA' ? 'live' : 'ended') };
@@ -768,7 +756,6 @@
         if (roomData.cg_state) {
           cgState = { ...cgState, ...roomData.cg_state };
 
-          // Isi nilai form jika operator tidak sedang mengetik aktif
           const titleInput = document.getElementById('inputCgTitle');
           const subInput = document.getElementById('inputCgSubtitle');
           const tickerInput = document.getElementById('inputTickerText');
@@ -800,9 +787,10 @@
 
       // 3. WEBRTC RECEIVER FEED KAMERA
       if (typeof SkawanStreamer !== 'undefined') {
+        const uniqueViewerRole = 'cg_' + Math.random().toString(36).substring(2, 7);
         streamerInstance = new SkawanStreamer({
           roomToken: token,
-          roleKey: 'cg_operator',
+          roleKey: uniqueViewerRole,
           onRemoteStream: (camKey, stream) => {
             const normKey = camKey.includes('_') ? camKey : (camKey === 'sharescreen' ? 'sharescreen' : camKey.replace('cam', 'cam_'));
             remoteCamStreams.set(normKey, stream);
@@ -816,7 +804,7 @@
     function getCameraStream(key) {
       if (!key) return null;
       if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
-      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      const altKey = key.includes('_') ? key.replace('_', '') : (key === 'sharescreen' ? 'sharescreen' : key.replace('cam', 'cam_'));
       if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
       return null;
     }
@@ -848,7 +836,7 @@
         return;
       }
 
-      const curState = masterYtPlayer.getPlayerState();
+      const curState = (typeof masterYtPlayer.getPlayerState === 'function') ? masterYtPlayer.getPlayerState() : -1;
       if (isPlaying && curState !== YT.PlayerState.PLAYING) {
         masterYtPlayer.playVideo();
       } else if (!isPlaying && curState !== YT.PlayerState.PAUSED) {
@@ -856,53 +844,33 @@
       }
 
       const actualSec = (typeof masterYtPlayer.getCurrentTime === 'function') ? masterYtPlayer.getCurrentTime() : 0;
-      if (Math.abs(actualSec - targetTime) > 4.0) {
+      if (Math.abs(actualSec - targetTime) > 2.0) {
         masterYtPlayer.seekTo(targetTime, true);
         if (isPlaying) masterYtPlayer.playVideo();
       }
     }
 
-    // UPDATE MONITOR PGM LIVE RETURN
+    // MONITOR PGM BERSIH (TANPA BUMPER DI AWAL)
     function updatePgmReturnMonitor() {
       const pgmViewport = document.getElementById('pgmViewport');
-      const bumperWrap = document.getElementById('pgmBumperWrapper');
-      const bumperIframe = document.getElementById('pgmBumperIframe');
-      const standbyOverlay = document.getElementById('pgmStandbyCardOverlay');
       const pgmVideo = document.getElementById('pgmCamVideo');
       const pgmVtWrap = document.getElementById('pgmVtWrapper');
+      const pgmFallback = document.getElementById('pgmFallbackBox');
+      const pgmLabel = document.getElementById('pgmScreenLabel');
       const lblSrc = document.getElementById('lblPgmSourceTag');
 
       const effectiveStatus = (currentRoomToken === 'SKASA') ? 'live' : (currentRoomMeta.status || 'standby');
 
       if (effectiveStatus !== 'live') {
         pgmViewport.style.borderColor = '#d97706';
-        if (lblSrc) lblSrc.innerText = "STANDBY GLADI";
-
-        standbyOverlay.style.display = 'flex';
-        document.getElementById('standbyOverlayToken').innerText = currentRoomToken;
-        document.getElementById('standbyOverlayProgram').innerText = currentRoomMeta.programName || "Gladi Bersih Studio";
-
-        bumperWrap.style.display = 'flex';
-        bumperWrap.style.opacity = '1';
-
-        const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-        const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0${originParam}`;
-        if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
-          bumperIframe.src = desiredBumperSrc;
-        }
-
-        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
-        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
-        return;
+      } else {
+        pgmViewport.style.borderColor = '#dc2626';
       }
 
-      pgmViewport.style.borderColor = '#dc2626';
-      standbyOverlay.style.display = 'none';
-
       if (latestVtState.status === 'ended' && liveState.programSource === 'vt') {
-        if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
         if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+        if (pgmFallback) pgmFallback.style.display = 'block';
         if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
         if (lblSrc) lblSrc.innerText = "BLACKOUT";
         return;
@@ -913,10 +881,11 @@
       const isVt = (activeSrc === 'vt');
 
       if (lblSrc) lblSrc.innerText = activeSrc.toUpperCase().replace('_', ' ');
+      if (pgmLabel) pgmLabel.innerText = activeSrc.toUpperCase().replace('_', ' ');
 
       if (isVt) {
-        if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+        if (pgmFallback) pgmFallback.style.display = 'none';
         if (pgmVtWrap) {
           pgmVtWrap.style.display = 'flex';
           pgmVtWrap.style.opacity = '1';
@@ -928,23 +897,30 @@
       if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
 
       if (stream && pgmVideo) {
-        if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
-        if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+        if (pgmVideo.srcObject !== stream) {
+          pgmVideo.srcObject = stream;
+          pgmVideo.muted = true;
+        }
+        pgmVideo.style.objectFit = (activeSrc === 'sharescreen') ? 'contain' : 'cover';
         pgmVideo.style.display = 'block';
         pgmVideo.style.opacity = '1';
         pgmVideo.play().catch(() => {});
+        if (pgmFallback) pgmFallback.style.display = 'none';
       } else {
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
-        if (bumperWrap) {
-          bumperWrap.style.display = 'flex';
-          bumperWrap.style.opacity = '1';
-          const originParam = window.location.origin && window.location.origin.startsWith('http') ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-          const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0${originParam}`;
-          if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
-            bumperIframe.src = desiredBumperSrc;
-          }
-        }
+        if (pgmFallback) pgmFallback.style.display = 'block';
       }
+    }
+
+    function startPgmVideoWatchdog() {
+      setInterval(() => {
+        const activeSrc = liveState.programSource || 'cam_1';
+        const stream = getCameraStream(activeSrc);
+        const pgmVideo = document.getElementById('pgmCamVideo');
+        if (activeSrc !== 'vt' && stream && pgmVideo && pgmVideo.srcObject !== stream) {
+          updatePgmReturnMonitor();
+        }
+      }, 1000);
     }
 
     function paksaSinkronKeIndex() {
@@ -978,7 +954,6 @@
       document.getElementById('previewCueTickerText').innerText = ticker;
     }
 
-    // SIMPAN STAGING CUE KE FIREBASE (TERHUBUNG KE MONITOR PD)
     function eksekusiKirimKeCue() {
       const title = document.getElementById('inputCgTitle').value.trim() || 'NAMA NARASUMBER';
       const subtitle = document.getElementById('inputCgSubtitle').value.trim() || 'Keterangan';
@@ -1002,7 +977,6 @@
       }, 1500);
     }
 
-    // SIMPAN TAKE ON-AIR KE FIREBASE (MENGUDARA KE SELURUH PENONTON)
     function eksekusiTakeOnAir() {
       const title = document.getElementById('inputCgTitle').value.trim() || 'NAMA NARASUMBER';
       const subtitle = document.getElementById('inputCgSubtitle').value.trim() || 'Keterangan';
@@ -1028,7 +1002,6 @@
       }
     }
 
-    // HAPUS GRAFIS ON-AIR DI FIREBASE
     function eksekusiClearLowerThird() {
       if (autoHideTimerId) clearTimeout(autoHideTimerId);
       const activeDb = getDatabase();
@@ -1040,9 +1013,7 @@
       }
     }
 
-    // APLIKASIKAN DATA CG KE LAYAR PGM
     function applyCgToLiveDisplay() {
-      // 1. Lower Third PGM Live
       const ltBox = document.getElementById('cgLowerThirdBox');
       const ltTitle = document.getElementById('cgLtTitle');
       const ltSub = document.getElementById('cgLtSubtitleText');
@@ -1055,7 +1026,6 @@
         ltBox.classList.add('hidden');
       }
 
-      // 2. Ticker PGM Live & Controls
       const tickerBox = document.getElementById('cgTickerBar');
       const tickerText = document.getElementById('cgTickerText');
       const btnTicker = document.getElementById('btnToggleTicker');
@@ -1069,7 +1039,6 @@
         if (btnTicker) { btnTicker.innerText = "OFF"; btnTicker.className = "cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700"; }
       }
 
-      // 3. Station Bug Logo Watermark
       const logoBox = document.getElementById('cgBugLogo');
       const logoCustom = document.getElementById('cgBugLogoCustomImg');
       const logoDefault = document.getElementById('cgBugLogoDefaultBadge');
@@ -1082,7 +1051,7 @@
         if (logoBox) logoBox.classList.remove('hidden');
         if (btnLogo) { btnLogo.innerText = "ON"; btnLogo.className = "cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-600 text-white border border-emerald-500"; }
         if (cgState.logoUrl && cgState.logoUrl.trim().length > 0) {
-          if (logoCustom) { logoCustom.src = cgState.logoUrl; logoCustom.classList.remove('hidden'); }
+          if (logoCustom) { logoCustom.src = cg.logoUrl; logoCustom.classList.remove('hidden'); }
           if (logoDefault) logoDefault.classList.add('hidden');
         } else {
           if (logoCustom) logoCustom.classList.add('hidden');
@@ -1090,7 +1059,6 @@
         }
       }
 
-      // 4. LIVE Badge Overlay
       const badgeLive = document.getElementById('badgeLiveOnAir');
       const btnLiveBadge = document.getElementById('btnToggleLiveBadge');
       const isLiveNow = (currentRoomToken === 'SKASA') || (currentRoomMeta.status === 'live');
@@ -1167,7 +1135,6 @@
       document.getElementById('modalTambahPreset').classList.add('hidden');
     }
 
-    // TAMBAH PRESET KE FIREBASE REALTIME DATABASE
     function eksekusiModalTambahPreset() {
       const t = document.getElementById('modalInputPresetTitle').value.trim() || 'Narasumber Baru';
       const s = document.getElementById('modalInputPresetSubtitle').value.trim() || 'Keterangan';
@@ -1187,7 +1154,6 @@
       tutupModalTambahPreset();
     }
 
-    // HAPUS PRESET DARI FIREBASE
     function hapusPreset(idx) {
       if (!confirm("Hapus preset ini dari Firebase?")) return;
       cgPresets.splice(idx, 1);
@@ -1200,9 +1166,6 @@
       localStorage.setItem(`skawan_cg_presets_${currentRoomToken}`, JSON.stringify(cgPresets));
     }
 
-    // ========================================================
-    // PENGATURAN TICKER, LOGO, & BADGE KE FIREBASE
-    // ========================================================
     function toggleTickerActive() {
       const next = !cgState.tickerActive;
       const activeDb = getDatabase();
@@ -1295,7 +1258,24 @@
       setInterval(updateClock, 1000);
     }
 
+    function keluarKeLogin(event) {
+      if (event) event.preventDefault();
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/cg`).set("");
+      }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+      window.location.href = `login.html?room=${currentRoomToken}`;
+    }
+
     window.addEventListener('beforeunload', () => {
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/cg`).set("");
+      }
       if (streamerInstance) {
         streamerInstance.destroy();
         streamerInstance = null;
