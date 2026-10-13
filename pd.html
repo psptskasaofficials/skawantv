@@ -151,7 +151,7 @@
           </div>
         </a>
         <span class="hidden sm:inline-block h-5 w-px bg-slate-800 mx-1"></span>
-        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-950/80 text-indigo-300 border border-indigo-800">
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-indigo-950/80 text-indigo-300 border border-indigo-800">
           <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
           Program Director (PD Console)
         </span>
@@ -283,7 +283,7 @@
           <!-- Viewport PGM -->
           <div id="pgmViewport" class="aspect-video bg-black rounded-xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl flex items-center justify-center select-none">
 
-            <!-- Fallback Sinyal PGM saat stream kamera belum tersambung (Menggantikan Bumper Awal) -->
+            <!-- Fallback Sinyal PGM saat kamera menunggu sinyal -->
             <div id="pgmFallbackBox" class="text-center space-y-1 relative z-0 p-3">
               <div class="w-8 h-8 mx-auto rounded-xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center text-sm font-bold">
                 🔴
@@ -416,7 +416,7 @@
           </div>
           <div class="aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center border border-slate-800">
             <video id="mvVideo-cam_3" class="w-full h-full object-cover" autoplay playsinline muted></video>
-            <div id="mvFallback-cam_2" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 text-xs font-mono">
+            <div id="mvFallback-cam_3" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 text-xs font-mono">
               <span>📹 CAM 3</span>
             </div>
           </div>
@@ -501,7 +501,7 @@
         </div>
       </div>
 
-      <!-- PANEL KANAN: CG INSPECTOR & EMERGENCY COMMAND (5 COL) -->
+      <!-- PANEL KANAN: CG INSPECTOR & EMERGENCY SWITCHER OVERRIDE (5 COL) -->
       <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3.5 flex flex-col justify-between">
         <div class="space-y-3">
           <div class="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -838,7 +838,7 @@
         return;
       }
 
-      // Kunci slot peran PD dan pasang auto-release onDisconnect
+      // Kunci slot peran PD dan daftarkan auto-release saat tab ditutup
       const studentName = localStorage.getItem('skawan_user') || 'Program Director (PD)';
       const roleRef = activeDb.ref(`rooms/${token}/roles/pd`);
       roleRef.set(studentName);
@@ -971,11 +971,21 @@
           }
         }
 
-        if (isMasterPgmYtReady && masterPgmYtPlayer && typeof masterPgmYtPlayer.getCurrentTime === 'function') {
+        // Sinkronisasi pemutar PGM saat VT aktif
+        if (liveState.programSource === 'vt' && isMasterPgmYtReady && masterPgmYtPlayer && typeof masterPgmYtPlayer.getCurrentTime === 'function') {
           const actualPgmTime = masterPgmYtPlayer.getCurrentTime() || 0;
           if (Math.abs(actualPgmTime - targetServerTime) > 2.0) {
             masterPgmYtPlayer.seekTo(targetServerTime, true);
             if (latestVtState.status === 'playing') masterPgmYtPlayer.playVideo();
+          }
+        }
+
+        // Sinkronisasi pemutar PVW saat VT standby di preview
+        if (liveState.previewSource === 'vt' && isMasterPvwYtReady && masterPvwYtPlayer && typeof masterPvwYtPlayer.getCurrentTime === 'function') {
+          const actualPvwTime = masterPvwYtPlayer.getCurrentTime() || 0;
+          if (Math.abs(actualPvwTime - targetServerTime) > 2.0) {
+            masterPvwYtPlayer.seekTo(targetServerTime, true);
+            if (latestVtState.status === 'playing') masterPvwYtPlayer.playVideo();
           }
         }
 
@@ -1094,6 +1104,7 @@
       const stream = getCameraStream(pvwSrc);
       if (stream && pvwVideo) {
         if (pvwVideo.srcObject !== stream) pvwVideo.srcObject = stream;
+        pvwVideo.style.objectFit = (pvwSrc === 'sharescreen') ? 'contain' : 'cover';
         pvwVideo.style.display = 'block';
         pvwVideo.style.opacity = '1';
         pvwVideo.play().catch(() => {});
@@ -1182,11 +1193,9 @@
       }
     }
 
-    // APLIKASIKAN GRAFIS CG KE MONITOR & INSPECTOR
     function applyCgGraphics(cg) {
       if (!cg) return;
 
-      // 1. Tampilan CUE di Monitor PVW (Cyan / Biru)
       const cueBox = document.getElementById('cgCueLowerThirdBox');
       const cueTitle = document.getElementById('cgCueLtTitle');
       const cueSub = document.getElementById('cgCueLtSubtitleText');
@@ -1205,7 +1214,6 @@
       if (insCueT) insCueT.innerText = cueT;
       if (insCueS) insCueS.innerText = cueS;
 
-      // 2. Tampilan LIVE di Monitor PGM (Merah / On-Air)
       const liveBox = document.getElementById('cgLowerThirdBox');
       const liveTitle = document.getElementById('cgLtTitle');
       const liveSub = document.getElementById('cgLtSubtitleText');
@@ -1227,7 +1235,6 @@
         if (insLiveS) insLiveS.innerText = "-";
       }
 
-      // 3. Ticker Bar
       const tickerBox = document.getElementById('cgTickerBar');
       const tickerText = document.getElementById('cgTickerText');
       if (cg.tickerActive && cg.tickerText) {
@@ -1235,7 +1242,6 @@
         if (tickerText) tickerText.innerText = cg.tickerText;
       } else if (tickerBox) tickerBox.classList.add('hidden');
 
-      // 4. Logo Bug
       const logoBox = document.getElementById('cgBugLogo');
       const logoCustom = document.getElementById('cgBugLogoCustomImg');
       const logoDefault = document.getElementById('cgBugLogoDefaultBadge');
@@ -1253,7 +1259,6 @@
       }
     }
 
-    // KONTROL PD & EMERGENCY COMMANDS
     function eksekusiTakeCg() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -1330,7 +1335,6 @@
       });
     }
 
-    // TRANSMISI DIRECTOR CUE INTERCOM KE SELURUH MODUL KRU
     function kirimDirectorCue() {
       const input = document.getElementById('inputDirectorCueMsg');
       const msg = input.value.trim();
@@ -1359,7 +1363,6 @@
       }
     }
 
-    // RUNDOWN ACARA DUA ARAH
     function renderRundownUI() {
       const container = document.getElementById('rundownListContainer');
       if (!container) return;
@@ -1406,10 +1409,8 @@
       const seg = rundownItems[idx];
       segmentRemainingSec = seg.durationSec || 180;
 
-      // Otomatis arahkan Preview Bus Switcher ke sumber segmen
       pilihSumberPreview(seg.targetSource);
 
-      // SINKRONISASI KE DATABASE AGAR FD DAN STUDIO LAINNYA TAHU SEGMEN AKTIF
       const activeDb = getDatabase();
       if (activeDb) {
         activeDb.ref(`rooms/${currentRoomToken}/pd_state`).update({
