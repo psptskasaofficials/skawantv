@@ -5,14 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Character Generator (CG) Console | SKAWAN TV</title>
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-
   <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
   <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
 
@@ -44,7 +40,6 @@
     }
   </script>
 
-  <!-- Firebase SDK (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
@@ -71,7 +66,6 @@
     })();
   </script>
 
-  <!-- Native WebRTC Streamer & YouTube API Resmi -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -134,7 +128,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black pb-6">
 
-  <!-- TOP NAVIGATION BAR (Z-50) -->
+  <!-- TOP NAVIGATION BAR -->
   <nav id="liveNavBar" class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md shadow-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -167,7 +161,6 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Status Firebase Persistence Cloud Pill -->
         <div id="firebaseSyncIndicator" class="hidden sm:flex items-center gap-1.5 bg-slate-900 border border-emerald-700/60 px-2.5 py-1 rounded-lg text-emerald-400 font-mono text-[10px] font-bold">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>FIREBASE SYNC: ON</span>
@@ -211,7 +204,6 @@
   <!-- WORKSPACE UTAMA: DUAL VIEWPORT CG & CONTROL PANEL -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 w-full flex-1 space-y-4">
 
-    <!-- BAGIAN 1: DUAL MONITOR (CUE PREVIEW VS PGM LIVE RETURN) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
       <!-- 1. MONITOR PREVIEW CUE (AKSEN CYAN/BIRU) -->
@@ -227,7 +219,6 @@
             </span>
           </div>
 
-          <!-- Viewport CUE -->
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative border border-slate-800 shadow-inner flex items-center justify-center select-none" id="cueViewport">
             <div class="absolute inset-0 bg-gradient-to-br from-slate-900 to-black flex items-center justify-center opacity-60">
               <span class="text-5xl">🎨</span>
@@ -235,10 +226,10 @@
 
             <!-- Pratinjau Lower Third CUE -->
             <div id="previewCueLowerThirdBox" class="absolute bottom-8 left-3 right-3 sm:left-4 sm:right-4 z-30 transition-all duration-300">
-              <div id="previewCueLtTitle" class="bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-brand font-black text-[11px] sm:text-xs px-3 py-1 rounded-t-lg shadow-lg inline-block tracking-wide">
+              <div id="previewCueLtTitle" class="bg-blue-600 text-white font-brand font-black text-[11px] sm:text-xs px-3 py-1 rounded-t-lg shadow-lg inline-block tracking-wide border-t-2 border-x-2 border-blue-400">
                 NAMA NARASUMBER
               </div>
-              <div id="previewCueLtSubtitle" class="bg-slate-950/95 backdrop-blur-md border-l-4 border-cyan-400 text-slate-100 text-[10px] sm:text-[11px] font-medium px-3 py-1 rounded-b-lg shadow-xl flex items-center justify-between">
+              <div id="previewCueLtSubtitle" class="bg-slate-950/95 backdrop-blur-md border-l-4 border-blue-400 text-slate-100 text-[10px] sm:text-[11px] font-medium px-3 py-1 rounded-b-lg shadow-xl flex items-center justify-between">
                 <span id="previewCueLtSubtitleText">Jabatan / Keterangan Narasumber</span>
                 <span class="text-[8px] font-mono text-cyan-300 font-bold ml-2">CUE</span>
               </div>
@@ -261,7 +252,7 @@
         </div>
       </div>
 
-      <!-- 2. MONITOR PGM LIVE RETURN (BERSIH TANPA BUMPER IFRAME DI AWAL) -->
+      <!-- 2. MONITOR PGM LIVE RETURN (BERSIH TANPA BUMPER) -->
       <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2.5 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -276,33 +267,14 @@
             </div>
           </div>
 
-          <!-- Viewport PGM -->
           <div id="pgmViewport" class="aspect-video bg-black rounded-xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl flex items-center justify-center select-none">
-
-            <!-- Fallback Sinyal PGM Bersih saat kamera belum terhubung -->
+            <!-- Fallback Sinyal PGM Bersih -->
             <div id="pgmFallbackBox" class="text-center space-y-1 relative z-0 p-3">
               <div class="w-8 h-8 mx-auto rounded-xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center text-sm font-bold">
                 🔴
               </div>
               <span id="pgmScreenLabel" class="font-brand font-black text-xl text-red-500 tracking-wider block">CAM 1</span>
               <span class="text-[10px] font-mono text-red-400 block uppercase tracking-wider">PGM FEED (STANDBY)</span>
-            </div>
-
-            <!-- Kartu Standby Overlay (Gladi Bersih) -->
-            <div id="pgmStandbyCardOverlay" class="hidden absolute inset-0 z-25 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 transition-opacity duration-300" style="display: none;">
-              <div class="bg-slate-900/95 border border-amber-500/50 rounded-xl p-4 shadow-2xl max-w-sm w-full space-y-2">
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold uppercase tracking-wider">
-                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                  <span>STUDIO STANDBY / GLADI BERSIH</span>
-                </div>
-                <div>
-                  <h2 id="standbyOverlayToken" class="font-brand font-black text-xl text-white tracking-wide">RUANGAN</h2>
-                  <p id="standbyOverlayProgram" class="text-xs text-slate-300 font-medium mt-0.5">Nama Program Siaran</p>
-                </div>
-                <p class="text-[10px] font-mono text-slate-400 pt-1.5 border-t border-slate-800">
-                  Siaran belum mengudara secara publik.
-                </p>
-              </div>
             </div>
 
             <!-- Feed Kamera / Screen Share WebRTC -->
@@ -318,8 +290,8 @@
             </div>
 
             <!-- CG Bug Logo Watermark (Z-30) -->
-            <div id="cgBugLogo" class="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 z-30 flex items-center justify-center max-w-[130px] max-h-10 transition-all duration-200 pointer-events-none select-none">
-              <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-6 sm:h-7 w-auto object-contain drop-shadow-md">
+            <div id="cgBugLogo" class="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 z-30 flex items-center justify-center max-w-[140px] max-h-11 transition-all duration-200 pointer-events-none select-none">
+              <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-8 w-auto object-contain drop-shadow-md">
               <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-white/95 rounded-xl px-2 py-1 shadow-md backdrop-blur-sm border border-white/20">
                 <img
                   id="cgBugLogoDefaultImg"
@@ -377,7 +349,7 @@
     <!-- BAGIAN 2: KONTROL UTAMA CHARACTER GENERATOR -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-      <!-- PANEL KIRI: LOWER THIRD PRESET & STAGING (7 COL) -->
+      <!-- PANEL KIRI: LOWER THIRD PRESET & STAGING -->
       <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
         <div class="flex items-center justify-between pb-2 border-b border-slate-800">
           <div class="flex items-center gap-2">
@@ -402,7 +374,6 @@
             </div>
           </div>
 
-          <!-- Opsi Timer Auto Fade-Out & Tombol Aksi Cepat -->
           <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
             <div class="flex items-center gap-2">
               <span class="text-[10px] font-mono text-slate-400 font-bold">Auto-Hide:</span>
@@ -414,7 +385,6 @@
               </select>
             </div>
 
-            <!-- Tombol Aksi Utama: CUE, TAKE, CLEAR -->
             <div class="flex items-center gap-2">
               <button onclick="eksekusiKirimKeCue()" class="cg-btn px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-600/40 text-xs font-bold flex items-center gap-1">
                 <span>👁️</span>
@@ -432,7 +402,6 @@
           </div>
         </div>
 
-        <!-- Daftar Preset Siap Pakai yang Tersinkron Firebase -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-mono text-slate-400 font-bold uppercase block">DAFTAR PRESET LOWER THIRD (FIREBASE CLOUD):</span>
@@ -442,7 +411,7 @@
         </div>
       </div>
 
-      <!-- PANEL KANAN: TICKER, LOGO BUG, & OVERLAYS (5 COL) -->
+      <!-- PANEL KANAN: TICKER & STATION BUG LOGO (3 PILIHAN) -->
       <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
         <div class="flex items-center justify-between pb-2 border-b border-slate-800">
           <div class="flex items-center gap-2">
@@ -469,20 +438,38 @@
           </div>
         </div>
 
-        <!-- 2. Station Bug Logo Watermark -->
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+        <!-- 2. Station Bug Logo Watermark - 3 PILIHAN -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-3">
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-mono font-bold text-slate-300 uppercase">STATION BUG LOGO</span>
             <button onclick="toggleLogoActive()" id="btnToggleLogo" class="cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-600 text-white border border-emerald-500">
               ON
             </button>
           </div>
-          <div>
-            <label class="block text-[9px] font-mono text-slate-500 mb-1">URL Logo Kustom (Kosongkan untuk Logo Default SKAWAN TV):</label>
+
+          <!-- Pilihan 3 Mode Logo -->
+          <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+            <button type="button" onclick="pilihModeLogo(1)" id="btnLogoMode1" class="cg-btn py-1.5 px-2 rounded-lg text-[10px] font-mono font-bold text-center border border-transparent transition text-slate-400 hover:text-white">
+              1. Logo Full
+            </button>
+            <button type="button" onclick="pilihModeLogo(2)" id="btnLogoMode2" class="cg-btn py-1.5 px-2 rounded-lg text-[10px] font-mono font-bold text-center border border-cyan-500 bg-cyan-950 text-cyan-300 transition">
+              2. Icon Logo
+            </button>
+            <button type="button" onclick="pilihModeLogo(3)" id="btnLogoMode3" class="cg-btn py-1.5 px-2 rounded-lg text-[10px] font-mono font-bold text-center border border-transparent transition text-slate-400 hover:text-white">
+              3. Custom
+            </button>
+          </div>
+
+          <!-- Input Khusus Logo 3 (Custom .png/.webp) -->
+          <div id="customLogoInputPanel" class="hidden space-y-2 pt-1 border-t border-slate-900">
+            <label class="block text-[9px] font-mono text-slate-400">Pilih Berkas (.png / .webp) atau Tempel URL:</label>
             <div class="flex items-center gap-1.5">
-              <input type="text" id="inputCustomLogoUrl" placeholder="https://domain.com/logo.webp" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-cyan-400 font-mono">
-              <button onclick="simpanLogoKeFirebase()" class="cg-btn bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800 px-3 py-1.5 rounded-lg text-xs font-bold">
-                Set
+              <input type="file" id="inputFileCustomLogo" accept=".png, .webp, image/png, image/webp" onchange="handleUploadFileCustomLogo(event)" class="text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-mono file:font-bold file:bg-cyan-600 file:text-black hover:file:bg-cyan-500 cursor-pointer">
+            </div>
+            <div class="flex items-center gap-1.5">
+              <input type="text" id="inputCustomLogoUrl" placeholder="Atau URL: https://.../logo.png" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-cyan-400 font-mono">
+              <button onclick="simpanUrlLogoCustom()" class="cg-btn bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0">
+                Terapkan
               </button>
             </div>
           </div>
@@ -574,6 +561,7 @@
 
     let cgState = {
       logoActive: true,
+      logoMode: 2, // 1 = full, 2 = icon, 3 = custom
       logoUrl: '',
       isLiveBadgeActive: true,
       lowerThirdActive: false,
@@ -704,7 +692,6 @@
         return;
       }
 
-      // Kunci slot peran CG dan pasang auto-release saat tab ditutup
       const studentName = localStorage.getItem('skawan_user') || 'CG Graphics Operator';
       const roleRef = activeDb.ref(`rooms/${token}/roles/cg`);
       roleRef.set(studentName);
@@ -774,6 +761,7 @@
             logoInput.value = cgState.logoUrl;
           }
 
+          updateLogoModeButtonsUI(cgState.logoMode || 2);
           updateLiveCueStaging();
           applyCgToLiveDisplay();
         }
@@ -850,7 +838,6 @@
       }
     }
 
-    // MONITOR PGM BERSIH (TANPA BUMPER DI AWAL)
     function updatePgmReturnMonitor() {
       const pgmViewport = document.getElementById('pgmViewport');
       const pgmVideo = document.getElementById('pgmCamVideo');
@@ -1039,25 +1026,8 @@
         if (btnTicker) { btnTicker.innerText = "OFF"; btnTicker.className = "cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700"; }
       }
 
-      const logoBox = document.getElementById('cgBugLogo');
-      const logoCustom = document.getElementById('cgBugLogoCustomImg');
-      const logoDefault = document.getElementById('cgBugLogoDefaultBadge');
-      const btnLogo = document.getElementById('btnToggleLogo');
-
-      if (cgState.logoActive === false) {
-        if (logoBox) logoBox.classList.add('hidden');
-        if (btnLogo) { btnLogo.innerText = "OFF"; btnLogo.className = "cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700"; }
-      } else {
-        if (logoBox) logoBox.classList.remove('hidden');
-        if (btnLogo) { btnLogo.innerText = "ON"; btnLogo.className = "cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-600 text-white border border-emerald-500"; }
-        if (cgState.logoUrl && cgState.logoUrl.trim().length > 0) {
-          if (logoCustom) { logoCustom.src = cg.logoUrl; logoCustom.classList.remove('hidden'); }
-          if (logoDefault) logoDefault.classList.add('hidden');
-        } else {
-          if (logoCustom) logoCustom.classList.add('hidden');
-          if (logoDefault) logoDefault.classList.remove('hidden');
-        }
-      }
+      // Render Bug Logo sesuai mode terpilih
+      renderLogoBug(cgState);
 
       const badgeLive = document.getElementById('badgeLiveOnAir');
       const btnLiveBadge = document.getElementById('btnToggleLiveBadge');
@@ -1069,6 +1039,149 @@
       } else {
         if (badgeLive) badgeLive.classList.add('hidden');
         if (btnLiveBadge) { btnLiveBadge.innerText = "OFF"; btnLiveBadge.className = "cg-btn px-3 py-1 rounded-xl text-xs font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700"; }
+      }
+    }
+
+    // ========================================================
+    // LOGIKA 3 PILIHAN LOGO (FULL, ICON, CUSTOM)
+    // ========================================================
+    function pilihModeLogo(modeNum) {
+      modeNum = parseInt(modeNum) || 2;
+      cgState.logoMode = modeNum;
+      updateLogoModeButtonsUI(modeNum);
+
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/cg_state`).update({
+          logoMode: modeNum,
+          logoActive: (cgState.logoActive !== false),
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      }
+      renderLogoBug(cgState);
+    }
+
+    function updateLogoModeButtonsUI(modeNum) {
+      const b1 = document.getElementById('btnLogoMode1');
+      const b2 = document.getElementById('btnLogoMode2');
+      const b3 = document.getElementById('btnLogoMode3');
+      const customPanel = document.getElementById('customLogoInputPanel');
+
+      [b1, b2, b3].forEach(b => {
+        if (b) b.className = "cg-btn py-1.5 px-2 rounded-lg text-[10px] font-mono font-bold text-center border border-transparent transition text-slate-400 hover:text-white";
+      });
+
+      if (modeNum === 1 && b1) {
+        b1.className = "cg-btn py-1.5 px-2 rounded-lg text-[10px] font-mono font-bold text-center border border-cyan-500 bg-cyan-950 text-cyan-300 transition";
+        if (customPanel) customPanel.classList.add('hidden');
+      } else if (modeNum === 2 && b2) {
+        b2.className = "cg-btn py-1.5 px-2 rounded-lg text-[10px] font-mono font-bold text-center border border-cyan-500 bg-cyan-950 text-cyan-300 transition";
+        if (customPanel) customPanel.classList.add('hidden');
+      } else if (modeNum === 3 && b3) {
+        b3.className = "cg-btn py-1.5 px-2 rounded-lg text-[10px] font-mono font-bold text-center border border-cyan-500 bg-cyan-950 text-cyan-300 transition";
+        if (customPanel) customPanel.classList.remove('hidden');
+      }
+    }
+
+    function handleUploadFileCustomLogo(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        cgState.logoUrl = dataUrl;
+        document.getElementById('inputCustomLogoUrl').value = '';
+
+        const activeDb = getDatabase();
+        if (activeDb) {
+          activeDb.ref(`rooms/${currentRoomToken}/cg_state`).update({
+            logoMode: 3,
+            logoUrl: dataUrl,
+            logoActive: true,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+          });
+        }
+        renderLogoBug(cgState);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function simpanUrlLogoCustom() {
+      const url = document.getElementById('inputCustomLogoUrl').value.trim();
+      cgState.logoUrl = url;
+
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/cg_state`).update({
+          logoMode: 3,
+          logoUrl: url,
+          logoActive: true,
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      }
+      renderLogoBug(cgState);
+    }
+
+    function renderLogoBug(cg) {
+      const logoBox = document.getElementById('cgBugLogo');
+      const logoImg = document.getElementById('cgBugLogoCustomImg');
+      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
+      const defaultImg = document.getElementById('cgBugLogoDefaultImg');
+      const btnLogo = document.getElementById('btnToggleLogo');
+      if (!logoBox) return;
+
+      if (cg.logoActive === false) {
+        logoBox.classList.add('hidden');
+        if (btnLogo) { btnLogo.innerText = "OFF"; btnLogo.className = "cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700"; }
+        return;
+      }
+
+      logoBox.classList.remove('hidden');
+      if (btnLogo) { btnLogo.innerText = "ON"; btnLogo.className = "cg-btn px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-600 text-white border border-emerald-500"; }
+
+      const mode = parseInt(cg.logoMode) || 2;
+
+      if (mode === 1) {
+        // Logo 1: Full Logo Horizontal
+        if (logoImg) {
+          logoImg.src = 'assets/img/logo-skawan-full.webp';
+          logoImg.className = 'h-7 sm:h-8 w-auto max-w-[130px] object-contain drop-shadow-md bg-white/95 rounded-lg px-2 py-0.5 border border-white/20';
+          logoImg.onerror = () => { logoImg.src = 'logo-skawan-full.webp'; };
+          logoImg.classList.remove('hidden');
+        }
+        if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+      } else if (mode === 2) {
+        // Logo 2: Icon Monogram
+        if (logoDefaultBadge) {
+          logoDefaultBadge.classList.remove('hidden');
+          if (defaultImg) {
+            defaultImg.src = 'assets/img/logo-skawan-icon.webp';
+            defaultImg.onerror = () => { defaultImg.src = 'logo-skawan-icon.webp'; };
+          }
+        }
+        if (logoImg) logoImg.classList.add('hidden');
+      } else if (mode === 3) {
+        // Logo 3: Custom File (.png / .webp)
+        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
+          if (logoImg) {
+            logoImg.src = cg.logoUrl;
+            logoImg.className = 'h-7 sm:h-8 w-auto max-w-[120px] object-contain drop-shadow-md';
+            logoImg.classList.remove('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+        } else {
+          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+          if (logoImg) logoImg.classList.add('hidden');
+        }
+      }
+    }
+
+    function toggleLogoActive() {
+      const next = !(cgState.logoActive !== false);
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/cg_state/logoActive`).set(next);
       }
     }
 
@@ -1192,26 +1305,6 @@
       else input.value = "WARTA SKASA \u2022 Menampilkan Kreativitas & Kompetensi Keahlian Siswa Penyiaran dan Perfilman SMKN 1 Pacitan";
       updateLiveCueStaging();
       simpanTickerKeFirebase();
-    }
-
-    function toggleLogoActive() {
-      const next = !(cgState.logoActive !== false);
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/cg_state/logoActive`).set(next);
-      }
-    }
-
-    function simpanLogoKeFirebase() {
-      const url = document.getElementById('inputCustomLogoUrl').value.trim();
-      const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/cg_state`).update({
-          logoUrl: url,
-          logoActive: true,
-          updatedAt: firebase.database.ServerValue.TIMESTAMP
-        });
-      }
     }
 
     function toggleLiveBadgeActive() {
