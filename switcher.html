@@ -862,3 +862,261 @@
     function updatePgmMonitor() {
       const pgmSrc = liveState.programSource || 'cam_1';
       const pgmVideo = document.getElementById('pgmCamVideo');
+      const pgmVtWrap = document.getElementById('pgmVtWrapper');
+      const pgmFallback = document.getElementById('pgmFallbackBox');
+      const pgmLabel = document.getElementById('pgmScreenLabel');
+
+      if (pgmLabel) pgmLabel.innerText = pgmSrc.toUpperCase().replace('_', ' ');
+
+      if (pgmSrc === 'vt') {
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; pgmVideo.pause(); }
+        if (pgmFallback) pgmFallback.style.display = 'none';
+        if (pgmVtWrap) { pgmVtWrap.style.display = 'flex'; pgmVtWrap.style.opacity = '1'; }
+        syncPgmVtPlayout();
+        return;
+      }
+
+      if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+
+      const stream = getCameraStream(pgmSrc);
+      if (stream && pgmVideo) {
+        if (pgmVideo.srcObject !== stream) {
+          pgmVideo.srcObject = stream;
+          pgmVideo.muted = true;
+        }
+        pgmVideo.style.objectFit = (pgmSrc === 'sharescreen') ? 'contain' : 'cover';
+        pgmVideo.style.display = 'block';
+        pgmVideo.style.opacity = '1';
+        pgmVideo.play().catch(() => {});
+        if (pgmFallback) pgmFallback.style.display = 'none';
+      } else {
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+        if (pgmFallback) pgmFallback.style.display = 'block';
+      }
+    }
+
+    function syncPgmVtPlayout() {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      if (!vidId) return;
+
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+      const isPlaying = (latestVtState.status === 'playing');
+
+      if (!isMasterPgmYtReady || !masterPgmYtPlayer) {
+        initPgmYtPlayer(vidId, targetTime);
+        return;
+      }
+
+      if (currentPgmActiveYtId !== vidId) {
+        currentPgmActiveYtId = vidId;
+        const shield = document.getElementById('pgmBlackShield');
+        if (shield) shield.classList.remove('opacity-0');
+        masterPgmYtPlayer.loadVideoById({ videoId: vidId, startSeconds: Math.floor(targetTime) });
+        if (isPlaying) masterPgmYtPlayer.playVideo();
+        else masterPgmYtPlayer.pauseVideo();
+        return;
+      }
+
+      const pState = masterPgmYtPlayer.getPlayerState();
+      if (isPlaying && pState !== YT.PlayerState.PLAYING) {
+        masterPgmYtPlayer.playVideo();
+      } else if (!isPlaying && pState !== YT.PlayerState.PAUSED) {
+        masterPgmYtPlayer.pauseVideo();
+      }
+    }
+
+    function syncPvwVtPlayout() {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      if (!vidId) return;
+
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+      const isPlaying = (latestVtState.status === 'playing');
+
+      if (!isMasterPvwYtReady || !masterPvwYtPlayer) {
+        initPvwYtPlayer(vidId, targetTime);
+        return;
+      }
+
+      if (currentPvwActiveYtId !== vidId) {
+        currentPvwActiveYtId = vidId;
+        masterPvwYtPlayer.loadVideoById({ videoId: vidId, startSeconds: Math.floor(targetTime) });
+        if (isPlaying) masterPvwYtPlayer.playVideo();
+        else masterPvwYtPlayer.pauseVideo();
+        return;
+      }
+
+      const pState = masterPvwYtPlayer.getPlayerState();
+      if (isPlaying && pState !== YT.PlayerState.PLAYING) {
+        masterPvwYtPlayer.playVideo();
+      } else if (!isPlaying && pState !== YT.PlayerState.PAUSED) {
+        masterPvwYtPlayer.pauseVideo();
+      }
+    }
+
+    function syncVtSources() {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      const poster = document.getElementById('mvPoster-vt');
+      const fallback = document.getElementById('mvFallback-vt');
+
+      if (vidId) {
+        if (poster) { poster.src = `https://i.ytimg.com/vi/${vidId}/mqdefault.jpg`; poster.style.display = 'block'; }
+        if (fallback) fallback.style.display = 'none';
+      } else {
+        if (poster) poster.style.display = 'none';
+        if (fallback) fallback.style.display = 'flex';
+      }
+
+      if (liveState.programSource === 'vt') syncPgmVtPlayout();
+      if (liveState.previewSource === 'vt') syncPvwVtPlayout();
+    }
+
+    // ========================================================
+    // PERINTAH TRANSISI (CUT, AUTO, DIRECT PGM)
+    // ========================================================
+    function pilihPreview(srcKey) {
+      liveState.previewSource = srcKey;
+      updateAllMonitors();
+      commitLiveState();
+    }
+
+    function langsungTakePgm(srcKey) {
+      liveState.programSource = srcKey;
+      updateAllMonitors();
+      commitLiveState();
+    }
+
+    function eksekusiCut() {
+      const nextProgram = liveState.previewSource;
+      const nextPreview = liveState.programSource;
+
+      liveState.programSource = nextProgram;
+      liveState.previewSource = nextPreview;
+
+      updateAllMonitors();
+      commitLiveState();
+    }
+
+    function eksekusiAuto() {
+      if (isAutoTransitioning) return;
+      isAutoTransitioning = true;
+
+      const speed = parseInt(document.getElementById('selectDissolveSpeed').value) || 1000;
+      const pgmVideo = document.getElementById('pgmCamVideo');
+      const pgmVt = document.getElementById('pgmVtWrapper');
+
+      if (pgmVideo) pgmVideo.style.transition = `opacity ${speed / 2}ms ease-in-out`;
+      if (pgmVideo) pgmVideo.style.opacity = '0.35';
+      if (pgmVt) pgmVt.style.transition = `opacity ${speed / 2}ms ease-in-out`;
+      if (pgmVt) pgmVt.style.opacity = '0.35';
+
+      setTimeout(() => {
+        eksekusiCut();
+        if (pgmVideo) {
+          pgmVideo.style.transition = '';
+          pgmVideo.style.opacity = '1';
+        }
+        if (pgmVt) {
+          pgmVt.style.transition = '';
+          pgmVt.style.opacity = '1';
+        }
+        isAutoTransitioning = false;
+      }, speed);
+    }
+
+    function toggleFadeToBlack() {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      
+      activeDb.ref(`rooms/${currentRoomToken}/live_state`).update({
+        programSource: 'vt',
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      activeDb.ref(`rooms/${currentRoomToken}/vt_state/status`).set('ended');
+    }
+
+    // KOMIT STATE LIVE SINKRON KE SELURUH PENONTON & INDEX.HTML
+    function commitLiveState() {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      const pgmSrc = liveState.programSource;
+      const pvwSrc = liveState.previewSource;
+      const tallyObj = { cam_1: 'off', cam_2: 'off', cam_3: 'off', vt: 'off', sharescreen: 'off' };
+      if (tallyObj.hasOwnProperty(pgmSrc)) tallyObj[pgmSrc] = 'red';
+      if (tallyObj.hasOwnProperty(pvwSrc)) tallyObj[pvwSrc] = 'green';
+
+      activeDb.ref(`rooms/${currentRoomToken}/live_state`).update({
+        programSource: pgmSrc,
+        previewSource: pvwSrc,
+        tally: tallyObj,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+
+    function paksaSinkronKeIndex() {
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+      activeDb.ref(`rooms/${currentRoomToken}`).once('value', snap => {
+        if (snap.exists()) {
+          const data = snap.val();
+          if (data.live_state) liveState = { ...liveState, ...data.live_state };
+          if (data.vt_state) latestVtState = { ...latestVtState, ...data.vt_state };
+        }
+        updateAllMonitors();
+      });
+    }
+
+    function tampilkanDirectorCue(msg) {
+      const promptEl = document.getElementById('txtDirectorCuePrompt');
+      const boxEl = document.getElementById('bannerDirectorCueBox');
+      if (promptEl) promptEl.innerText = msg;
+      if (boxEl) {
+        boxEl.classList.add('cue-active');
+        setTimeout(() => { boxEl.classList.remove('cue-active'); }, 5000);
+      }
+    }
+
+    function startMasterWibClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        const clockEl = document.getElementById('tdClockWib');
+        if (clockEl) clockEl.innerText = `${formatter.format(now).replace(/\./g, ':')} WIB`;
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    function keluarKeLogin(event) {
+      if (event) event.preventDefault();
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/switcher`).set("");
+      }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+      window.location.href = `login.html?room=${currentRoomToken}`;
+    }
+
+    window.addEventListener('beforeunload', () => {
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/switcher`).set("");
+      }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+    });
+  </script>
+</body>
+</html>
