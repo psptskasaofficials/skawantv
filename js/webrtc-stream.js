@@ -1,6 +1,6 @@
 /**
- * SKAWAN TV - WebRTC Streamer Engine (v2.4 Clean Loop-Free Signaling)
- * Multi-Cam HP, Screen Share, Audio Master, & Multi-Viewer Switcher/PD/PGM
+ * SKAWAN TV - WebRTC Streamer Engine (v2.5 Robust LAN Mesh)
+ * Multi-Cam HP, Screen Share, Audio Master, & Multi-Viewer
  */
 class SkawanStreamer {
   constructor(options = {}) {
@@ -23,7 +23,7 @@ class SkawanStreamer {
     this.localStreams = new Map();
     this.peers = new Map();
     this.iceQueues = new Map();
-    this.lastHandshakeTimestamps = new Map();
+    this.lastHandshakes = new Map();
     this.activeListeners = [];
 
     this.initSignaling();
@@ -48,13 +48,10 @@ class SkawanStreamer {
 
     const bKey = this.getBroadcasterKey();
     if (bKey) {
-      // SISI BROADCASTER (Kamera HP / Screen Share)
       this.onConnectionStateChange('standby');
+      const reqRef = this.db.ref(`webrtc_requests/${this.roomToken}/${bKey}`);
       
-      // Jalur khusus request terpisah agar tidak terpicu ulang oleh pertukaran SDP/ICE
-      const reqChannelRef = this.db.ref(`webrtc_requests/${this.roomToken}/${bKey}`);
-      
-      const processViewerRequest = (snap) => {
+      const processRequest = (snap) => {
         const viewerId = snap.key;
         const val = snap.val();
         if (!viewerId || !val) return;
@@ -62,21 +59,19 @@ class SkawanStreamer {
         const reqTime = typeof val === 'object' ? val.timestamp : val;
         if (!reqTime) return;
 
-        // Cegah eksekusi ganda untuk request yang sama
-        if (this.lastHandshakeTimestamps.get(viewerId) === reqTime) return;
-        this.lastHandshakeTimestamps.set(viewerId, reqTime);
+        if (this.lastHandshakes.get(viewerId) === reqTime) return;
+        this.lastHandshakes.set(viewerId, reqTime);
 
         if (this.localStreams.has(bKey)) {
           this.startBroadcasterHandshake(viewerId, bKey);
         }
       };
 
-      reqChannelRef.on('child_added', processViewerRequest);
-      reqChannelRef.on('child_changed', processViewerRequest);
-      this.activeListeners.push(reqChannelRef);
+      reqRef.on('child_added', processRequest);
+      reqRef.on('child_changed', processRequest);
+      this.activeListeners.push(reqRef);
 
     } else {
-      // SISI VIEWER (Switcher, PD, Live PGM, Index)
       this.discoverBroadcasters();
     }
   }
@@ -97,18 +92,15 @@ class SkawanStreamer {
   connectToBroadcaster(bKey) {
     if (this.peers.has(bKey)) return;
 
-    // 1. Kirim permintaan handshake pada branch terpisah
     const reqRef = this.db.ref(`webrtc_requests/${this.roomToken}/${bKey}/${this.roleKey}`);
     reqRef.set({ timestamp: Date.now() });
     reqRef.onDisconnect().remove();
 
-    // 2. Jalur sinyal pertukaran SDP & ICE
     const sigRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/${this.roleKey}`);
     sigRef.onDisconnect().remove();
 
     this.iceQueues.set(bKey, []);
 
-    // Dengarkan Offer dari kamera
     const offerRef = sigRef.child('offer');
     offerRef.on('value', async snap => {
       const offerData = snap.val();
@@ -161,12 +153,11 @@ class SkawanStreamer {
           type: answer.type
         });
       } catch (err) {
-        console.warn(`[WebRTC] Viewer handshake error on ${bKey}:`, err);
+        console.warn(`[WebRTC] Handshake error pada ${bKey}:`, err);
       }
     });
     this.activeListeners.push(offerRef);
 
-    // Dengarkan ICE kandidat dari Broadcaster
     const iceBRef = sigRef.child('ice_b');
     iceBRef.on('child_added', snap => {
       const cand = snap.val();
@@ -216,7 +207,7 @@ class SkawanStreamer {
       }
     };
 
-    const notifyStatus = () => {
+    const updateStatus = () => {
       let isConnected = false;
       let isConnecting = false;
       let isFailed = false;
@@ -232,18 +223,17 @@ class SkawanStreamer {
       if (isConnected) this.onConnectionStateChange('connected');
       else if (isConnecting) this.onConnectionStateChange('connecting');
       else if (isFailed) this.onConnectionStateChange('failed');
+      else if (this.peers.size > 0) this.onConnectionStateChange('connecting');
       else this.onConnectionStateChange('standby');
     };
 
-    pc.onconnectionstatechange = notifyStatus;
-    pc.oniceconnectionstatechange = notifyStatus;
+    pc.onconnectionstatechange = updateStatus;
+    pc.oniceconnectionstatechange = updateStatus;
 
-    // Bersihkan sesi lampau
     sigRef.child('answer').remove().catch(() => {});
     sigRef.child('ice_b').remove().catch(() => {});
     sigRef.child('ice_v').remove().catch(() => {});
 
-    // Dengarkan Answer dari Viewer
     const answerRef = sigRef.child('answer');
     answerRef.on('value', async snap => {
       const answerData = snap.val();
@@ -260,12 +250,11 @@ class SkawanStreamer {
           }
         }
       } catch (err) {
-        console.warn(`[WebRTC] Set answer error for ${viewerId}:`, err);
+        console.warn(`[WebRTC] Set answer error ${viewerId}:`, err);
       }
     });
     this.activeListeners.push(answerRef);
 
-    // Dengarkan ICE dari Viewer
     const iceVRef = sigRef.child('ice_v');
     iceVRef.on('child_added', snap => {
       const cand = snap.val();
@@ -289,7 +278,7 @@ class SkawanStreamer {
         type: offer.type
       });
     } catch (err) {
-      console.warn(`[WebRTC] Offer creation error for ${viewerId}:`, err);
+      console.warn(`[WebRTC] Create offer error ${viewerId}:`, err);
     }
   }
 
@@ -317,7 +306,6 @@ class SkawanStreamer {
       });
       this.presenceRef.onDisconnect().remove();
 
-      // Tangani viewer yang sudah menunggu di webrtc_requests
       this.db.ref(`webrtc_requests/${this.roomToken}/${bKey}`).once('value', snap => {
         const requests = snap.val() || {};
         Object.keys(requests).forEach(viewerId => {
