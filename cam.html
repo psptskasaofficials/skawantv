@@ -5,16 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Kamera Juru Kamera | SKAWAN TV</title>
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-
   <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
-  <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
 
   <script>
     tailwind.config = {
@@ -26,22 +21,16 @@
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
-            skawan: {
-              red: '#E50914',
-              orange: '#EA580C',
-              darkBg: '#080C14',
-            }
+            skawan: { red: '#E50914', orange: '#EA580C', darkBg: '#080C14' }
           }
         }
       }
     }
   </script>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
-
   <script>
     (function ensureFirebaseConnection() {
       const config = {
@@ -57,55 +46,25 @@
         if (!firebase.apps || !firebase.apps.length) {
           try { firebase.initializeApp(config); } catch (e) {}
         }
-        if (!window.db && firebase.database) {
-          window.db = firebase.database();
-        }
+        if (!window.db && firebase.database) window.db = firebase.database();
       }
     })();
   </script>
-
-  <!-- WebRTC Streamer Engine -->
   <script src="js/webrtc-stream.js"></script>
 
   <style>
-    body, html {
-      height: 100%;
-      overflow: hidden;
-      background-color: #000;
-    }
-    .tally-live {
-      box-shadow: inset 0 0 0 8px #dc2626, 0 0 30px rgba(220, 38, 38, 0.8);
-      border-color: #dc2626 !important;
-    }
-    .tally-cue {
-      box-shadow: inset 0 0 0 8px #10b981, 0 0 30px rgba(16, 185, 129, 0.7);
-      border-color: #10b981 !important;
-    }
-    .touch-btn {
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .touch-btn:active {
-      transform: scale(0.92);
-    }
-    @keyframes cue-flash {
-      0% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.85; transform: scale(1.02); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-    .director-cue-alert {
-      animation: cue-flash 0.8s infinite;
-    }
+    body, html { height: 100%; overflow: hidden; background-color: #000; }
+    .tally-live { box-shadow: inset 0 0 0 8px #dc2626, 0 0 30px rgba(220, 38, 38, 0.8); border-color: #dc2626 !important; }
+    .tally-cue { box-shadow: inset 0 0 0 8px #10b981, 0 0 30px rgba(16, 185, 129, 0.7); border-color: #10b981 !important; }
+    .touch-btn { touch-action: manipulation; user-select: none; }
+    .touch-btn:active { transform: scale(0.92); }
   </style>
 </head>
 <body class="flex flex-col justify-between text-white select-none">
 
-  <!-- FRAME VIEWPORT KAMERA DENGAN TALLY BORDER -->
   <div id="cameraViewport" class="absolute inset-0 w-full h-full border-4 border-slate-900 transition-all duration-300 flex items-center justify-center overflow-hidden">
     <video id="camVideoPreview" class="w-full h-full object-cover" autoplay playsinline muted></video>
 
-    <!-- Overlay Fallback -->
     <div id="camFallbackBox" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center space-y-3">
       <span class="text-6xl animate-bounce">📹</span>
       <h2 class="font-brand font-black text-xl text-white">Kamera Belum Aktif</h2>
@@ -118,7 +77,6 @@
     </div>
   </div>
 
-  <!-- HUD ATAS: IDENTITAS KAMERA, PILIHAN RESOLUSI, & TALLY STATUS -->
   <header class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent">
     <div class="flex items-center gap-2">
       <div id="badgeCamId" class="px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-white font-mono font-black text-xs sm:text-sm tracking-wider shadow">
@@ -129,7 +87,6 @@
       </div>
     </div>
 
-    <!-- Pilihan Resolusi, Info Ruangan, & Keluar -->
     <div class="flex items-center gap-2">
       <div class="bg-black/70 backdrop-blur-md rounded-xl border border-white/20 px-2 py-0.5 flex items-center gap-1 shadow">
         <span class="text-[10px] font-mono text-slate-400">RES:</span>
@@ -149,18 +106,16 @@
     </div>
   </header>
 
-  <!-- BANNER CUE DARI PD -->
-  <div id="boxDirectorCueAlert" class="hidden relative z-20 mx-3 sm:mx-6 p-3 rounded-2xl bg-amber-500/95 text-slate-950 shadow-2xl backdrop-blur-md director-cue-alert">
+  <div id="boxDirectorCueAlert" class="hidden relative z-20 mx-3 sm:mx-6 p-3 rounded-2xl bg-amber-500/95 text-slate-950 shadow-2xl backdrop-blur-md">
     <div class="flex items-center justify-between">
       <span class="text-[9px] font-mono font-black uppercase tracking-wider">ABA-ABA SUTRADARA (PD):</span>
-      <span class="text-[9px] font-mono font-bold" id="lblCueTimer">SEKARANG</span>
+      <span class="text-[9px] font-mono font-bold">SEKARANG</span>
     </div>
     <p id="txtCueMessage" class="font-brand font-black text-sm sm:text-base leading-tight mt-0.5">
       Standby Host! Bersiap transisi!
     </p>
   </div>
 
-  <!-- HUD BAWAH: STATUS ANTI-SLEEP, RESOLUSI RIIL, & KONTROL KAMERA -->
   <footer class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-t from-black/90 via-black/50 to-transparent">
     <div class="flex items-center gap-2">
       <div class="text-[10px] font-mono text-slate-300 bg-black/60 px-2.5 py-1 rounded-lg border border-white/10">
@@ -172,11 +127,11 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <button id="btnSwitchCamera" onclick="gantiArahKamera()" class="touch-btn bg-black/70 backdrop-blur-md hover:bg-black text-white px-3.5 py-2 rounded-xl border border-white/20 text-xs font-bold font-mono flex items-center gap-1.5 shadow-lg">
+      <button onclick="gantiArahKamera()" class="touch-btn bg-black/70 backdrop-blur-md hover:bg-black text-white px-3.5 py-2 rounded-xl border border-white/20 text-xs font-bold font-mono flex items-center gap-1.5 shadow-lg">
         <span>🔄</span>
         <span class="hidden sm:inline">Pindah Kamera</span>
       </button>
-      <button id="btnToggleAudio" onclick="toggleAudio()" class="touch-btn bg-black/70 backdrop-blur-md hover:bg-black text-white px-3 py-2 rounded-xl border border-white/20 text-xs font-mono">
+      <button onclick="toggleAudio()" class="touch-btn bg-black/70 backdrop-blur-md hover:bg-black text-white px-3 py-2 rounded-xl border border-white/20 text-xs font-mono">
         <span id="iconAudio">🔇 Mic Off</span>
       </button>
     </div>
@@ -240,13 +195,20 @@
           video: {
             facingMode: currentFacingMode,
             width: { ideal: preset.width },
-            height: { ideal: preset.height },
-            aspectRatio: { ideal: 1.777777778 }
+            height: { ideal: preset.height }
           },
           audio: isAudioEnabled
         };
 
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (strictErr) {
+          // Fallback tanpa batasan ketat jika kamera laptop/HP menolak
+          localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: isAudioEnabled
+          });
+        }
 
         const videoEl = document.getElementById('camVideoPreview');
         videoEl.srcObject = localStream;
@@ -258,9 +220,7 @@
         if (vTrack) {
           const settings = vTrack.getSettings();
           const lblReal = document.getElementById('lblRealResolution');
-          if (lblReal) {
-            lblReal.innerText = `${settings.width || preset.width}x${settings.height || preset.height}`;
-          }
+          if (lblReal) lblReal.innerText = `${settings.width || preset.width}x${settings.height || preset.height}`;
         }
 
         const camRoleKey = `cam_${currentCamId}`;
@@ -308,10 +268,7 @@
 
     function listenStudioTally(token, camKey) {
       const activeDb = getDatabase();
-      if (!activeDb) {
-        setTimeout(() => listenStudioTally(token, camKey), 300);
-        return;
-      }
+      if (!activeDb) return;
 
       activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
         const state = snap.val() || {};
@@ -351,41 +308,24 @@
 
       activeDb.ref(`rooms/${token}/pd_state/directorCue`).on('value', snap => {
         if (snap.exists() && snap.val()) {
-          tampilkanDirectorCue(snap.val());
+          const box = document.getElementById('boxDirectorCueAlert');
+          document.getElementById('txtCueMessage').innerText = snap.val();
+          box.classList.remove('hidden');
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          setTimeout(() => box.classList.add('hidden'), 7000);
         }
       });
     }
 
-    function tampilkanDirectorCue(msg) {
-      const box = document.getElementById('boxDirectorCueAlert');
-      const txt = document.getElementById('txtCueMessage');
-      txt.innerText = msg;
-      box.classList.remove('hidden');
-
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-
-      setTimeout(() => {
-        box.classList.add('hidden');
-      }, 7000);
-    }
-
     function keluarKeLogin() {
-      if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-      }
-      if (streamerInstance) {
-        streamerInstance.destroy();
-      }
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (streamerInstance) streamerInstance.destroy();
       const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/roles/cam_${currentCamId}`).set("");
-      }
+      if (activeDb) activeDb.ref(`rooms/${currentRoomToken}/roles/cam_${currentCamId}`).set("");
       window.location.href = `login.html?room=${currentRoomToken}`;
     }
 
-    window.addEventListener('beforeunload', () => {
-      keluarKeLogin();
-    });
+    window.addEventListener('beforeunload', keluarKeLogin);
   </script>
 </body>
 </html>
