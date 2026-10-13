@@ -1,6 +1,6 @@
 /**
- * SKAWAN TV - WebRTC Streamer Engine
- * Mendukung Multi-Cam HP, Screen Share, & Master Playout Audio
+ * SKAWAN TV - WebRTC Streamer Engine (v2.1 Robust Mesh Signaling)
+ * Mendukung Multi-Cam HP, Screen Share, & Multi-Viewer Switcher/PD/PGM
  */
 class SkawanStreamer {
   constructor(options = {}) {
@@ -9,28 +9,37 @@ class SkawanStreamer {
     this.onRemoteStream = options.onRemoteStream || (() => {});
     
     this.db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
-    
-    // Konfigurasi STUN Server Publik Google
+
     this.rtcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
-      ]
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' }
+      ],
+      iceCandidatePoolSize: 10
     };
 
-    this.localStreams = new Map(); // key -> MediaStream (misal: 'cam_1', 'sharescreen')
+    this.localStreams = new Map(); // key -> MediaStream
     this.peers = new Map();        // peerId -> RTCPeerConnection
+    this.iceQueues = new Map();    // peerId -> Array of RTCIceCandidate
     this.activeListeners = [];
+    this.isBroadcaster = this.checkIsBroadcaster();
 
     this.initSignaling();
   }
 
+  checkIsBroadcaster() {
+    return this.roleKey.startsWith('cam_') || 
+           this.roleKey.startsWith('cam') || 
+           this.roleKey === 'sharescreen';
+  }
+
   getBroadcasterKey() {
-    // Menentukan apakah role ini adalah pemancar materi
-    if (this.roleKey.startsWith('cam_') || this.roleKey === 'sharescreen' || this.roleKey === 'audio_master') {
-      return this.roleKey;
-    }
+    if (this.roleKey.startsWith('cam_')) return this.roleKey;
+    if (this.roleKey.startsWith('cam')) return 'cam_' + this.roleKey.replace('cam', '');
+    if (this.roleKey === 'sharescreen') return 'sharescreen';
     return null;
   }
 
@@ -45,104 +54,146 @@ class SkawanStreamer {
 
     const bKey = this.getBroadcasterKey();
     if (bKey) {
-      // Daftarkan bahwa penyiar ini aktif di studio
-      this.presenceRef = this.db.ref(`webrtc_presence/${this.roomToken}/${bKey}`);
-      this.presenceRef.set({
-        role: bKey,
-        updatedAt: firebase.database.ServerValue.TIMESTAMP
-      });
-      this.presenceRef.onDisconnect().remove();
+      // PENYIAR (cam_1, cam_2, cam_3, sharescreen)
+      // Dengarkan permintaan koneksi baru dari viewer (switcher, pd, pgm)
+      const requestsRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`);
+      requestsRef.on('child_added', snap => {
+        const viewerId = snap.key;
+        if (!viewerId) return;
 
-      // Dengarkan permintaan sambungan (Handshake request) dari viewer/switcher
-      const offersRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/requests`);
-      offersRef.on('child_added', snap => {
-        const req = snap.val();
-        if (!req || !req.viewerId) return;
-        this.handleViewerRequest(req.viewerId, bKey);
-        snap.ref.remove().catch(() => {});
+        // Cek jika ada request masuk dari viewer
+        snap.ref.child('request').on('value', rSnap => {
+          if (rSnap.exists() && this.localStreams.has(bKey)) {
+            this.handleViewerHandshake(viewerId, bKey);
+          }
+        });
       });
-      this.activeListeners.push(offersRef);
-
-      // Dengarkan Answer dari viewer
-      const answersRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/answers`);
-      answersRef.on('child_added', snap => {
-        const data = snap.val();
-        if (!data || !data.viewerId || !data.sdp) return;
-        this.handleAnswer(data.viewerId, data.sdp);
-        snap.ref.remove().catch(() => {});
-      });
-      this.activeListeners.push(answersRef);
-
-      // Dengarkan ICE kandidat dari viewer
-      const iceFromViewerRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/ice_from_viewers`);
-      iceFromViewerRef.on('child_added', snap => {
-        const iceData = snap.val();
-        if (!iceData || !iceData.candidate) return;
-        this.handleRemoteIce(iceData.viewerId, iceData.candidate);
-        snap.ref.remove().catch(() => {});
-      });
-      this.activeListeners.push(iceFromViewerRef);
+      this.activeListeners.push(requestsRef);
 
     } else {
-      // Role ini adalah Viewer/Receiver (Switcher, PD, index.html, dll)
+      // PENERIMA / VIEWER (switcher, pd, index, live)
       this.discoverBroadcasters();
     }
   }
 
-  // DIJALANKAN OLEH VIEWER: Cari semua kamera & screen share yang aktif
+  // DIJALANKAN VIEWER: Pantau penyiar yang aktif di ruangan
   discoverBroadcasters() {
     const presenceRef = this.db.ref(`webrtc_presence/${this.roomToken}`);
     presenceRef.on('value', snap => {
       const activeBroadcasters = snap.val() || {};
       Object.keys(activeBroadcasters).forEach(bKey => {
-        this.requestStreamFromBroadcaster(bKey);
+        if (activeBroadcasters[bKey] && activeBroadcasters[bKey].active) {
+          this.connectToBroadcaster(bKey);
+        }
       });
     });
     this.activeListeners.push(presenceRef);
   }
 
-  requestStreamFromBroadcaster(bKey) {
+  // VIEWER MEMINTA STREAM DARI PENYIAR
+  connectToBroadcaster(bKey) {
     if (this.peers.has(bKey)) return;
 
-    // Kirim request ke penyiar agar penyiar membuat WebRTC Offer
-    this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/requests`).push({
+    const connPath = `webrtc_signals/${this.roomToken}/${bKey}/${this.roleKey}`;
+    const connRef = this.db.ref(connPath);
+
+    // Tandai viewer sedang meminta stream
+    connRef.child('request').set({
       viewerId: this.roleKey,
       timestamp: Date.now()
     });
+    connRef.onDisconnect().remove();
 
-    // Tunggu Offer dari penyiar
-    const offerRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/offers/${this.roleKey}`);
-    offerRef.on('value', snap => {
-      const data = snap.val();
-      if (!data || !data.sdp) return;
-      this.handleOfferFromBroadcaster(bKey, data.sdp);
-      snap.ref.remove().catch(() => {});
+    // Dengarkan SDP Offer dari Broadcaster
+    const offerRef = connRef.child('offer');
+    offerRef.on('value', async snap => {
+      const offerData = snap.val();
+      if (!offerData || !offerData.sdp) return;
+
+      let pc = this.peers.get(bKey);
+      if (!pc) {
+        pc = new RTCPeerConnection(this.rtcConfig);
+        this.peers.set(bKey, pc);
+        this.iceQueues.set(bKey, []);
+
+        pc.ontrack = (event) => {
+          if (event.streams && event.streams[0]) {
+            this.onRemoteStream(bKey, event.streams[0]);
+          }
+        };
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            connRef.child('ice_from_v').push(event.candidate.toJSON());
+          }
+        };
+
+        pc.onconnectionstatechange = () => {
+          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+            pc.close();
+            this.peers.delete(bKey);
+            this.iceQueues.delete(bKey);
+          }
+        };
+      }
+
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offerData));
+
+        // Flush semua antrean ICE kandidat yang sempat tertunda
+        const queue = this.iceQueues.get(bKey) || [];
+        while (queue.length > 0) {
+          const cand = queue.shift();
+          try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
+        }
+
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        connRef.child('answer').set({
+          sdp: answer.sdp,
+          type: answer.type
+        });
+      } catch (err) {
+        console.warn(`[WebRTC] Error handshake offer on ${bKey}:`, err);
+      }
     });
     this.activeListeners.push(offerRef);
 
-    // Dengarkan ICE kandidat dari penyiar
-    const iceFromBroadcasterRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/ice_to_viewers/${this.roleKey}`);
-    iceFromBroadcasterRef.on('child_added', snap => {
-      const ice = snap.val();
-      if (!ice || !ice.candidate) return;
-      this.handleRemoteIce(bKey, ice.candidate);
-      snap.ref.remove().catch(() => {});
+    // Dengarkan ICE kandidat dari Broadcaster
+    const iceFromBRef = connRef.child('ice_from_b');
+    iceFromBRef.on('child_added', snap => {
+      const cand = snap.val();
+      if (!cand) return;
+
+      const pc = this.peers.get(bKey);
+      if (pc && pc.remoteDescription) {
+        pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+      } else {
+        if (!this.iceQueues.has(bKey)) this.iceQueues.set(bKey, []);
+        this.iceQueues.get(bKey).push(cand);
+      }
     });
-    this.activeListeners.push(iceFromBroadcasterRef);
+    this.activeListeners.push(iceFromBRef);
   }
 
-  // DIJALANKAN OLEH PENYIAR: Tanggapi permintaan sambungan dari viewer
-  async handleViewerRequest(viewerId, bKey) {
+  // DIJALANKAN PENYIAR: Kirim Offer ke Viewer yang meminta
+  async handleViewerHandshake(viewerId, bKey) {
     let pc = this.peers.get(viewerId);
     if (pc) {
       pc.close();
       this.peers.delete(viewerId);
+      this.iceQueues.delete(viewerId);
     }
 
     pc = new RTCPeerConnection(this.rtcConfig);
     this.peers.set(viewerId, pc);
+    this.iceQueues.set(viewerId, []);
 
-    // Masukkan track video/audio lokal ke peer
+    const connPath = `webrtc_signals/${this.roomToken}/${bKey}/${viewerId}`;
+    const connRef = this.db.ref(connPath);
+
+    // Tambahkan track video/audio lokal ke sambungan
     const localStream = this.localStreams.get(bKey);
     if (localStream) {
       localStream.getTracks().forEach(track => {
@@ -150,121 +201,136 @@ class SkawanStreamer {
       });
     }
 
-    // Kirim ICE candidate ke viewer
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/ice_to_viewers/${viewerId}`).push({
-          candidate: event.candidate.toJSON()
-        });
+        connRef.child('ice_from_b').push(event.candidate.toJSON());
       }
     };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        pc.close();
+        this.peers.delete(viewerId);
+        this.iceQueues.delete(viewerId);
+      }
+    };
+
+    // Dengarkan Answer dari Viewer
+    const answerRef = connRef.child('answer');
+    answerRef.on('value', async snap => {
+      const answerData = snap.val();
+      if (!answerData || !answerData.sdp) return;
+
+      try {
+        if (pc.signalingState !== 'stable') {
+          await pc.setRemoteDescription(new RTCSessionDescription(answerData));
+
+          // Flush antrean ICE kandidat di Broadcaster
+          const queue = this.iceQueues.get(viewerId) || [];
+          while (queue.length > 0) {
+            const cand = queue.shift();
+            try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
+          }
+        }
+      } catch (err) {
+        console.warn(`[WebRTC] Error setting answer for ${viewerId}:`, err);
+      }
+    });
+    this.activeListeners.push(answerRef);
+
+    // Dengarkan ICE kandidat dari Viewer
+    const iceFromVRef = connRef.child('ice_from_v');
+    iceFromVRef.on('child_added', snap => {
+      const cand = snap.val();
+      if (!cand) return;
+
+      if (pc && pc.remoteDescription) {
+        pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+      } else {
+        if (!this.iceQueues.has(viewerId)) this.iceQueues.set(viewerId, []);
+        this.iceQueues.get(viewerId).push(cand);
+      }
+    });
+    this.activeListeners.push(iceFromVRef);
 
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // Simpan Offer untuk viewer
-      this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/offers/${viewerId}`).set({
+      connRef.child('offer').set({
         sdp: offer.sdp,
-        timestamp: Date.now()
+        type: offer.type
       });
     } catch (err) {
-      console.warn("Error creating WebRTC offer:", err);
+      console.warn(`[WebRTC] Failed to create offer for ${viewerId}:`, err);
     }
   }
 
-  // DIJALANKAN OLEH VIEWER: Terima Offer dari penyiar
-  async handleOfferFromBroadcaster(bKey, sdp) {
-    let pc = this.peers.get(bKey);
-    if (!pc) {
-      pc = new RTCPeerConnection(this.rtcConfig);
-      this.peers.set(bKey, pc);
-
-      pc.ontrack = (event) => {
-        if (event.streams && event.streams[0]) {
-          this.onRemoteStream(bKey, event.streams[0]);
-        }
-      };
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/ice_from_viewers`).push({
-            viewerId: this.roleKey,
-            candidate: event.candidate.toJSON()
-          });
-        }
-      };
-    }
-
-    try {
-      await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: sdp }));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      // Kirim Answer kembali ke penyiar
-      this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}/answers`).push({
-        viewerId: this.roleKey,
-        sdp: answer.sdp
-      });
-    } catch (err) {
-      console.warn("Error accepting WebRTC offer:", err);
-    }
-  }
-
-  // DIJALANKAN OLEH PENYIAR: Terima Answer dari viewer
-  async handleAnswer(viewerId, sdp) {
-    const pc = this.peers.get(viewerId);
-    if (!pc) return;
-    try {
-      if (pc.signalingState !== 'stable') {
-        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: sdp }));
-      }
-    } catch (err) {
-      console.warn("Error setting remote answer:", err);
-    }
-  }
-
-  // Tangani ICE Candidate
-  async handleRemoteIce(peerKey, candidateData) {
-    const pc = this.peers.get(peerKey);
-    if (!pc) return;
-    try {
-      await pc.addIceCandidate(new RTCIceCandidate(candidateData));
-    } catch (e) {}
-  }
-
-  // MEMUBLIKASIKAN ATAU MENGGANTI STREAM KAMERA / SCREEN SHARE
+  // PUBLIKASI ATAU PEMBARUAN STREAM (DIPANGGIL OLEH CAM & SCREEN)
   publishStream(streamKey, mediaStream) {
     this.localStreams.set(streamKey, mediaStream);
+    const bKey = this.getBroadcasterKey() || streamKey;
 
-    // Ganti track pada peer yang sedang terhubung tanpa restart negosiasi
+    // Jika sudah ada sambungan aktif, lakukan replaceTrack dinamis
     this.peers.forEach(pc => {
       const senders = pc.getSenders();
-      mediaStream.getTracks().forEach(newTrack => {
-        const sender = senders.find(s => s.track && s.track.kind === newTrack.kind);
-        if (sender) {
-          sender.replaceTrack(newTrack).catch(() => {});
-        } else {
-          pc.addTrack(newTrack, mediaStream);
-        }
-      });
+      const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+      const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+
+      const newVideoTrack = mediaStream.getVideoTracks()[0];
+      const newAudioTrack = mediaStream.getAudioTracks()[0];
+
+      if (videoSender && newVideoTrack) {
+        videoSender.replaceTrack(newVideoTrack).catch(() => {});
+      } else if (!videoSender && newVideoTrack) {
+        pc.addTrack(newVideoTrack, mediaStream);
+      }
+
+      if (audioSender && newAudioTrack) {
+        audioSender.replaceTrack(newAudioTrack).catch(() => {});
+      } else if (!audioSender && newAudioTrack) {
+        pc.addTrack(newAudioTrack, mediaStream);
+      }
     });
 
-    // Picu pembaruan presence agar viewer yang belum tersambung langsung meminta
-    if (this.presenceRef) {
-      this.presenceRef.update({ updatedAt: firebase.database.ServerValue.TIMESTAMP });
+    // Nyalakan tanda kehadiran aktif di Firebase
+    if (this.db) {
+      this.presenceRef = this.db.ref(`webrtc_presence/${this.roomToken}/${bKey}`);
+      this.presenceRef.set({
+        active: true,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+      this.presenceRef.onDisconnect().remove();
     }
+  }
+
+  // HENTIKAN STREAM
+  unpublishStream(streamKey) {
+    this.localStreams.delete(streamKey);
+    const bKey = this.getBroadcasterKey() || streamKey;
+
+    if (this.db) {
+      this.db.ref(`webrtc_presence/${this.roomToken}/${bKey}`).remove().catch(() => {});
+      this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`).remove().catch(() => {});
+    }
+
+    this.peers.forEach(pc => pc.close());
+    this.peers.clear();
+    this.iceQueues.clear();
   }
 
   destroy() {
+    const bKey = this.getBroadcasterKey();
+    if (bKey) {
+      this.unpublishStream(bKey);
+    }
+
     this.activeListeners.forEach(ref => ref.off());
+    this.activeListeners = [];
     this.peers.forEach(pc => pc.close());
     this.peers.clear();
+    this.iceQueues.clear();
     this.localStreams.clear();
-
-    if (this.presenceRef) {
-      this.presenceRef.remove().catch(() => {});
-    }
   }
 }
 
