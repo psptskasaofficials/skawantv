@@ -119,7 +119,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-orange-600 selection:text-white">
 
-  <!-- ELEMEN AUDIO PENERIMA STREAM DARI MEJA AUDIO-VT -->
+  <!-- ELEMEN AUDIO PENERIMA STREAM STUDIO -->
   <audio id="masterStudioAudio" autoplay playsinline></audio>
 
   <!-- NAVBAR: Z-50 -->
@@ -173,7 +173,7 @@
   <main class="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-5 w-full flex-1 flex flex-col justify-start items-center space-y-4">
     <div id="pgmViewport" class="w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl shadow-red-950/40 flex items-center justify-center group select-none">
 
-      <!-- 1. LAYER BUMPER PLAYOUT -->
+      <!-- 1. LAYER BUMPER PLAYOUT (DIPERTAHANKAN 7 DETIK) -->
       <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center pointer-events-auto" style="display: flex; opacity: 1;">
         <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
           <iframe
@@ -225,9 +225,9 @@
         </div>
       </div>
 
-      <!-- 5. CG BUG LOGO -->
-      <div id="cgBugLogo" class="absolute top-3 sm:top-4 right-3 sm:right-4 z-30 flex items-center justify-center max-w-[140px] max-h-12 transition-all duration-200 pointer-events-none select-none">
-        <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-9 w-auto max-w-[130px] object-contain drop-shadow-md">
+      <!-- 5. CG BUG LOGO (MENDUKUNG 3 OPSI: FULL, ICON, CUSTOM) -->
+      <div id="cgBugLogo" class="absolute top-3 sm:top-4 right-3 sm:right-4 z-30 flex items-center justify-center max-w-[150px] max-h-12 transition-all duration-200 pointer-events-none select-none">
+        <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-7 sm:h-9 w-auto object-contain drop-shadow-md">
         <div id="cgBugLogoDefaultBadge" class="flex items-center gap-1.5 bg-white/95 rounded-xl px-2 py-1 shadow-lg backdrop-blur-sm border border-white/20">
           <img
             id="cgBugLogoDefaultImg"
@@ -314,7 +314,6 @@
     SKAWAN TV &bull; SMK Negeri 1 Pacitan (SKASA) &copy; 2026 &bull; Siaran Edukasi Digital
   </footer>
 
-  <!-- SCRIPT LOGIKA ENGINE MASTER PGM -->
   <script>
     let currentRoomToken = 'SKASA';
     let streamerInstance = null;
@@ -334,7 +333,6 @@
     let bumperCountdownTimer = null;
     let bumperProgressInterval = null;
 
-    // Status Ruangan Aktif
     let currentRoomMeta = {
       status: 'live',
       programName: 'SKASA TV Live Broadcast',
@@ -361,6 +359,7 @@
     let cachedCgState = {
       isLiveBadgeActive: false,
       logoActive: true,
+      logoMode: 2,
       logoUrl: '',
       lowerThirdActive: false,
       tickerActive: false
@@ -408,9 +407,6 @@
       }
     }
 
-    // ==============================================================
-    // ROUTING AUDIO TERPUSAT
-    // ==============================================================
     function applyAudioState() {
       const bumperIframe = document.getElementById('pgmBumperIframe');
       const studioMicAudio = document.getElementById('masterStudioAudio');
@@ -445,9 +441,6 @@
       applyAudioState();
     }
 
-    // ==============================================================
-    // KALKULASI WAKTU LINIER MURNI
-    // ==============================================================
     function getLinearServerTime(vt) {
       if (!vt) return 0;
       const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
@@ -540,9 +533,6 @@
       }
     };
 
-    // ==============================================================
-    // LOGIKA RENDER MONITOR UTAMA (PGM)
-    // ==============================================================
     function updateMonitors() {
       const pgmViewport = document.getElementById('pgmViewport');
       const bumperWrap = document.getElementById('pgmBumperWrapper');
@@ -641,7 +631,7 @@
       const isVtActive = (activeSrc === 'vt' && vtVidId !== '');
       const isCamActive = (stream !== null);
 
-      // KASUS 3A: OPENING IDENT 7 DETIK PERTAMA KALI
+      // KASUS 3A: BUMPER IDENT 7 DETIK PERTAMA KALI
       if (!onAirBumperPlayedForCurrentSession) {
         onAirBumperPlayedForCurrentSession = true;
         lblActiveSrc.innerText = "OPENING IDENT (7s)";
@@ -684,8 +674,7 @@
         return;
       }
 
-      // KASUS 3B: SETELAH BUMPER OPENING SELESAI
-      // 1. UMPAN VT AKTIF
+      // KASUS 3B: UMPAN VT AKTIF
       if (isVtActive) {
         bumperWrap.style.opacity = '0';
         setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
@@ -701,7 +690,7 @@
         return;
       }
 
-      // 2. UMPAN KAMERA / SHARESCREEN WEBRTC AKTIF
+      // KASUS 3C: UMPAN KAMERA / SCREEN SHARE AKTIF
       if (isCamActive && pgmVideo) {
         bumperWrap.style.opacity = '0';
         setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
@@ -709,9 +698,7 @@
         if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
         if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
         
-        // Atur object-contain untuk presentasi sharescreen agar teks tidak terpotong
         pgmVideo.style.objectFit = (activeSrc === 'sharescreen') ? 'contain' : 'cover';
-        
         pgmVideo.style.display = 'block';
         pgmVideo.style.opacity = '1';
         pgmVideo.play().catch(() => {});
@@ -720,7 +707,7 @@
         return;
       }
 
-      // 3. JIKA BELUM ADA KAMERA / VT AKTIF -> BUMPER IDENT STANDBY
+      // KASUS 3D: STANDBY JIKA BELUM ADA SUMBER
       if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
       if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
       
@@ -741,7 +728,7 @@
     function getCameraStream(key) {
       if (!key) return null;
       if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
-      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      const altKey = key.includes('_') ? key.replace('_', '') : (key === 'sharescreen' ? 'sharescreen' : key.replace('cam', 'cam_'));
       if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
       return null;
     }
@@ -774,7 +761,7 @@
         return;
       }
 
-      const curState = masterYtPlayer.getPlayerState();
+      const curState = (typeof masterYtPlayer.getPlayerState === 'function') ? masterYtPlayer.getPlayerState() : -1;
       if (isPlaying && curState !== YT.PlayerState.PLAYING) {
         masterYtPlayer.playVideo();
       } else if (!isPlaying && curState !== YT.PlayerState.PAUSED) {
@@ -782,7 +769,7 @@
       }
 
       const actualSec = (typeof masterYtPlayer.getCurrentTime === 'function') ? masterYtPlayer.getCurrentTime() : 0;
-      if (Math.abs(actualSec - targetTime) > 4.0) {
+      if (Math.abs(actualSec - targetTime) > 3.0) {
         masterYtPlayer.seekTo(targetTime, true);
         if (isPlaying) masterYtPlayer.playVideo();
       }
@@ -795,9 +782,6 @@
       const ltBox = document.getElementById('cgLowerThirdBox');
       const ltTitle = document.getElementById('cgLtTitle');
       const ltSub = document.getElementById('cgLtSubtitleText');
-      const logoBox = document.getElementById('cgBugLogo');
-      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
-      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
       const tickerBox = document.getElementById('cgTickerBar');
       const tickerText = document.getElementById('cgTickerText');
       const badgeLive = document.getElementById('badgeLiveOnAir');
@@ -808,18 +792,8 @@
         if (ltSub) ltSub.innerText = cg.subtitle || 'Keterangan Jabatan';
       } else if (ltBox) ltBox.classList.add('hidden');
 
-      if (cg.logoActive === false) {
-        if (logoBox) logoBox.classList.add('hidden');
-      } else {
-        if (logoBox) logoBox.classList.remove('hidden');
-        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
-          if (logoCustomImg) { logoCustomImg.src = cg.logoUrl; logoCustomImg.classList.remove('hidden'); }
-          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
-        } else {
-          if (logoCustomImg) logoCustomImg.classList.add('hidden');
-          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
-        }
-      }
+      // Penanganan 3 Mode Bug Logo
+      renderIndexBugLogo(cg);
 
       if (cg.tickerActive) {
         if (tickerBox) tickerBox.classList.remove('hidden');
@@ -833,15 +807,62 @@
       }
     }
 
+    function renderIndexBugLogo(cg) {
+      const logoBox = document.getElementById('cgBugLogo');
+      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
+      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
+      const defaultImg = document.getElementById('cgBugLogoDefaultImg');
+      if (!logoBox) return;
+
+      if (cg.logoActive === false) {
+        logoBox.classList.add('hidden');
+        return;
+      }
+
+      logoBox.classList.remove('hidden');
+      const mode = parseInt(cg.logoMode) || 2;
+
+      if (mode === 1) {
+        // Mode 1: Logo Full Horizontal
+        if (logoCustomImg) {
+          logoCustomImg.src = 'assets/img/logo-skawan-full.webp';
+          logoCustomImg.className = 'h-7 sm:h-9 w-auto max-w-[140px] object-contain drop-shadow-md bg-white/95 rounded-xl px-2.5 py-1 border border-white/20';
+          logoCustomImg.onerror = () => { logoCustomImg.src = 'logo-skawan-full.webp'; };
+          logoCustomImg.classList.remove('hidden');
+        }
+        if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+      } else if (mode === 2) {
+        // Mode 2: Icon Logo Monogram
+        if (logoDefaultBadge) {
+          logoDefaultBadge.classList.remove('hidden');
+          if (defaultImg) {
+            defaultImg.src = 'assets/img/logo-skawan-icon.webp';
+            defaultImg.onerror = () => { defaultImg.src = 'logo-skawan-icon.webp'; };
+          }
+        }
+        if (logoCustomImg) logoCustomImg.classList.add('hidden');
+      } else if (mode === 3) {
+        // Mode 3: Custom File / URL
+        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
+          if (logoCustomImg) {
+            logoCustomImg.src = cg.logoUrl;
+            logoCustomImg.className = 'h-7 sm:h-9 w-auto max-w-[130px] object-contain drop-shadow-md';
+            logoCustomImg.classList.remove('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+        } else {
+          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+          if (logoCustomImg) logoCustomImg.classList.add('hidden');
+        }
+      }
+    }
+
     let roomRef = null;
 
     function detachChannelListeners() {
       if (roomRef) { roomRef.off(); roomRef = null; }
     }
 
-    // ==============================================================
-    // KONEKSI ROOM DENGAN RETRY POLLING OTOMATIS
-    // ==============================================================
     function connectChannel(token) {
       currentRoomToken = token.toUpperCase();
       document.getElementById('navRoomToken').innerText = currentRoomToken;
@@ -937,7 +958,7 @@
             }
           });
         } catch (e) {
-          console.warn("WebRTC Streamer init notice:", e);
+          console.warn("WebRTC init notice:", e);
         }
       }
     }
@@ -948,65 +969,6 @@
       else document.exitFullscreen().catch(() => {});
     }
 
-    // ==============================================================
-    // FALLBACK AUTO-NEXT ENGINE
-    // ==============================================================
-    let isIndexFallbackNextExecuting = false;
-    setInterval(() => {
-      if (isIndexFallbackNextExecuting) return;
-      if (liveState.programSource !== 'vt' || latestVtState.status !== 'playing') return;
-
-      const dur = latestVtState.totalDuration || 120;
-      const rawElapsed = getLinearServerTime(latestVtState);
-
-      if (dur > 0 && rawElapsed >= (dur + 1.5)) {
-        isIndexFallbackNextExecuting = true;
-        const activeDb = getDatabase();
-        if (!activeDb) return;
-
-        activeDb.ref(`rooms/${currentRoomToken}/vt_playlist`).once('value', snap => {
-          if (!snap.exists()) {
-            isIndexFallbackNextExecuting = false;
-            return;
-          }
-          const list = Object.values(snap.val() || {});
-          const currentVidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
-          const curIdx = list.findIndex(it => (it.youtubeId || extractCleanYtId(it.url)) === currentVidId);
-
-          const loop = latestVtState.loopMode || 'playlist';
-          if (loop === 'playlist' && list.length > 0) {
-            let nextIdx = curIdx + 1;
-            if (nextIdx >= list.length) nextIdx = 0;
-            const nextClip = list[nextIdx];
-
-            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).set({
-              status: 'playing',
-              startAt: firebase.database.ServerValue.TIMESTAMP,
-              startOffset: 0,
-              totalDuration: nextClip.durationSec || 120,
-              title: nextClip.title || 'VT Playout',
-              sourceType: 'youtube',
-              youtubeId: nextClip.youtubeId || extractCleanYtId(nextClip.url),
-              url: nextClip.url || '',
-              loopMode: 'playlist',
-              clipId: nextClip.id || `vt_${Date.now()}`,
-              updatedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-          } else if (loop === 'single') {
-            activeDb.ref(`rooms/${currentRoomToken}/vt_state`).update({
-              startAt: firebase.database.ServerValue.TIMESTAMP,
-              startOffset: 0,
-              updatedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-          }
-          setTimeout(() => { isIndexFallbackNextExecuting = false; }, 3000);
-        });
-      }
-    }, 2000);
-
-    // ==============================================================
-    // DIREKTORI RUANGAN DENGAN RETRY POLLING
-    // ==============================================================
     function renderChannelsGrid(roomsData = {}) {
       const grid = document.getElementById('channelRoomsGrid');
       if (!grid) return;
@@ -1132,9 +1094,6 @@
       });
     }
 
-    // ==============================================================
-    // INISIALISASI
-    // ==============================================================
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const targetRoom = (urlParams.get('room') || 'SKASA').toUpperCase();
