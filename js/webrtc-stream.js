@@ -1,5 +1,5 @@
 /**
- * SKAWAN TV - WebRTC Streamer Engine (v2.2 Robust Mesh Signaling)
+ * SKAWAN TV - WebRTC Streamer Engine (v2.3 Clean Signaling & Auto-Handshake)
  * Multi-Cam HP, Screen Share, & Multi-Viewer Switcher/PD/PGM
  */
 class SkawanStreamer {
@@ -47,7 +47,7 @@ class SkawanStreamer {
 
     const bKey = this.getBroadcasterKey();
     if (bKey) {
-      // PENYIAR (cam_1, cam_2, cam_3, sharescreen, audio_master)
+      // PENYIAR: Dengarkan permintaan dari viewer
       const requestsRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`);
       requestsRef.on('child_added', snap => {
         const viewerId = snap.key;
@@ -62,7 +62,7 @@ class SkawanStreamer {
       this.activeListeners.push(requestsRef);
 
     } else {
-      // PENERIMA / VIEWER (switcher, pd, index, live)
+      // PENERIMA: Pantau kamera dan screen share yang aktif
       this.discoverBroadcasters();
     }
   }
@@ -86,9 +86,12 @@ class SkawanStreamer {
     const connPath = `webrtc_signals/${this.roomToken}/${bKey}/${this.roleKey}`;
     const connRef = this.db.ref(connPath);
 
-    connRef.child('request').set({
-      viewerId: this.roleKey,
-      timestamp: Date.now()
+    // Reset node sinyal agar tidak tercampur kandidat usang
+    connRef.set({
+      request: {
+        viewerId: this.roleKey,
+        timestamp: Date.now()
+      }
     });
     connRef.onDisconnect().remove();
 
@@ -121,10 +124,12 @@ class SkawanStreamer {
         };
 
         pc.onconnectionstatechange = () => {
-          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          if (pc.connectionState === 'failed') {
             pc.close();
             this.peers.delete(bKey);
             this.iceQueues.delete(bKey);
+            // Coba sambungkan kembali
+            setTimeout(() => this.connectToBroadcaster(bKey), 1000);
           }
         };
       }
@@ -146,7 +151,7 @@ class SkawanStreamer {
           type: answer.type
         });
       } catch (err) {
-        console.warn(`[WebRTC] Handshake error offer on ${bKey}:`, err);
+        console.warn(`[WebRTC] Offer error on ${bKey}:`, err);
       }
     });
     this.activeListeners.push(offerRef);
@@ -154,7 +159,7 @@ class SkawanStreamer {
     const iceFromBRef = connRef.child('ice_from_b');
     iceFromBRef.on('child_added', snap => {
       const cand = snap.val();
-      if (!cand) return;
+      if (!cand || !cand.candidate) return;
 
       const pc = this.peers.get(bKey);
       if (pc && pc.remoteDescription) {
@@ -196,7 +201,7 @@ class SkawanStreamer {
     };
 
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+      if (pc.connectionState === 'failed') {
         pc.close();
         this.peers.delete(viewerId);
         this.iceQueues.delete(viewerId);
@@ -227,7 +232,7 @@ class SkawanStreamer {
     const iceFromVRef = connRef.child('ice_from_v');
     iceFromVRef.on('child_added', snap => {
       const cand = snap.val();
-      if (!cand) return;
+      if (!cand || !cand.candidate) return;
 
       if (pc && pc.remoteDescription) {
         pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
@@ -284,7 +289,7 @@ class SkawanStreamer {
       });
       this.presenceRef.onDisconnect().remove();
 
-      // Trigger re-handshake untuk viewer yang sudah meminta sebelum stream siap
+      // Memicu koneksi untuk viewer yang sudah menunggu
       this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`).once('value', snap => {
         const viewers = snap.val() || {};
         Object.keys(viewers).forEach(viewerId => {
