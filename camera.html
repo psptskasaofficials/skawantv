@@ -105,10 +105,9 @@
 
   <!-- FRAME VIEWPORT KAMERA DENGAN TALLY BORDER -->
   <div id="cameraViewport" class="absolute inset-0 w-full h-full border-4 border-slate-900 transition-all duration-300 flex items-center justify-center overflow-hidden">
-    <!-- Video viewfinder -->
     <video id="camVideoPreview" class="w-full h-full object-cover" autoplay playsinline muted></video>
 
-    <!-- Overlay Fallback Belum Nyala -->
+    <!-- Overlay Fallback -->
     <div id="camFallbackBox" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center space-y-3">
       <span class="text-6xl animate-bounce">📹</span>
       <h2 class="font-brand font-black text-xl text-white">Kamera Belum Aktif</h2>
@@ -121,7 +120,7 @@
     </div>
   </div>
 
-  <!-- HUD ATAS: IDENTITAS KAMERA & TALLY STATUS -->
+  <!-- HUD ATAS: IDENTITAS KAMERA, RESOLUSI AKTIF, & TALLY STATUS -->
   <header class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent">
     <div class="flex items-center gap-2">
       <div id="badgeCamId" class="px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-white font-mono font-black text-xs sm:text-sm tracking-wider shadow">
@@ -132,8 +131,18 @@
       </div>
     </div>
 
-    <!-- Info Ruangan & Jam -->
+    <!-- Pilihan Resolusi, Info Ruangan, & Keluar -->
     <div class="flex items-center gap-2">
+      <!-- Selector Custom Resolusi -->
+      <div class="bg-black/70 backdrop-blur-md rounded-xl border border-white/20 px-2 py-0.5 flex items-center gap-1 shadow">
+        <span class="text-[10px] font-mono text-slate-400">RES:</span>
+        <select id="selectResolution" onchange="ubahResolusiKamera(this.value)" class="bg-transparent text-amber-400 font-mono font-bold text-xs outline-none cursor-pointer">
+          <option value="360" class="bg-slate-900 text-white">360p (SD)</option>
+          <option value="720" selected class="bg-slate-900 text-white">720p (HD)</option>
+          <option value="1080" class="bg-slate-900 text-white">1080p (FHD)</option>
+        </select>
+      </div>
+
       <div class="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 text-[11px] font-mono font-bold text-amber-400">
         <span id="txtRoomLabel">SKASA</span>
       </div>
@@ -154,10 +163,15 @@
     </p>
   </div>
 
-  <!-- HUD BAWAH: KONTROL SAKLAR KAMERA & WAKE LOCK -->
+  <!-- HUD BAWAH: STATUS FRAME/FPS, WAKE LOCK, & KONTROL KAMERA -->
   <footer class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-t from-black/90 via-black/50 to-transparent">
-    <div class="text-[10px] font-mono text-slate-300 bg-black/60 px-2.5 py-1 rounded-lg border border-white/10">
-      <span id="lblWakeLockStatus">🔒 Layar Terkunci Aktif</span>
+    <div class="flex items-center gap-2">
+      <div class="text-[10px] font-mono text-slate-300 bg-black/60 px-2.5 py-1 rounded-lg border border-white/10">
+        <span id="lblWakeLockStatus">🔒 Anti-Sleep Aktif</span>
+      </div>
+      <div class="hidden sm:block text-[10px] font-mono text-emerald-400 bg-black/60 px-2 py-1 rounded-lg border border-white/10" id="lblRealResolution">
+        1280x720
+      </div>
     </div>
 
     <div class="flex items-center gap-2">
@@ -181,8 +195,15 @@
     let localStream = null;
     let wakeLockSentinel = null;
 
-    let currentFacingMode = 'environment'; // Bawaan: Kamera Belakang
-    let isAudioEnabled = false;           // Bawaan: Kamera bisu (visual murni)
+    let currentFacingMode = 'environment';
+    let currentResolution = '720';
+    let isAudioEnabled = false;
+
+    const RESOLUTION_PRESETS = {
+      '360': { width: 640, height: 360 },
+      '720': { width: 1280, height: 720 },
+      '1080': { width: 1920, height: 1080 }
+    };
 
     function getDatabase() {
       return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
@@ -202,9 +223,6 @@
       listenDirectorCue(currentRoomToken);
     });
 
-    // ========================================================
-    // ENGINE WAKE LOCK: CEGAH HP MATI / SLEEP OTOMATIS
-    // ========================================================
     async function aktifkanWakeLock() {
       if ('wakeLock' in navigator) {
         try {
@@ -219,21 +237,20 @@
       }
     }
 
-    // ========================================================
-    // TANGKAPAN KAMERA WEBRTC LANDSCAPE 16:9
-    // ========================================================
     async function mulaiKamera() {
       try {
         if (localStream) {
           localStream.getTracks().forEach(t => t.stop());
         }
 
+        const preset = RESOLUTION_PRESETS[currentResolution] || RESOLUTION_PRESETS['720'];
+
         const constraints = {
           video: {
             facingMode: currentFacingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            aspectRatio: { ideal: 1.777777778 } // Rasio 16:9
+            width: { ideal: preset.width },
+            height: { ideal: preset.height },
+            aspectRatio: { ideal: 1.777777778 }
           },
           audio: isAudioEnabled
         };
@@ -244,7 +261,17 @@
         videoEl.srcObject = localStream;
         document.getElementById('camFallbackBox').classList.add('hidden');
 
-        // Inisialisasi WebRTC Streamer
+        // Baca resolusi riil yang didukung sensor perangkat
+        const vTrack = localStream.getVideoTracks()[0];
+        if (vTrack) {
+          const settings = vTrack.getSettings();
+          const lblReal = document.getElementById('lblRealResolution');
+          if (lblReal) {
+            lblReal.innerText = `${settings.width || preset.width}x${settings.height || preset.height}`;
+          }
+        }
+
+        // WebRTC Streamer
         const camRoleKey = `cam_${currentCamId}`;
         if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
           streamerInstance = new SkawanStreamer({
@@ -257,7 +284,6 @@
           streamerInstance.publishStream(camRoleKey, localStream);
         }
 
-        // Daftarkan okupansi siswa di Firebase
         const studentName = localStorage.getItem('skawan_user') || `Juru Kamera ${currentCamId}`;
         const activeDb = getDatabase();
         if (activeDb) {
@@ -270,7 +296,13 @@
       }
     }
 
-    // GANTI ARAH KAMERA (DEPAN <-> BELAKANG) DENGAN REPLACE TRACK
+    // Ubah Resolusi Dinamis
+    async function ubahResolusiKamera(val) {
+      if (!RESOLUTION_PRESETS[val]) return;
+      currentResolution = val;
+      await mulaiKamera();
+    }
+
     async function gantiArahKamera() {
       currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
       await mulaiKamera();
@@ -283,9 +315,6 @@
       mulaiKamera();
     }
 
-    // ========================================================
-    // LISTEN TALLY DARI SWITCHER STUDIO REAL-TIME
-    // ========================================================
     function listenStudioTally(token, camKey) {
       const activeDb = getDatabase();
       if (!activeDb) {
@@ -314,7 +343,6 @@
         badge.className = "px-3 py-1 rounded-xl bg-red-600 text-white font-mono font-black text-xs uppercase shadow animate-pulse";
         badge.innerText = "● LIVE ON-AIR";
 
-        // Getar ponsel jika didukung
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       } else if (isCue) {
         viewport.className = "absolute inset-0 w-full h-full border-8 tally-cue transition-all duration-200 flex items-center justify-center overflow-hidden";
@@ -327,9 +355,6 @@
       }
     }
 
-    // ========================================================
-    // LISTEN ABA-ABA SUTRADARA (DIRECTOR CUE)
-    // ========================================================
     function listenDirectorCue(token) {
       const activeDb = getDatabase();
       if (!activeDb) return;
