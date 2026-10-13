@@ -153,7 +153,7 @@
           <span id="navRoomToken" class="font-mono font-bold text-xs text-orange-400">SKASA</span>
         </div>
 
-        <a href="login.html" class="switcher-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+        <a href="login.html" onclick="keluarKeLogin(event)" class="switcher-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
           <span>🚪</span>
           <span class="hidden sm:inline">Keluar</span>
         </a>
@@ -629,6 +629,12 @@
         return;
       }
 
+      // Kunci slot peran dan daftarkan auto-release saat disconnect
+      const studentName = localStorage.getItem('skawan_user') || 'Video Switcher (TD)';
+      const roleRef = activeDb.ref(`rooms/${token}/roles/switcher`);
+      roleRef.set(studentName);
+      roleRef.onDisconnect().set("");
+
       activeDb.ref('.info/serverTimeOffset').on('value', snap => {
         serverClockOffset = snap.val() || 0;
       });
@@ -654,24 +660,16 @@
         updateAllMonitors();
       });
 
-      // INISIALISASI WEBRTC RECEIVER
+      // INISIALISASI WEBRTC RECEIVER DENGAN IDENTITAS SESSION UNIK
       if (typeof SkawanStreamer !== 'undefined') {
+        const uniqueViewerRole = 'switcher_' + Math.random().toString(36).substring(2, 7);
         streamerInstance = new SkawanStreamer({
           roomToken: token,
-          roleKey: 'switcher_operator',
+          roleKey: uniqueViewerRole,
           onRemoteStream: (camKey, stream) => {
             const normKey = camKey.includes('_') ? camKey : (camKey === 'sharescreen' ? 'sharescreen' : camKey.replace('cam', 'cam_'));
             remoteCamStreams.set(normKey, stream);
             remoteCamStreams.set(camKey, stream);
-
-            // Update Video Element di Multiview
-            const mvVideo = document.getElementById(`mvVideo-${normKey}`);
-            const mvFallback = document.getElementById(`mvFallback-${normKey}`);
-            if (mvVideo) {
-              if (mvVideo.srcObject !== stream) mvVideo.srcObject = stream;
-              mvVideo.play().catch(() => {});
-            }
-            if (mvFallback) mvFallback.style.display = 'none';
 
             updateAllMonitors();
           }
@@ -682,7 +680,7 @@
     function getCameraStream(key) {
       if (!key) return null;
       if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
-      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      const altKey = key.includes('_') ? key.replace('_', '') : (key === 'sharescreen' ? 'sharescreen' : key.replace('cam', 'cam_'));
       if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
       return null;
     }
@@ -703,6 +701,15 @@
           const pct = Math.min(100, Math.max(0, (targetServerTime / totalDur) * 100));
           progressBar.style.width = `${pct}%`;
         }
+
+        // Sinkronisasi periodik pemutar YouTube PGM saat VT aktif
+        if (liveState.programSource === 'vt' && isMasterPgmYtReady && masterPgmYtPlayer && typeof masterPgmYtPlayer.getCurrentTime === 'function') {
+          const actualPgmTime = masterPgmYtPlayer.getCurrentTime() || 0;
+          if (Math.abs(actualPgmTime - targetServerTime) > 3.0) {
+            masterPgmYtPlayer.seekTo(targetServerTime, true);
+            if (latestVtState.status === 'playing') masterPgmYtPlayer.playVideo();
+          }
+        }
       }, 1000);
     }
 
@@ -710,7 +717,30 @@
       updateTallyBadgesAndBusButtons();
       updatePvwMonitor();
       updatePgmMonitor();
+      updateMultiviewVideos();
       syncVtSources();
+    }
+
+    // PEMBARUAN SEMUA KANAL MULTIVIEW (CAM 1, CAM 2, CAM 3, SCREEN SHARE)
+    function updateMultiviewVideos() {
+      ['cam_1', 'cam_2', 'cam_3', 'sharescreen'].forEach(k => {
+        const stream = getCameraStream(k);
+        const mvVideo = document.getElementById(`mvVideo-${k}`);
+        const mvFallback = document.getElementById(`mvFallback-${k}`);
+        if (mvVideo) {
+          if (stream) {
+            if (mvVideo.srcObject !== stream) {
+              mvVideo.srcObject = stream;
+              mvVideo.muted = true;
+            }
+            mvVideo.play().catch(() => {});
+            if (mvFallback) mvFallback.style.display = 'none';
+          } else {
+            mvVideo.srcObject = null;
+            if (mvFallback) mvFallback.style.display = 'flex';
+          }
+        }
+      });
     }
 
     function updateTallyBadgesAndBusButtons() {
@@ -774,12 +804,13 @@
       const pvwFallback = document.getElementById('pvwFallbackBox');
       const pvwLabel = document.getElementById('pvwScreenLabel');
 
-      pvwLabel.innerText = pvwSrc.toUpperCase().replace('_', ' ');
+      if (pvwLabel) pvwLabel.innerText = pvwSrc.toUpperCase().replace('_', ' ');
 
       if (pvwSrc === 'vt') {
-        if (pvwVideo) { pvwVideo.style.display = 'none'; pvwVideo.style.opacity = '0'; }
+        if (pvwVideo) { pvwVideo.style.display = 'none'; pvwVideo.style.opacity = '0'; pvwVideo.pause(); }
         if (pvwFallback) pvwFallback.style.display = 'none';
         if (pvwVtWrap) { pvwVtWrap.style.display = 'flex'; pvwVtWrap.style.opacity = '1'; }
+        syncPvwVtPlayout();
         return;
       }
 
@@ -787,7 +818,10 @@
 
       const stream = getCameraStream(pvwSrc);
       if (stream && pvwVideo) {
-        if (pvwVideo.srcObject !== stream) pvwVideo.srcObject = stream;
+        if (pvwVideo.srcObject !== stream) {
+          pvwVideo.srcObject = stream;
+          pvwVideo.muted = true;
+        }
         pvwVideo.style.objectFit = (pvwSrc === 'sharescreen') ? 'contain' : 'cover';
         pvwVideo.style.display = 'block';
         pvwVideo.style.opacity = '1';
@@ -807,8 +841,9 @@
 
       if (pgmSrc === 'vt') {
         if (bumperWrap) bumperWrap.style.display = 'none';
-        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; pgmVideo.pause(); }
         if (pgmVtWrap) { pgmVtWrap.style.display = 'flex'; pgmVtWrap.style.opacity = '1'; }
+        syncPgmVtPlayout();
         return;
       }
 
@@ -817,7 +852,10 @@
       const stream = getCameraStream(pgmSrc);
       if (stream && pgmVideo) {
         if (bumperWrap) bumperWrap.style.display = 'none';
-        if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+        if (pgmVideo.srcObject !== stream) {
+          pgmVideo.srcObject = stream;
+          pgmVideo.muted = true;
+        }
         pgmVideo.style.objectFit = (pgmSrc === 'sharescreen') ? 'contain' : 'cover';
         pgmVideo.style.display = 'block';
         pgmVideo.style.opacity = '1';
@@ -825,6 +863,64 @@
       } else {
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
         if (bumperWrap) bumperWrap.style.display = 'flex';
+      }
+    }
+
+    function syncPgmVtPlayout() {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      if (!vidId) return;
+
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+      const isPlaying = (latestVtState.status === 'playing');
+
+      if (!isMasterPgmYtReady || !masterPgmYtPlayer) {
+        initPgmYtPlayer(vidId, targetTime);
+        return;
+      }
+
+      if (currentPgmActiveYtId !== vidId) {
+        currentPgmActiveYtId = vidId;
+        const shield = document.getElementById('pgmBlackShield');
+        if (shield) shield.classList.remove('opacity-0');
+        masterPgmYtPlayer.loadVideoById({ videoId: vidId, startSeconds: Math.floor(targetTime) });
+        if (isPlaying) masterPgmYtPlayer.playVideo();
+        else masterPgmYtPlayer.pauseVideo();
+        return;
+      }
+
+      const pState = masterPgmYtPlayer.getPlayerState();
+      if (isPlaying && pState !== YT.PlayerState.PLAYING) {
+        masterPgmYtPlayer.playVideo();
+      } else if (!isPlaying && pState !== YT.PlayerState.PAUSED) {
+        masterPgmYtPlayer.pauseVideo();
+      }
+    }
+
+    function syncPvwVtPlayout() {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      if (!vidId) return;
+
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+      const isPlaying = (latestVtState.status === 'playing');
+
+      if (!isMasterPvwYtReady || !masterPvwYtPlayer) {
+        initPvwYtPlayer(vidId, targetTime);
+        return;
+      }
+
+      if (currentPvwActiveYtId !== vidId) {
+        currentPvwActiveYtId = vidId;
+        masterPvwYtPlayer.loadVideoById({ videoId: vidId, startSeconds: Math.floor(targetTime) });
+        if (isPlaying) masterPvwYtPlayer.playVideo();
+        else masterPvwYtPlayer.pauseVideo();
+        return;
+      }
+
+      const pState = masterPvwYtPlayer.getPlayerState();
+      if (isPlaying && pState !== YT.PlayerState.PLAYING) {
+        masterPvwYtPlayer.playVideo();
+      } else if (!isPlaying && pState !== YT.PlayerState.PAUSED) {
+        masterPvwYtPlayer.pauseVideo();
       }
     }
 
@@ -840,6 +936,9 @@
         if (poster) poster.style.display = 'none';
         if (fallback) fallback.style.display = 'flex';
       }
+
+      if (liveState.programSource === 'vt') syncPgmVtPlayout();
+      if (liveState.previewSource === 'vt') syncPvwVtPlayout();
     }
 
     // ========================================================
@@ -890,6 +989,7 @@
       activeDb.ref(`rooms/${currentRoomToken}/vt_state/status`).set('ended');
     }
 
+    // KOMIT STATE LIVE SINKRON KE SELURUH PENONTON & INDEX.HTML
     function commitLiveState() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -948,7 +1048,24 @@
       setInterval(updateClock, 1000);
     }
 
+    function keluarKeLogin(event) {
+      if (event) event.preventDefault();
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/switcher`).set("");
+      }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+      window.location.href = `login.html?room=${currentRoomToken}`;
+    }
+
     window.addEventListener('beforeunload', () => {
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/switcher`).set("");
+      }
       if (streamerInstance) {
         streamerInstance.destroy();
         streamerInstance = null;
