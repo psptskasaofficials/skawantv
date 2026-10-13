@@ -76,7 +76,7 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
-    video, iframe, #pgmVtWrapper, #pgmCamVideo, #pgmBumperWrapper {
+    video, iframe, #pgmVtWrapper, #pgmCamVideo, #pgmBumperWrapper,#pgmFallbackBox {
       transform: translateZ(0);
       backface-visibility: hidden;
       -webkit-font-smoothing: antialiased;
@@ -280,10 +280,13 @@
           <div id="pgmViewport" class="aspect-video bg-black rounded-xl overflow-hidden relative z-10 border-2 border-red-600/90 shadow-2xl flex items-center justify-center select-none">
 
             <!-- 1. Layer Bumper Playout -->
-            <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center pointer-events-auto" style="display: flex; opacity: 1;">
-              <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
-                <iframe id="pgmBumperIframe" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center" src="https://www.youtube-nocookie.com/embed/Jnp3esoHb9k?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=Jnp3esoHb9k&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0" allow="autoplay; encrypted-media; picture-in-picture" tabindex="-1"></iframe>
-              </div>
+            <div id="pgmFallbackBox" class="text-center space-y-1 relative z-0 p-3">
+  <div class="w-8 h-8 mx-auto rounded-xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center text-sm font-bold">
+    🔴
+  </div>
+  <span id="pgmScreenLabel" class="font-brand font-black text-lg text-red-500 tracking-wider block">CAM 1</span>
+  <span class="text-[9px] font-mono text-red-400 block uppercase tracking-wider">PGM FEED (STANDBY)</span>
+</div>
 
               <div id="bumperTagOverlay" class="hidden absolute top-4 left-4 z-30 items-center gap-2 bg-black/75 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl shadow-lg">
                 <span class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping"></span>
