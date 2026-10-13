@@ -217,3 +217,458 @@
       </div>
 
       <!-- Input Aba-aba Kustom -->
+      <div class="flex items-center gap-2 pt-1">
+        <input type="text" id="inputCustomCue" placeholder="Ketik aba-aba kustom untuk kru..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white font-medium outline-none focus:border-amber-400">
+        <button onclick="kirimAbaAbaKustom()" class="deck-btn px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-brand font-black text-xs shadow-md shrink-0">
+          Kirim Cue
+        </button>
+      </div>
+    </div>
+
+    <!-- BAGIAN 2: DUAL RETURN MONITOR (PVW & PGM VIEW) & RUNDOWN MANAGER -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- DUAL RETURN MONITORS (7 KOLOM) -->
+      <div class="lg:col-span-7 space-y-4">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          
+          <!-- PVW VIEW -->
+          <div class="bg-slate-900 border-2 border-emerald-500/70 rounded-2xl p-2.5 shadow-xl space-y-1.5">
+            <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-[11px] font-mono font-bold">
+              <span class="text-emerald-400 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                PVW (CUE STANDBY)
+              </span>
+              <span id="lblPdPvwTag" class="text-white uppercase font-black bg-emerald-950 px-2 py-0.5 rounded border border-emerald-700">CAM 2</span>
+            </div>
+
+            <div class="aspect-video bg-black rounded-xl overflow-hidden relative border border-slate-800 flex items-center justify-center">
+              <video id="pdPvwVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
+              <div id="pdPvwFallback" class="absolute inset-0 flex flex-col items-center justify-center text-emerald-500 text-xs font-mono">
+                <span class="text-2xl">📹</span>
+                <span id="lblPdPvwFallbackText" class="font-bold mt-1">CAM 2</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PGM VIEW -->
+          <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-2.5 shadow-xl space-y-1.5">
+            <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-[11px] font-mono font-bold">
+              <span class="text-red-500 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                PGM (MASTER ON-AIR)
+              </span>
+              <span id="lblPdPgmTag" class="text-white uppercase font-black bg-red-950 px-2 py-0.5 rounded border border-red-800 animate-pulse">CAM 1</span>
+            </div>
+
+            <div class="aspect-video bg-black rounded-xl overflow-hidden relative border border-red-700 flex items-center justify-center">
+              <video id="pdPgmVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
+              <div id="pdPgmFallback" class="absolute inset-0 flex flex-col items-center justify-center text-red-500 text-xs font-mono">
+                <span class="text-2xl">🔴</span>
+                <span id="lblPdPgmFallbackText" class="font-bold mt-1">CAM 1 ON-AIR</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- INDIKATOR STATUS PERAN KRU -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-lg space-y-2">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="font-bold text-slate-300 uppercase">Kru Studio Terhubung:</span>
+            <span id="lblCrewOnlineCount" class="text-emerald-400">0 Online</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono" id="crewMiniStatusGrid"></div>
+        </div>
+
+      </div>
+
+      <!-- RUNDOWN MANAGER & SEGMEN TIMECODE (5 KOLOM) -->
+      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col justify-between space-y-3">
+        
+        <div class="space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              <h3 class="font-brand font-black text-xs uppercase tracking-wider text-white">
+                Rundown Mata Acara Siaran
+              </h3>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400" id="lblPdRundownCount">0 Segmen</span>
+          </div>
+
+          <!-- Timer Segmen Aktif -->
+          <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-mono uppercase text-slate-400 font-bold block">Sisa Waktu Segmen:</span>
+              <span id="lblPdActiveSegTitle" class="text-xs font-brand font-bold text-amber-400 block truncate max-w-[180px]">
+                Opening &amp; Sapa Pemirsa
+              </span>
+            </div>
+            <div class="text-right">
+              <span id="lblPdSegmentCountdown" class="font-mono font-black text-2xl text-white block">
+                03:00
+              </span>
+              <button onclick="resetSegmentTimer()" class="text-[10px] font-mono text-slate-400 hover:text-amber-400 underline">
+                Reset Timer
+              </button>
+            </div>
+          </div>
+
+          <!-- Daftar Segmen (Klik untuk Sinkronisasi ke FD & Studio) -->
+          <div class="space-y-2 max-h-[290px] overflow-y-auto pr-1" id="pdRundownContainer">
+            <!-- Render otomatis via JavaScript -->
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 text-[10px] font-mono text-slate-500">
+          * Klik segmen untuk mengaktifkan urutan mata acara dan mengirimkan sinyal ke layar Floor Director (FD).
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="py-4 text-center text-xs text-slate-500 font-medium border-t border-slate-900">
+    SKAWAN TV &bull; Program Director Console &copy; 2026 SMK Negeri 1 Pacitan
+  </footer>
+
+  <script>
+    let currentRoomToken = 'SKASA';
+    let streamerInstance = null;
+    const remoteCamStreams = new Map();
+
+    let activeRundownIndex = 0;
+    let rundownItems = [];
+    let segmentRemainingSec = 180;
+    let timerInterval = null;
+
+    function getDatabase() {
+      return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
+    }
+
+    function formatTimecode(sec) {
+      sec = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      currentRoomToken = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
+      document.getElementById('navRoomToken').innerText = currentRoomToken;
+
+      initPdSystem(currentRoomToken);
+      startMasterWibClock();
+      startSegmentTimer();
+    });
+
+    function initPdSystem(token) {
+      const activeDb = getDatabase();
+      if (!activeDb) {
+        setTimeout(() => initPdSystem(token), 300);
+        return;
+      }
+
+      // KUNCI DAN KELOLA PELEPASAN SLOT OTOMATIS (ON DISCONNECT)
+      const studentName = localStorage.getItem('skawan_user') || 'Sutradara (PD)';
+      const roleRef = activeDb.ref(`rooms/${token}/roles/pd`);
+      roleRef.set(studentName);
+      roleRef.onDisconnect().set("");
+
+      // DENGARKAN STATUS LIVE STATE (PGM & PVW TALLY)
+      activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
+        const state = snap.val() || {};
+        updateReturnMonitors(state.programSource || 'cam_1', state.previewSource || 'cam_2');
+      });
+
+      // DENGARKAN RUNDOWN MATA ACARA DARI TIM KREATIF
+      activeDb.ref(`rooms/${token}/rundown`).on('value', snap => {
+        if (snap.exists()) {
+          const list = Array.isArray(snap.val()) ? snap.val() : Object.values(snap.val());
+          rundownItems = list.filter(s => s && typeof s === 'object');
+        } else {
+          rundownItems = [];
+        }
+        renderPdRundownUI();
+      });
+
+      // DENGARKAN INDEKS SEGMEN DARI PD STATE
+      activeDb.ref(`rooms/${token}/pd_state/currentSegmentIndex`).on('value', snap => {
+        if (snap.exists()) {
+          activeRundownIndex = parseInt(snap.val()) || 0;
+          renderPdRundownUI();
+        }
+      });
+
+      // DENGARKAN SIMULASI KRISIS DARI ADMIN
+      activeDb.ref(`rooms/${token}/crisis`).on('value', snap => {
+        const crisis = snap.val() || {};
+        const banner = document.getElementById('bannerCrisisBox');
+        const lbl = document.getElementById('lblCrisisMessage');
+
+        if (crisis.isActive && crisis.type !== 'NORMAL') {
+          lbl.innerText = crisis.message || `Kendala ${crisis.type} terjadi di studio!`;
+          banner.classList.remove('hidden');
+          if (navigator.vibrate) navigator.vibrate([150, 100, 150]);
+        } else {
+          banner.classList.add('hidden');
+        }
+      });
+
+      // DENGARKAN STATUS OKUPANSI KRU
+      activeDb.ref(`rooms/${token}/roles`).on('value', snap => {
+        renderMiniCrewStatus(snap.val() || {});
+      });
+
+      // INISIALISASI WEBRTC RECEIVER
+      if (typeof SkawanStreamer !== 'undefined') {
+        streamerInstance = new SkawanStreamer({
+          roomToken: token,
+          roleKey: 'pd_monitor',
+          onRemoteStream: (camKey, stream) => {
+            const normKey = camKey.includes('_') ? camKey : (camKey === 'sharescreen' ? 'sharescreen' : camKey.replace('cam', 'cam_'));
+            remoteCamStreams.set(normKey, stream);
+            remoteCamStreams.set(camKey, stream);
+
+            activeDb.ref(`rooms/${token}/live_state`).once('value', s => {
+              const st = s.val() || {};
+              updateReturnMonitors(st.programSource || 'cam_1', st.previewSource || 'cam_2');
+            });
+          }
+        });
+      }
+    }
+
+    function getCameraStream(key) {
+      if (!key) return null;
+      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
+      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
+      return null;
+    }
+
+    function updateReturnMonitors(pgmKey, pvwKey) {
+      // 1. UPDATE PVW
+      document.getElementById('lblPdPvwTag').innerText = pvwKey.toUpperCase().replace('_', ' ');
+      document.getElementById('lblPdPvwFallbackText').innerText = pvwKey.toUpperCase().replace('_', ' ');
+
+      const pvwVideo = document.getElementById('pdPvwVideo');
+      const pvwFallback = document.getElementById('pdPvwFallback');
+      const pvwStream = getCameraStream(pvwKey);
+
+      if (pvwStream && pvwVideo) {
+        if (pvwVideo.srcObject !== pvwStream) pvwVideo.srcObject = pvwStream;
+        pvwVideo.style.objectFit = (pvwKey === 'sharescreen') ? 'contain' : 'cover';
+        pvwVideo.style.display = 'block';
+        pvwVideo.play().catch(() => {});
+        pvwFallback.style.display = 'none';
+      } else {
+        pvwVideo.style.display = 'none';
+        pvwFallback.style.display = 'flex';
+      }
+
+      // 2. UPDATE PGM
+      document.getElementById('lblPdPgmTag').innerText = pgmKey.toUpperCase().replace('_', ' ');
+      document.getElementById('lblPdPgmFallbackText').innerText = `${pgmKey.toUpperCase().replace('_', ' ')} ON-AIR`;
+
+      const pgmVideo = document.getElementById('pdPgmVideo');
+      const pgmFallback = document.getElementById('pdPgmFallback');
+      const pgmStream = getCameraStream(pgmKey);
+
+      if (pgmStream && pgmVideo) {
+        if (pgmVideo.srcObject !== pgmStream) pgmVideo.srcObject = pgmStream;
+        pgmVideo.style.objectFit = (pgmKey === 'sharescreen') ? 'contain' : 'cover';
+        pgmVideo.style.display = 'block';
+        pgmVideo.play().catch(() => {});
+        pgmFallback.style.display = 'none';
+      } else {
+        pgmVideo.style.display = 'none';
+        pgmFallback.style.display = 'flex';
+      }
+    }
+
+    // ========================================================
+    // TRANSMISI ABA-ABA SUTRADARA (DIRECTOR CUE INTERCOM)
+    // ========================================================
+    function kirimAbaAba(pesan) {
+      if (!pesan) return;
+      const activeDb = getDatabase();
+      if (!activeDb) return;
+
+      activeDb.ref(`rooms/${currentRoomToken}/pd_state`).update({
+        directorCue: pesan,
+        cueTimestamp: firebase.database.ServerValue.TIMESTAMP
+      }).then(() => {
+        const lbl = document.getElementById('lblCueSentStatus');
+        lbl.innerText = `Terkirim: "${pesan}"`;
+        lbl.className = "text-[10px] font-mono text-emerald-400 font-bold";
+        setTimeout(() => {
+          lbl.innerText = "Siap Mengirim";
+          lbl.className = "text-[10px] font-mono text-slate-400";
+        }, 4000);
+      });
+    }
+
+    function kirimAbaAbaKustom() {
+      const input = document.getElementById('inputCustomCue');
+      const pesan = input.value.trim();
+      if (!pesan) return;
+      kirimAbaAba(pesan);
+      input.value = '';
+    }
+
+    // ========================================================
+    // SINKRONISASI DUA ARAH RUNDOWN KE FD & STUDIO
+    // ========================================================
+    function renderPdRundownUI() {
+      const container = document.getElementById('pdRundownContainer');
+      container.innerHTML = '';
+      document.getElementById('lblPdRundownCount').innerText = `${rundownItems.length} Segmen`;
+
+      if (rundownItems.length === 0) {
+        container.innerHTML = `<div class="p-3 text-center text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">Belum ada rundown dari Tim Kreatif.</div>`;
+        return;
+      }
+
+      const activeSeg = rundownItems[activeRundownIndex] || rundownItems[0];
+      if (activeSeg) {
+        document.getElementById('lblPdActiveSegTitle').innerText = activeSeg.title;
+      }
+
+      rundownItems.forEach((seg, idx) => {
+        const isActive = (idx === activeRundownIndex);
+        const card = document.createElement('div');
+
+        let borderStyle = "border-slate-800 bg-slate-950 hover:border-slate-700";
+        if (isActive) {
+          borderStyle = "border-amber-500 bg-amber-950/40 ring-1 ring-amber-500 shadow-md";
+        }
+
+        card.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer deck-btn transition ${borderStyle}`;
+        card.onclick = () => pilihSegmenRundown(idx);
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <span class="w-5 h-5 rounded ${isActive ? 'bg-amber-500 text-black font-black' : 'bg-slate-900 text-slate-400 font-bold'} flex items-center justify-center font-mono text-[10px] shrink-0">
+              ${idx + 1}
+            </span>
+            <div class="truncate">
+              <span class="font-brand font-bold text-white block truncate ${isActive ? 'text-amber-400' : ''}">${seg.title}</span>
+              <span class="text-[9px] font-mono text-slate-400 block">${(seg.targetSource || '').replace('_', ' ').toUpperCase()} &bull; ${formatTimecode(seg.durationSec)}</span>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded font-mono text-[9px] font-bold shrink-0 ${isActive ? 'bg-amber-500 text-black' : 'bg-slate-800 text-slate-400'}">
+            ${isActive ? 'AKTIF' : 'QUEUED'}
+          </span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function pilihSegmenRundown(idx) {
+      if (idx < 0 || idx >= rundownItems.length) return;
+      activeRundownIndex = idx;
+      const targetSeg = rundownItems[idx];
+
+      segmentRemainingSec = targetSeg.durationSec || 180;
+      document.getElementById('lblPdSegmentCountdown').innerText = formatTimecode(segmentRemainingSec);
+
+      // SINKRONISASI KE DATABASE AGAR LAYAR FD LANGSUNG BERUBAH
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/pd_state`).update({
+          currentSegmentIndex: idx,
+          activeSegmentTitle: targetSeg.title,
+          activeSegmentSource: targetSeg.targetSource || 'cam_1',
+          segmentDuration: targetSeg.durationSec || 180,
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      }
+
+      renderPdRundownUI();
+    }
+
+    function resetSegmentTimer() {
+      const activeSeg = rundownItems[activeRundownIndex];
+      segmentRemainingSec = activeSeg ? (activeSeg.durationSec || 180) : 180;
+      document.getElementById('lblPdSegmentCountdown').innerText = formatTimecode(segmentRemainingSec);
+    }
+
+    function startSegmentTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (segmentRemainingSec > 0) {
+          segmentRemainingSec--;
+          document.getElementById('lblPdSegmentCountdown').innerText = formatTimecode(segmentRemainingSec);
+        }
+      }, 1000);
+    }
+
+    function renderMiniCrewStatus(roles) {
+      const grid = document.getElementById('crewMiniStatusGrid');
+      grid.innerHTML = '';
+
+      const monitoredRoles = [
+        { key: 'switcher', name: 'Switcher' },
+        { key: 'audio_vt', name: 'Audio/VT' },
+        { key: 'cg', name: 'CG' },
+        { key: 'fd', name: 'FD' }
+      ];
+
+      let online = 0;
+      monitoredRoles.forEach(r => {
+        const occupant = roles[r.key] || '';
+        const isFilled = Boolean(occupant && occupant.trim().length > 0);
+        if (isFilled) online++;
+
+        const badge = document.createElement('div');
+        badge.className = `p-1.5 rounded-lg border text-center truncate ${isFilled ? 'bg-emerald-950/40 border-emerald-700 text-emerald-300' : 'bg-slate-950 border-slate-800 text-slate-500'}`;
+        badge.innerHTML = `
+          <span class="block font-bold truncate">${r.name}</span>
+          <span class="text-[9px] block truncate">${isFilled ? occupant : 'Kosong'}</span>
+        `;
+        grid.appendChild(badge);
+      });
+
+      document.getElementById('lblCrewOnlineCount').innerText = `${online}/${monitoredRoles.length} Online`;
+    }
+
+    function startMasterWibClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        const clockEl = document.getElementById('pdClockWib');
+        if (clockEl) clockEl.innerText = `${formatter.format(now).replace(/\./g, ':')} WIB`;
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    function keluarKeLogin() {
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/pd`).set("");
+      }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+      }
+      window.location.href = `login.html?room=${currentRoomToken}`;
+    }
+
+    window.addEventListener('beforeunload', () => {
+      keluarKeLogin();
+    });
+  </script>
+</body>
+</html>
