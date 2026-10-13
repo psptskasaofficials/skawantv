@@ -1,12 +1,13 @@
 /**
- * SKAWAN TV - WebRTC Streamer Engine (v2.3 Clean Signaling & Auto-Handshake)
- * Multi-Cam HP, Screen Share, & Multi-Viewer Switcher/PD/PGM
+ * SKAWAN TV - WebRTC Streamer Engine (v2.4 LAN Production Mesh)
+ * Multi-Cam HP, Screen Share, Audio Master, & Multi-Viewer
  */
 class SkawanStreamer {
   constructor(options = {}) {
     this.roomToken = (options.roomToken || 'SKASA').toUpperCase();
     this.roleKey = options.roleKey || `peer_${Math.random().toString(36).substring(2, 7)}`;
     this.onRemoteStream = options.onRemoteStream || (() => {});
+    this.onConnectionStateChange = options.onConnectionStateChange || (() => {});
     
     this.db = window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
 
@@ -16,8 +17,7 @@ class SkawanStreamer {
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' }
-      ],
-      iceCandidatePoolSize: 10
+      ]
     };
 
     this.localStreams = new Map();
@@ -47,22 +47,26 @@ class SkawanStreamer {
 
     const bKey = this.getBroadcasterKey();
     if (bKey) {
-      // PENYIAR: Dengarkan permintaan dari viewer
-      const requestsRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`);
-      requestsRef.on('child_added', snap => {
+      // SISI BROADCASTER (Cam 1-3, Screen Share)
+      this.onConnectionStateChange('standby');
+      const sessionRef = this.db.ref(`webrtc_sessions/${this.roomToken}/${bKey}`);
+      
+      const handleRequest = (snap) => {
         const viewerId = snap.key;
-        if (!viewerId) return;
+        const val = snap.val();
+        if (!viewerId || !val) return;
 
-        snap.ref.child('request').on('value', rSnap => {
-          if (rSnap.exists() && this.localStreams.has(bKey)) {
-            this.handleViewerHandshake(viewerId, bKey);
-          }
-        });
-      });
-      this.activeListeners.push(requestsRef);
+        if (val.request && this.localStreams.has(bKey)) {
+          this.startBroadcasterHandshake(viewerId, bKey);
+        }
+      };
+
+      sessionRef.on('child_added', handleRequest);
+      sessionRef.on('child_changed', handleRequest);
+      this.activeListeners.push(sessionRef);
 
     } else {
-      // PENERIMA: Pantau kamera dan screen share yang aktif
+      // SISI VIEWER (Switcher, PD, Live, Index)
       this.discoverBroadcasters();
     }
   }
@@ -70,9 +74,9 @@ class SkawanStreamer {
   discoverBroadcasters() {
     const presenceRef = this.db.ref(`webrtc_presence/${this.roomToken}`);
     presenceRef.on('value', snap => {
-      const activeBroadcasters = snap.val() || {};
-      Object.keys(activeBroadcasters).forEach(bKey => {
-        if (activeBroadcasters[bKey] && activeBroadcasters[bKey].active) {
+      const active = snap.val() || {};
+      Object.keys(active).forEach(bKey => {
+        if (active[bKey] && active[bKey].active) {
           this.connectToBroadcaster(bKey);
         }
       });
@@ -83,21 +87,15 @@ class SkawanStreamer {
   connectToBroadcaster(bKey) {
     if (this.peers.has(bKey)) return;
 
-    const connPath = `webrtc_signals/${this.roomToken}/${bKey}/${this.roleKey}`;
-    const connRef = this.db.ref(connPath);
-
-    // Reset node sinyal agar tidak tercampur kandidat usang
+    const connRef = this.db.ref(`webrtc_sessions/${this.roomToken}/${bKey}/${this.roleKey}`);
+    
     connRef.set({
-      request: {
-        viewerId: this.roleKey,
-        timestamp: Date.now()
-      }
+      request: Date.now(),
+      viewerId: this.roleKey
     });
     connRef.onDisconnect().remove();
 
-    if (!this.iceQueues.has(bKey)) {
-      this.iceQueues.set(bKey, []);
-    }
+    this.iceQueues.set(bKey, []);
 
     const offerRef = connRef.child('offer');
     offerRef.on('value', async snap => {
@@ -110,26 +108,22 @@ class SkawanStreamer {
         this.peers.set(bKey, pc);
 
         pc.ontrack = (event) => {
-          let stream = (event.streams && event.streams[0]) ? event.streams[0] : null;
-          if (!stream) {
-            stream = new MediaStream([event.track]);
-          }
+          let stream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([event.track]);
           this.onRemoteStream(bKey, stream);
         };
 
         pc.onicecandidate = (event) => {
           if (event.candidate) {
-            connRef.child('ice_from_v').push(event.candidate.toJSON());
+            connRef.child('ice_v').push(event.candidate.toJSON());
           }
         };
 
         pc.onconnectionstatechange = () => {
-          if (pc.connectionState === 'failed') {
+          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
             pc.close();
             this.peers.delete(bKey);
             this.iceQueues.delete(bKey);
-            // Coba sambungkan kembali
-            setTimeout(() => this.connectToBroadcaster(bKey), 1000);
+            setTimeout(() => this.connectToBroadcaster(bKey), 1200);
           }
         };
       }
@@ -151,15 +145,15 @@ class SkawanStreamer {
           type: answer.type
         });
       } catch (err) {
-        console.warn(`[WebRTC] Offer error on ${bKey}:`, err);
+        console.warn(`[WebRTC] Viewer error on ${bKey}:`, err);
       }
     });
     this.activeListeners.push(offerRef);
 
-    const iceFromBRef = connRef.child('ice_from_b');
-    iceFromBRef.on('child_added', snap => {
+    const iceBRef = connRef.child('ice_b');
+    iceBRef.on('child_added', snap => {
       const cand = snap.val();
-      if (!cand || !cand.candidate) return;
+      if (!cand) return;
 
       const pc = this.peers.get(bKey);
       if (pc && pc.remoteDescription) {
@@ -169,10 +163,12 @@ class SkawanStreamer {
         this.iceQueues.get(bKey).push(cand);
       }
     });
-    this.activeListeners.push(iceFromBRef);
+    this.activeListeners.push(iceBRef);
   }
 
-  async handleViewerHandshake(viewerId, bKey) {
+  async startBroadcasterHandshake(viewerId, bKey) {
+    this.onConnectionStateChange('connecting');
+
     let pc = this.peers.get(viewerId);
     if (pc) {
       pc.close();
@@ -184,8 +180,7 @@ class SkawanStreamer {
     this.peers.set(viewerId, pc);
     this.iceQueues.set(viewerId, []);
 
-    const connPath = `webrtc_signals/${this.roomToken}/${bKey}/${viewerId}`;
-    const connRef = this.db.ref(connPath);
+    const connRef = this.db.ref(`webrtc_sessions/${this.roomToken}/${bKey}/${viewerId}`);
 
     const localStream = this.localStreams.get(bKey);
     if (localStream) {
@@ -196,17 +191,22 @@ class SkawanStreamer {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        connRef.child('ice_from_b').push(event.candidate.toJSON());
+        connRef.child('ice_b').push(event.candidate.toJSON());
       }
     };
 
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'failed') {
+      this.updateBroadcasterConnectionStatus();
+      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
         pc.close();
         this.peers.delete(viewerId);
         this.iceQueues.delete(viewerId);
       }
     };
+
+    connRef.child('answer').remove().catch(() => {});
+    connRef.child('ice_b').remove().catch(() => {});
+    connRef.child('ice_v').remove().catch(() => {});
 
     const answerRef = connRef.child('answer');
     answerRef.on('value', async snap => {
@@ -224,15 +224,15 @@ class SkawanStreamer {
           }
         }
       } catch (err) {
-        console.warn(`[WebRTC] Answer error for ${viewerId}:`, err);
+        console.warn(`[WebRTC] Set answer error for ${viewerId}:`, err);
       }
     });
     this.activeListeners.push(answerRef);
 
-    const iceFromVRef = connRef.child('ice_from_v');
-    iceFromVRef.on('child_added', snap => {
+    const iceVRef = connRef.child('ice_v');
+    iceVRef.on('child_added', snap => {
       const cand = snap.val();
-      if (!cand || !cand.candidate) return;
+      if (!cand) return;
 
       if (pc && pc.remoteDescription) {
         pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
@@ -241,7 +241,7 @@ class SkawanStreamer {
         this.iceQueues.get(viewerId).push(cand);
       }
     });
-    this.activeListeners.push(iceFromVRef);
+    this.activeListeners.push(iceVRef);
 
     try {
       const offer = await pc.createOffer();
@@ -256,29 +256,42 @@ class SkawanStreamer {
     }
   }
 
+  updateBroadcasterConnectionStatus() {
+    let hasConnected = false;
+    let hasConnecting = false;
+    let hasFailed = false;
+
+    this.peers.forEach(pc => {
+      if (pc.connectionState === 'connected') hasConnected = true;
+      else if (pc.connectionState === 'connecting') hasConnecting = true;
+      else if (pc.connectionState === 'failed') hasFailed = true;
+    });
+
+    if (hasConnected) {
+      this.onConnectionStateChange('connected');
+    } else if (hasConnecting) {
+      this.onConnectionStateChange('connecting');
+    } else if (hasFailed) {
+      this.onConnectionStateChange('failed');
+    } else {
+      this.onConnectionStateChange('standby');
+    }
+  }
+
   publishStream(streamKey, mediaStream) {
     this.localStreams.set(streamKey, mediaStream);
     const bKey = this.getBroadcasterKey() || streamKey;
 
     this.peers.forEach(pc => {
       const senders = pc.getSenders();
-      const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-      const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
-
-      const newVideoTrack = mediaStream.getVideoTracks()[0];
-      const newAudioTrack = mediaStream.getAudioTracks()[0];
-
-      if (videoSender && newVideoTrack) {
-        videoSender.replaceTrack(newVideoTrack).catch(() => {});
-      } else if (!videoSender && newVideoTrack) {
-        pc.addTrack(newVideoTrack, mediaStream);
-      }
-
-      if (audioSender && newAudioTrack) {
-        audioSender.replaceTrack(newAudioTrack).catch(() => {});
-      } else if (!audioSender && newAudioTrack) {
-        pc.addTrack(newAudioTrack, mediaStream);
-      }
+      mediaStream.getTracks().forEach(newTrack => {
+        const sender = senders.find(s => s.track && s.track.kind === newTrack.kind);
+        if (sender) {
+          sender.replaceTrack(newTrack).catch(() => {});
+        } else {
+          pc.addTrack(newTrack, mediaStream);
+        }
+      });
     });
 
     if (this.db) {
@@ -289,12 +302,11 @@ class SkawanStreamer {
       });
       this.presenceRef.onDisconnect().remove();
 
-      // Memicu koneksi untuk viewer yang sudah menunggu
-      this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`).once('value', snap => {
-        const viewers = snap.val() || {};
-        Object.keys(viewers).forEach(viewerId => {
-          if (viewers[viewerId] && viewers[viewerId].request) {
-            this.handleViewerHandshake(viewerId, bKey);
+      this.db.ref(`webrtc_sessions/${this.roomToken}/${bKey}`).once('value', snap => {
+        const sessions = snap.val() || {};
+        Object.keys(sessions).forEach(viewerId => {
+          if (sessions[viewerId] && sessions[viewerId].request) {
+            this.startBroadcasterHandshake(viewerId, bKey);
           }
         });
       });
@@ -307,12 +319,13 @@ class SkawanStreamer {
 
     if (this.db) {
       this.db.ref(`webrtc_presence/${this.roomToken}/${bKey}`).remove().catch(() => {});
-      this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`).remove().catch(() => {});
+      this.db.ref(`webrtc_sessions/${this.roomToken}/${bKey}`).remove().catch(() => {});
     }
 
     this.peers.forEach(pc => pc.close());
     this.peers.clear();
     this.iceQueues.clear();
+    this.onConnectionStateChange('standby');
   }
 
   destroy() {
