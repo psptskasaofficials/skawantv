@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Kamera Juru Kamera | SKAWAN TV</title>
+  <title>SKAWAN TV | PGM MASTER FEED</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,11 +27,9 @@
           },
           colors: {
             skawan: {
-              red: '#E50914',
               orange: '#EA580C',
+              red: '#E50914',
               darkBg: '#080C14',
-              cardDark: '#0F172A',
-              borderDark: '#1E293B'
             }
           }
         }
@@ -39,7 +37,7 @@
     }
   </script>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
@@ -60,340 +58,718 @@
           try { firebase.initializeApp(config); } catch (e) {}
         }
         if (!window.db && firebase.database) {
-          window.db = firebase.database();
+          try { window.db = firebase.database(); } catch(e) {}
         }
       }
     })();
   </script>
 
-  <!-- WebRTC Streamer Engine -->
+  <!-- Native WebRTC Streamer & YouTube API Resmi -->
   <script src="js/webrtc-stream.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body, html {
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
       background-color: #000;
     }
-    .tally-live {
-      box-shadow: inset 0 0 0 8px #dc2626, 0 0 30px rgba(220, 38, 38, 0.8);
-      border-color: #dc2626 !important;
+    video, iframe, #pgmVtWrapper, #pgmCamVideo, #pgmBumperWrapper {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-font-smoothing: antialiased;
     }
-    .tally-cue {
-      box-shadow: inset 0 0 0 8px #10b981, 0 0 30px rgba(16, 185, 129, 0.7);
-      border-color: #10b981 !important;
+    .broadcast-dissolve {
+      transition: opacity 800ms cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .touch-btn {
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
+    @keyframes ticker-anim {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
     }
-    .touch-btn:active {
-      transform: scale(0.92);
+    .marquee-text {
+      display: inline-block;
+      white-space: nowrap;
+      animation: ticker-anim 16s linear infinite;
     }
-    @keyframes cue-flash {
-      0% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.85; transform: scale(1.02); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-    .director-cue-alert {
-      animation: cue-flash 0.8s infinite;
+    .control-fade {
+      transition: opacity 0.5s ease-in-out;
     }
   </style>
+
+  <script>
+    function handleBugLogoFallback(imgEl) {
+      if (imgEl.src.indexOf('assets/img/') !== -1) {
+        imgEl.src = 'logo-skawan-icon.webp';
+      } else {
+        imgEl.style.display = 'none';
+        const textFallback = document.getElementById('cgBugLogoTextFallback');
+        if (textFallback) textFallback.classList.remove('hidden');
+      }
+    }
+  </script>
 </head>
-<body class="flex flex-col justify-between text-white select-none">
+<body class="w-screen h-screen bg-black flex items-center justify-center relative select-none">
 
-  <!-- FRAME VIEWPORT KAMERA DENGAN TALLY BORDER -->
-  <div id="cameraViewport" class="absolute inset-0 w-full h-full border-4 border-slate-900 transition-all duration-300 flex items-center justify-center overflow-hidden">
-    <video id="camVideoPreview" class="w-full h-full object-cover" autoplay playsinline muted></video>
+  <!-- Audio Element Master Studio -->
+  <audio id="masterStudioAudio" autoplay playsinline></audio>
 
-    <!-- Overlay Fallback -->
-    <div id="camFallbackBox" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center space-y-3">
-      <span class="text-6xl animate-bounce">📹</span>
-      <h2 class="font-brand font-black text-xl text-white">Kamera Belum Aktif</h2>
-      <p class="text-xs font-mono text-slate-400 max-w-xs">
-        Izinkan akses kamera pada peramban Anda untuk mulai menyiarkan visual ke ruang kontrol.
-      </p>
-      <button onclick="mulaiKamera()" class="touch-btn px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-orange-600 font-brand font-black text-sm text-white shadow-xl shadow-red-600/30">
-        Buka Akses Kamera
-      </button>
+  <!-- MASTER VIEWPORT 16:9 CLEAN OUTPUT -->
+  <div id="pgmMasterViewport" class="relative w-full aspect-video max-h-screen bg-black overflow-hidden flex items-center justify-center">
+
+    <!-- 1. LAYER BUMPER PLAYOUT -->
+    <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center" style="display: flex; opacity: 1;">
+      <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
+        <iframe
+          id="pgmBumperIframe"
+          class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"
+          src=""
+          allow="autoplay; encrypted-media; picture-in-picture"
+          tabindex="-1"
+        ></iframe>
+      </div>
+
+      <!-- Tag Opening Ident -->
+      <div id="bumperTagOverlay" class="hidden absolute top-6 left-6 z-30 items-center gap-2.5 bg-black/80 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl shadow-2xl">
+        <span class="w-3 h-3 rounded-full bg-orange-500 animate-ping"></span>
+        <span class="font-brand font-black text-sm text-orange-400 tracking-wider uppercase">IDENT OPENING</span>
+        <span class="text-xs font-mono text-slate-300 ml-1 border-l border-white/20 pl-2.5" id="lblBumperCountdown">7s</span>
+      </div>
+
+      <!-- Progress Bar Bumper -->
+      <div id="bumperProgressBarContainer" class="hidden absolute bottom-0 left-0 right-0 h-2 bg-slate-900 overflow-hidden z-30">
+        <div id="bumperProgressBar" class="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-red-500 transition-all duration-100 ease-linear w-0"></div>
+      </div>
     </div>
+
+    <!-- 2. KARTU GLADI BERSIH OVERLAY -->
+    <div id="pgmStandbyCardOverlay" class="absolute inset-0 z-25 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8 transition-opacity duration-300" style="display: none;">
+      <div class="bg-slate-900/95 border-2 border-amber-500/50 rounded-3xl p-8 shadow-2xl max-w-lg w-full space-y-4">
+        <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold uppercase tracking-wider">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+          <span>STUDIO STANDBY / GLADI BERSIH</span>
+        </div>
+        <div>
+          <h1 id="standbyOverlayToken" class="font-brand font-black text-4xl text-white tracking-wide">RUANGAN</h1>
+          <p id="standbyOverlayProgram" class="text-base text-slate-300 font-medium mt-1">Nama Program Siaran</p>
+        </div>
+        <p class="text-xs font-mono text-slate-400 pt-3 border-t border-slate-800">
+          Siaran gladi bersih. Kru studio sedang bersiap di ruang kontrol.
+        </p>
+      </div>
+    </div>
+
+    <!-- 3. FEED KAMERA / SCREEN SHARE WEBRTC -->
+    <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
+
+    <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API NO-COOKIE) -->
+    <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
+      <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
+      <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
+        <div id="pgmMasterYtEl" class="w-[125%] h-[125%] max-w-none border-0 pointer-events-none transform origin-center"></div>
+      </div>
+    </div>
+
+    <!-- 5. CG BUG LOGO -->
+    <div id="cgBugLogo" class="absolute top-5 right-6 z-30 flex items-center justify-center max-w-[150px] max-h-14 transition-all duration-200 pointer-events-none">
+      <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-10 w-auto object-contain drop-shadow-md">
+      <div id="cgBugLogoDefaultBadge" class="flex items-center gap-2 bg-white/95 rounded-2xl px-3 py-1.5 shadow-xl backdrop-blur-sm border border-white/20">
+        <img
+          id="cgBugLogoDefaultImg"
+          src="assets/img/logo-skawan-icon.webp"
+          alt="SKAWAN TV Monogram"
+          class="h-8 sm:h-9 w-auto object-contain drop-shadow-sm"
+          onerror="handleBugLogoFallback(this)"
+        >
+        <div id="cgBugLogoTextFallback" class="hidden items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md border border-white/20">
+          <div class="w-4 h-4 rounded bg-orange-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
+          <span class="text-[10px] font-brand font-black text-white uppercase tracking-widest">SKAWAN <span class="text-orange-500">TV</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. KOTAK MERAH "LIVE" ON-AIR -->
+    <div id="badgeLiveOnAir" class="hidden absolute top-5 left-6 z-30 bg-red-600 text-white font-brand font-black text-xs sm:text-sm px-3.5 py-1.5 rounded-xl flex items-center gap-2 shadow-2xl animate-pulse">
+      <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
+      <span>LIVE</span>
+    </div>
+
+    <!-- 7. CG LOWER THIRD -->
+    <div id="cgLowerThirdBox" class="hidden absolute bottom-12 left-6 right-6 sm:left-10 sm:right-10 z-30 transition-all duration-300">
+      <div id="cgLtTitle" class="bg-gradient-to-r from-orange-600 to-red-600 text-white font-brand font-black text-sm sm:text-lg px-5 py-2 rounded-t-2xl shadow-2xl inline-block tracking-wide">
+        NAMA PRESENTER
+      </div>
+      <div id="cgLtSubtitle" class="bg-slate-950/95 backdrop-blur-md border-l-4 border-orange-500 text-slate-100 text-xs sm:text-sm font-medium px-5 py-2 rounded-b-2xl shadow-2xl flex items-center justify-between">
+        <span id="cgLtSubtitleText">Keterangan Jabatan</span>
+        <span class="text-[10px] font-mono text-orange-400 font-bold ml-4">LIVE</span>
+      </div>
+    </div>
+
+    <!-- 8. CG TICKER BAR -->
+    <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-8 sm:h-9 bg-gradient-to-r from-orange-700 to-red-700 text-white z-30 overflow-hidden flex items-center border-t border-orange-500 shadow-2xl">
+      <div id="liveTickerWibHeader" class="bg-slate-950 px-3.5 h-full flex items-center font-mono font-black text-xs text-amber-400 shrink-0 border-r border-orange-900 tracking-wider">
+        00:00 WIB
+      </div>
+      <div class="w-full overflow-hidden text-xs sm:text-sm font-medium px-3">
+        <span id="cgTickerText" class="marquee-text">Selamat Datang di Siaran SKAWAN TV Studio SMKN 1 Pacitan</span>
+      </div>
+    </div>
+
   </div>
 
-  <!-- HUD ATAS: IDENTITAS KAMERA, RESOLUSI AKTIF, & TALLY STATUS -->
-  <header class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-    <div class="flex items-center gap-2">
-      <div id="badgeCamId" class="px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-white font-mono font-black text-xs sm:text-sm tracking-wider shadow">
-        CAM 1
-      </div>
-      <div id="badgeTallyStatus" class="px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-400 font-mono font-bold text-xs uppercase shadow">
-        STANDBY
-      </div>
-    </div>
-
-    <!-- Pilihan Resolusi, Info Ruangan, & Keluar -->
-    <div class="flex items-center gap-2">
-      <!-- Selector Custom Resolusi -->
-      <div class="bg-black/70 backdrop-blur-md rounded-xl border border-white/20 px-2 py-0.5 flex items-center gap-1 shadow">
-        <span class="text-[10px] font-mono text-slate-400">RES:</span>
-        <select id="selectResolution" onchange="ubahResolusiKamera(this.value)" class="bg-transparent text-amber-400 font-mono font-bold text-xs outline-none cursor-pointer">
-          <option value="360" class="bg-slate-900 text-white">360p (SD)</option>
-          <option value="720" selected class="bg-slate-900 text-white">720p (HD)</option>
-          <option value="1080" class="bg-slate-900 text-white">1080p (FHD)</option>
-        </select>
-      </div>
-
-      <div class="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 text-[11px] font-mono font-bold text-amber-400">
-        <span id="txtRoomLabel">SKASA</span>
-      </div>
-      <button onclick="keluarKeLogin()" class="touch-btn bg-black/60 backdrop-blur-md border border-white/10 text-rose-400 p-1.5 rounded-lg text-xs" title="Keluar">
-        🚪
-      </button>
-    </div>
-  </header>
-
-  <!-- BANNER CUE ABA-ABA DARI SUTRADARA (PD) -->
-  <div id="boxDirectorCueAlert" class="hidden relative z-20 mx-3 sm:mx-6 p-3 rounded-2xl bg-amber-500/95 text-slate-950 shadow-2xl backdrop-blur-md director-cue-alert">
-    <div class="flex items-center justify-between">
-      <span class="text-[9px] font-mono font-black uppercase tracking-wider">ABA-ABA SUTRADARA (PD):</span>
-      <span class="text-[9px] font-mono font-bold" id="lblCueTimer">SEKARANG</span>
-    </div>
-    <p id="txtCueMessage" class="font-brand font-black text-sm sm:text-base leading-tight mt-0.5">
-      Standby Host! Bersiap transisi!
-    </p>
+  <!-- FLOATING HELPER (AUTO-HIDE SETELAH 3 DETIK AGAR REKAMAN BERSIH) -->
+  <div id="floatingControls" class="control-fade fixed bottom-4 right-4 z-50 flex items-center gap-2 opacity-90">
+    <button id="btnFloatingAudioUnmute" onclick="bukaSuaraSiaran()" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 px-3.5 py-2 rounded-2xl shadow-2xl font-mono text-xs font-bold flex items-center gap-2 backdrop-blur-md transition">
+      <span id="iconAudioState">🔇</span>
+      <span id="lblAudioState">Buka Suara</span>
+    </button>
+    <button onclick="toggleNativeFullscreen()" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 px-3 py-2 rounded-2xl shadow-2xl font-mono text-xs font-bold backdrop-blur-md transition" title="Layar Penuh (F)">
+      ⛶
+    </button>
   </div>
-
-  <!-- HUD BAWAH: STATUS FRAME/FPS, WAKE LOCK, & KONTROL KAMERA -->
-  <footer class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-t from-black/90 via-black/50 to-transparent">
-    <div class="flex items-center gap-2">
-      <div class="text-[10px] font-mono text-slate-300 bg-black/60 px-2.5 py-1 rounded-lg border border-white/10">
-        <span id="lblWakeLockStatus">🔒 Anti-Sleep Aktif</span>
-      </div>
-      <div class="hidden sm:block text-[10px] font-mono text-emerald-400 bg-black/60 px-2 py-1 rounded-lg border border-white/10" id="lblRealResolution">
-        1280x720
-      </div>
-    </div>
-
-    <div class="flex items-center gap-2">
-      <!-- Tombol Balik Kamera Depan / Belakang -->
-      <button id="btnSwitchCamera" onclick="gantiArahKamera()" class="touch-btn bg-black/70 backdrop-blur-md hover:bg-black text-white px-3.5 py-2 rounded-xl border border-white/20 text-xs font-bold font-mono flex items-center gap-1.5 shadow-lg">
-        <span>🔄</span>
-        <span class="hidden sm:inline">Pindah Kamera</span>
-      </button>
-
-      <!-- Tombol Mute / Suara Kamera -->
-      <button id="btnToggleAudio" onclick="toggleAudio()" class="touch-btn bg-black/70 backdrop-blur-md hover:bg-black text-white px-3 py-2 rounded-xl border border-white/20 text-xs font-mono">
-        <span id="iconAudio">🔇 Mic Off</span>
-      </button>
-    </div>
-  </footer>
 
   <script>
     let currentRoomToken = 'SKASA';
-    let currentCamId = '1';
     let streamerInstance = null;
-    let localStream = null;
-    let wakeLockSentinel = null;
+    const remoteCamStreams = new Map();
 
-    let currentFacingMode = 'environment';
-    let currentResolution = '720';
-    let isAudioEnabled = false;
+    let isAudioUnmuted = false;
+    let currentActiveYtId = '';
+    let serverClockOffset = 0;
 
-    const RESOLUTION_PRESETS = {
-      '360': { width: 640, height: 360 },
-      '720': { width: 1280, height: 720 },
-      '1080': { width: 1920, height: 1080 }
+    let masterYtPlayer = null;
+    let isMasterYtReady = false;
+
+    const DEFAULT_BUMPER_YT_ID = 'Jnp3esoHb9k';
+    const ON_AIR_BUMPER_DURATION_MS = 7000;
+    let onAirBumperPlayedForCurrentSession = false;
+    let bumperCountdownTimer = null;
+    let bumperProgressInterval = null;
+
+    let currentRoomMeta = {
+      status: 'live',
+      programName: 'SKASA TV Live Broadcast',
+      episode: 'Siaran Utama'
+    };
+
+    let liveState = {
+      programSource: 'cam_1',
+      previewSource: 'cam_2',
+      tally: { cam_1: 'red', cam_2: 'green', cam_3: 'off' }
+    };
+
+    let latestVtState = { 
+      status: 'playing', 
+      startAt: Date.now(),
+      startOffset: 0,
+      totalDuration: 120,
+      youtubeId: '', 
+      url: '',
+      sourceType: 'youtube',
+      loopMode: 'playlist'
     };
 
     function getDatabase() {
       return window.db || (typeof firebase !== 'undefined' && firebase.database ? firebase.database() : null);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      currentRoomToken = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
-      currentCamId = urlParams.get('cam') || '1';
+    function extractCleanYtId(raw) {
+      if (!raw) return '';
+      const str = String(raw).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+      const match = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      return match ? match[1] : '';
+    }
 
-      document.getElementById('txtRoomLabel').innerText = currentRoomToken;
-      document.getElementById('badgeCamId').innerText = `CAM ${currentCamId}`;
-
-      aktifkanWakeLock();
-      mulaiKamera();
-      listenStudioTally(currentRoomToken, `cam_${currentCamId}`);
-      listenDirectorCue(currentRoomToken);
-    });
-
-    async function aktifkanWakeLock() {
-      if ('wakeLock' in navigator) {
-        try {
-          wakeLockSentinel = await navigator.wakeLock.request('screen');
-          document.getElementById('lblWakeLockStatus').innerText = "🔒 Anti-Sleep Aktif";
-          wakeLockSentinel.addEventListener('release', () => {
-            document.getElementById('lblWakeLockStatus').innerText = "🔓 Sleep Biasa";
-          });
-        } catch (err) {
-          document.getElementById('lblWakeLockStatus').innerText = "⚠️ Anti-Sleep Nonaktif";
-        }
+    function sendCommandToIframe(iframeEl, func, args = []) {
+      if (iframeEl && iframeEl.contentWindow) {
+        iframeEl.contentWindow.postMessage(JSON.stringify({
+          event: 'command',
+          func: func,
+          args: args
+        }), '*');
       }
     }
 
-    async function mulaiKamera() {
-      try {
-        if (localStream) {
-          localStream.getTracks().forEach(t => t.stop());
-        }
+    function applyAudioState() {
+      const bumperIframe = document.getElementById('pgmBumperIframe');
+      const studioMicAudio = document.getElementById('masterStudioAudio');
+      const activeSrc = liveState.programSource || 'cam_1';
 
-        const preset = RESOLUTION_PRESETS[currentResolution] || RESOLUTION_PRESETS['720'];
+      if (isAudioUnmuted) {
+        if (studioMicAudio) studioMicAudio.muted = false;
+        sendCommandToIframe(bumperIframe, 'unMute');
+        sendCommandToIframe(bumperIframe, 'setVolume', [100]);
 
-        const constraints = {
-          video: {
-            facingMode: currentFacingMode,
-            width: { ideal: preset.width },
-            height: { ideal: preset.height },
-            aspectRatio: { ideal: 1.777777778 }
-          },
-          audio: isAudioEnabled
-        };
-
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-        const videoEl = document.getElementById('camVideoPreview');
-        videoEl.srcObject = localStream;
-        document.getElementById('camFallbackBox').classList.add('hidden');
-
-        // Baca resolusi riil yang didukung sensor perangkat
-        const vTrack = localStream.getVideoTracks()[0];
-        if (vTrack) {
-          const settings = vTrack.getSettings();
-          const lblReal = document.getElementById('lblRealResolution');
-          if (lblReal) {
-            lblReal.innerText = `${settings.width || preset.width}x${settings.height || preset.height}`;
+        if (masterYtPlayer && typeof masterYtPlayer.unMute === 'function') {
+          if (activeSrc === 'vt') {
+            masterYtPlayer.unMute();
+            masterYtPlayer.setVolume(100);
+          } else {
+            masterYtPlayer.mute();
           }
         }
-
-        // WebRTC Streamer
-        const camRoleKey = `cam_${currentCamId}`;
-        if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
-          streamerInstance = new SkawanStreamer({
-            roomToken: currentRoomToken,
-            roleKey: camRoleKey
-          });
+      } else {
+        if (studioMicAudio) studioMicAudio.muted = true;
+        sendCommandToIframe(bumperIframe, 'mute');
+        if (masterYtPlayer && typeof masterYtPlayer.mute === 'function') {
+          masterYtPlayer.mute();
         }
-
-        if (streamerInstance) {
-          streamerInstance.publishStream(camRoleKey, localStream);
-        }
-
-        const studentName = localStorage.getItem('skawan_user') || `Juru Kamera ${currentCamId}`;
-        const activeDb = getDatabase();
-        if (activeDb) {
-          activeDb.ref(`rooms/${currentRoomToken}/roles/${camRoleKey}`).set(studentName);
-        }
-
-      } catch (err) {
-        console.warn("Gagal membuka kamera:", err);
-        document.getElementById('camFallbackBox').classList.remove('hidden');
       }
     }
 
-    // Ubah Resolusi Dinamis
-    async function ubahResolusiKamera(val) {
-      if (!RESOLUTION_PRESETS[val]) return;
-      currentResolution = val;
-      await mulaiKamera();
+    function bukaSuaraSiaran() {
+      isAudioUnmuted = !isAudioUnmuted;
+      document.getElementById('iconAudioState').innerText = isAudioUnmuted ? '🔊' : '🔇';
+      document.getElementById('lblAudioState').innerText = isAudioUnmuted ? 'Suara Aktif' : 'Buka Suara';
+      applyAudioState();
     }
 
-    async function gantiArahKamera() {
-      currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-      await mulaiKamera();
+    // Auto unmute saat klik pertama kali
+    window.addEventListener('click', () => {
+      if (!isAudioUnmuted) bukaSuaraSiaran();
+    }, { once: true });
+
+    function toggleNativeFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
     }
 
-    function toggleAudio() {
-      isAudioEnabled = !isAudioEnabled;
-      const icon = document.getElementById('iconAudio');
-      icon.innerText = isAudioEnabled ? '🔊 Mic On' : '🔇 Mic Off';
-      mulaiKamera();
+    // Auto-hide floating button saat kursor diam agar rekaman bersih
+    let hideTimer = null;
+    const floatingBox = document.getElementById('floatingControls');
+    function resetHideTimer() {
+      if (!floatingBox) return;
+      floatingBox.style.opacity = '0.9';
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        floatingBox.style.opacity = '0';
+      }, 3000);
+    }
+    window.addEventListener('mousemove', resetHideTimer);
+    resetHideTimer();
+
+    function getLinearServerTime(vt) {
+      if (!vt) return 0;
+      const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
+      if (vt.status !== 'playing') return offset;
+
+      const serverNow = Date.now() + serverClockOffset;
+      const baseStart = vt.startAt || vt.updatedAt || serverNow;
+      const elapsed = Math.max(0, (serverNow - baseStart) / 1000);
+      return offset + elapsed;
     }
 
-    function listenStudioTally(token, camKey) {
-      const activeDb = getDatabase();
-      if (!activeDb) {
-        setTimeout(() => listenStudioTally(token, camKey), 300);
+    function calculateAbsoluteServerTime(vt) {
+      if (!vt) return 0;
+      const dur = (masterYtPlayer && typeof masterYtPlayer.getDuration === 'function' && masterYtPlayer.getDuration() > 0)
+        ? masterYtPlayer.getDuration()
+        : (vt.totalDuration || 0);
+
+      const linearTime = getLinearServerTime(vt);
+      const activeLoop = vt.loopMode || 'playlist';
+
+      if (activeLoop === 'single' && dur > 0) {
+        return linearTime % dur;
+      }
+      return dur > 0 ? Math.min(linearTime, dur) : linearTime;
+    }
+
+    function initMasterYtPlayer(initialYtId, initialTime) {
+      if (typeof YT === 'undefined' || !YT.Player) return;
+      if (masterYtPlayer && isMasterYtReady) return;
+      if (!initialYtId) return;
+
+      currentActiveYtId = initialYtId;
+      masterYtPlayer = new YT.Player('pgmMasterYtEl', {
+        height: '100%',
+        width: '100%',
+        host: 'https://www.youtube-nocookie.com',
+        videoId: initialYtId,
+        playerVars: {
+          playsinline: 1,
+          controls: 0,
+          rel: 0,
+          autoplay: 1,
+          mute: isAudioUnmuted ? 0 : 1,
+          modestbranding: 1,
+          iv_load_policy: 3,
+          disablekb: 1,
+          fs: 0,
+          start: Math.floor(initialTime),
+          origin: window.location.origin || 'http://localhost'
+        },
+        events: {
+          onReady: (e) => {
+            isMasterYtReady = true;
+            if (initialTime > 0) e.target.seekTo(initialTime, true);
+            if (latestVtState.status === 'playing') e.target.playVideo();
+            else e.target.pauseVideo();
+            applyAudioState();
+          },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.PLAYING) {
+              const shield = document.getElementById('pgmBlackShield');
+              if (shield) shield.classList.add('opacity-0');
+              applyAudioState();
+            }
+          }
+        }
+      });
+    }
+
+    window.onYouTubeIframeAPIReady = () => {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      if (vidId) {
+        initMasterYtPlayer(vidId, calculateAbsoluteServerTime(latestVtState));
+      }
+    };
+
+    function updateMonitors() {
+      const bumperWrap = document.getElementById('pgmBumperWrapper');
+      const bumperIframe = document.getElementById('pgmBumperIframe');
+      const standbyOverlay = document.getElementById('pgmStandbyCardOverlay');
+      const pgmVideo = document.getElementById('pgmCamVideo');
+      const pgmVtWrap = document.getElementById('pgmVtWrapper');
+
+      const effectiveStatus = (currentRoomToken === 'SKASA') ? 'live' : (currentRoomMeta.status || 'standby');
+
+      // 1. OFF-AIR
+      if (effectiveStatus === 'ended') {
+        standbyOverlay.style.display = 'flex';
+        document.getElementById('standbyOverlayToken').innerText = currentRoomToken;
+        document.getElementById('standbyOverlayProgram').innerText = currentRoomMeta.programName || "Program Selesai";
+
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; pgmVideo.pause(); }
+        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+        if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
+        if (bumperIframe) bumperIframe.src = 'about:blank';
+        if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
+        applyAudioState();
         return;
       }
 
-      activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
-        const state = snap.val() || {};
-        const pgmSrc = state.programSource || 'cam_1';
-        const pvwSrc = state.previewSource || 'cam_2';
+      // 2. STANDBY GLADI BERSIH
+      if (effectiveStatus !== 'live') {
+        onAirBumperPlayedForCurrentSession = false;
 
-        const isLive = (pgmSrc === camKey);
-        const isCue = (pvwSrc === camKey);
+        standbyOverlay.style.display = 'flex';
+        document.getElementById('standbyOverlayToken').innerText = currentRoomToken;
+        document.getElementById('standbyOverlayProgram').innerText = currentRoomMeta.programName || "Gladi Bersih Studio";
 
-        updateTallyBorder(isLive, isCue);
-      });
-    }
+        bumperWrap.style.display = 'flex';
+        bumperWrap.style.opacity = '1';
+        document.getElementById('bumperTagOverlay').classList.add('hidden');
+        document.getElementById('bumperProgressBarContainer').classList.add('hidden');
 
-    function updateTallyBorder(isLive, isCue) {
-      const viewport = document.getElementById('cameraViewport');
-      const badge = document.getElementById('badgeTallyStatus');
-
-      if (isLive) {
-        viewport.className = "absolute inset-0 w-full h-full border-8 tally-live transition-all duration-200 flex items-center justify-center overflow-hidden";
-        badge.className = "px-3 py-1 rounded-xl bg-red-600 text-white font-mono font-black text-xs uppercase shadow animate-pulse";
-        badge.innerText = "● LIVE ON-AIR";
-
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-      } else if (isCue) {
-        viewport.className = "absolute inset-0 w-full h-full border-8 tally-cue transition-all duration-200 flex items-center justify-center overflow-hidden";
-        badge.className = "px-3 py-1 rounded-xl bg-emerald-600 text-black font-mono font-black text-xs uppercase shadow";
-        badge.innerText = "CUE / STANDBY";
-      } else {
-        viewport.className = "absolute inset-0 w-full h-full border-4 border-slate-900 transition-all duration-200 flex items-center justify-center overflow-hidden";
-        badge.className = "px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-400 font-mono font-bold text-xs uppercase shadow";
-        badge.innerText = "OFF";
-      }
-    }
-
-    function listenDirectorCue(token) {
-      const activeDb = getDatabase();
-      if (!activeDb) return;
-
-      activeDb.ref(`rooms/${token}/pd_state`).on('value', snap => {
-        const pd = snap.val() || {};
-        if (pd.directorCue) {
-          tampilkanDirectorCue(pd.directorCue);
+        const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0`;
+        if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
+          bumperIframe.src = desiredBumperSrc;
         }
-      });
-    }
 
-    function tampilkanDirectorCue(msg) {
-      const box = document.getElementById('boxDirectorCueAlert');
-      const txt = document.getElementById('txtCueMessage');
-      txt.innerText = msg;
-      box.classList.remove('hidden');
-
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-
-      setTimeout(() => {
-        box.classList.add('hidden');
-      }, 7000);
-    }
-
-    function keluarKeLogin() {
-      if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+        if (masterYtPlayer && isMasterYtReady) masterYtPlayer.pauseVideo();
+        applyAudioState();
+        return;
       }
+
+      // 3. LIVE ON-AIR
+      standbyOverlay.style.display = 'none';
+
+      const activeSrc = liveState.programSource || 'cam_1';
+      const stream = getCameraStream(activeSrc);
+      const vtVidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      const isVtActive = (activeSrc === 'vt' && vtVidId !== '');
+      const isCamActive = (stream !== null);
+
+      // KASUS 3A: OPENING IDENT 7 DETIK
+      if (!onAirBumperPlayedForCurrentSession) {
+        onAirBumperPlayedForCurrentSession = true;
+
+        bumperWrap.style.display = 'flex';
+        bumperWrap.style.opacity = '1';
+
+        const tagOverlay = document.getElementById('bumperTagOverlay');
+        const pbContainer = document.getElementById('bumperProgressBarContainer');
+        const pBar = document.getElementById('bumperProgressBar');
+        const cdLbl = document.getElementById('lblBumperCountdown');
+
+        if (tagOverlay) tagOverlay.classList.remove('hidden');
+        if (pbContainer) pbContainer.classList.remove('hidden');
+
+        bumperIframe.src = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&enablejsapi=1&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0`;
+
+        const startTime = Date.now();
+        if (bumperProgressInterval) clearInterval(bumperProgressInterval);
+        bumperProgressInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const pct = Math.min(100, (elapsed / ON_AIR_BUMPER_DURATION_MS) * 100);
+          if (pBar) pBar.style.width = `${pct}%`;
+          if (cdLbl) cdLbl.innerText = `${Math.max(0, Math.ceil((ON_AIR_BUMPER_DURATION_MS - elapsed) / 1000))}s`;
+
+          if (elapsed >= ON_AIR_BUMPER_DURATION_MS) {
+            clearInterval(bumperProgressInterval);
+            bumperProgressInterval = null;
+          }
+        }, 80);
+
+        if (bumperCountdownTimer) clearTimeout(bumperCountdownTimer);
+        bumperCountdownTimer = setTimeout(() => {
+          if (tagOverlay) tagOverlay.classList.add('hidden');
+          if (pbContainer) pbContainer.classList.add('hidden');
+          updateMonitors();
+        }, ON_AIR_BUMPER_DURATION_MS);
+
+        applyAudioState();
+        return;
+      }
+
+      // KASUS 3B: VT ON-AIR
+      if (isVtActive) {
+        bumperWrap.style.opacity = '0';
+        setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
+
+        if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+        if (pgmVtWrap) {
+          pgmVtWrap.style.display = 'flex';
+          pgmVtWrap.style.opacity = '1';
+        }
+        syncVtDisplay();
+        applyAudioState();
+        return;
+      }
+
+      // KASUS 3C: KAMERA / SCREEN SHARE ON-AIR
+      if (isCamActive && pgmVideo) {
+        bumperWrap.style.opacity = '0';
+        setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
+
+        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+        if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+        
+        pgmVideo.style.objectFit = (activeSrc === 'sharescreen') ? 'contain' : 'cover';
+        pgmVideo.style.display = 'block';
+        pgmVideo.style.opacity = '1';
+        pgmVideo.play().catch(() => {});
+        applyAudioState();
+        return;
+      }
+
+      // KASUS 3D: STANDBY BUMPER
+      if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
+      if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+      
+      bumperWrap.style.display = 'flex';
+      bumperWrap.style.opacity = '1';
+      document.getElementById('bumperTagOverlay').classList.add('hidden');
+      document.getElementById('bumperProgressBarContainer').classList.add('hidden');
+
+      const desiredBumperSrc = `https://www.youtube-nocookie.com/embed/${DEFAULT_BUMPER_YT_ID}?autoplay=1&mute=1&controls=0&rel=0&loop=1&playlist=${DEFAULT_BUMPER_YT_ID}&playsinline=1&enablejsapi=1&fs=0`;
+      if (!bumperIframe.src || !bumperIframe.src.includes(DEFAULT_BUMPER_YT_ID)) {
+        bumperIframe.src = desiredBumperSrc;
+      }
+
+      applyAudioState();
+    }
+
+    function getCameraStream(key) {
+      if (!key) return null;
+      if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
+      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
+      return null;
+    }
+
+    function syncVtDisplay() {
+      const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
+      if (!vidId) return;
+
+      const isPlaying = latestVtState.status === 'playing';
+      const targetTime = calculateAbsoluteServerTime(latestVtState);
+
+      if (!isMasterYtReady || !masterYtPlayer) {
+        initMasterYtPlayer(vidId, targetTime);
+        return;
+      }
+
+      if (currentActiveYtId !== vidId) {
+        currentActiveYtId = vidId;
+        const shield = document.getElementById('pgmBlackShield');
+        if (shield) shield.classList.remove('opacity-0');
+
+        masterYtPlayer.loadVideoById({
+          videoId: vidId,
+          startSeconds: Math.floor(targetTime)
+        });
+
+        if (isPlaying) masterYtPlayer.playVideo();
+        else masterYtPlayer.pauseVideo();
+        applyAudioState();
+        return;
+      }
+
+      const curState = masterYtPlayer.getPlayerState();
+      if (isPlaying && curState !== YT.PlayerState.PLAYING) {
+        masterYtPlayer.playVideo();
+      } else if (!isPlaying && curState !== YT.PlayerState.PAUSED) {
+        masterYtPlayer.pauseVideo();
+      }
+
+      const actualSec = (typeof masterYtPlayer.getCurrentTime === 'function') ? masterYtPlayer.getCurrentTime() : 0;
+      if (Math.abs(actualSec - targetTime) > 4.0) {
+        masterYtPlayer.seekTo(targetTime, true);
+        if (isPlaying) masterYtPlayer.playVideo();
+      }
+    }
+
+    function applyCgGraphics(cg) {
+      if (!cg) return;
+
+      const ltBox = document.getElementById('cgLowerThirdBox');
+      const ltTitle = document.getElementById('cgLtTitle');
+      const ltSub = document.getElementById('cgLtSubtitleText');
+      const logoBox = document.getElementById('cgBugLogo');
+      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
+      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
+      const tickerBox = document.getElementById('cgTickerBar');
+      const tickerText = document.getElementById('cgTickerText');
+      const badgeLive = document.getElementById('badgeLiveOnAir');
+
+      if (cg.lowerThirdActive) {
+        if (ltBox) ltBox.classList.remove('hidden');
+        if (ltTitle) ltTitle.innerText = cg.title || 'NAMA PRESENTER';
+        if (ltSub) ltSub.innerText = cg.subtitle || 'Keterangan Jabatan';
+      } else if (ltBox) ltBox.classList.add('hidden');
+
+      if (cg.logoActive === false) {
+        if (logoBox) logoBox.classList.add('hidden');
+      } else {
+        if (logoBox) logoBox.classList.remove('hidden');
+        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
+          if (logoCustomImg) { logoCustomImg.src = cg.logoUrl; logoCustomImg.classList.remove('hidden'); }
+          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+        } else {
+          if (logoCustomImg) logoCustomImg.classList.add('hidden');
+          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+        }
+      }
+
+      if (cg.tickerActive) {
+        if (tickerBox) tickerBox.classList.remove('hidden');
+        if (tickerText) tickerText.innerText = cg.tickerText || 'SKAWAN TV Live Broadcast';
+      } else if (tickerBox) tickerBox.classList.add('hidden');
+
+      if (badgeLive) {
+        const isLiveNow = (currentRoomToken === 'SKASA') || (currentRoomMeta.status === 'live');
+        if (cg.isLiveBadgeActive && isLiveNow) badgeLive.classList.remove('hidden');
+        else badgeLive.classList.add('hidden');
+      }
+    }
+
+    function startWibLiveClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        const clockEl = document.getElementById('liveTickerWibHeader');
+        if (clockEl) clockEl.innerText = `${formatter.format(now).replace('.', ':')} WIB`;
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    function connectLiveRoom(token) {
+      currentRoomToken = token.toUpperCase();
+      document.title = `SKAWAN TV | PGM [${currentRoomToken}]`;
+
       const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/roles/cam_${currentCamId}`).set("");
+      if (!activeDb) {
+        setTimeout(() => connectLiveRoom(token), 300);
+        return;
       }
-      window.location.href = `login.html?room=${currentRoomToken}`;
+
+      activeDb.ref('.info/serverTimeOffset').on('value', snap => {
+        serverClockOffset = snap.val() || 0;
+      });
+
+      activeDb.ref(`rooms/${currentRoomToken}`).on('value', snapshot => {
+        if (!snapshot.exists()) {
+          currentRoomMeta = { status: (currentRoomToken === 'SKASA' ? 'live' : 'ended') };
+          updateMonitors();
+          return;
+        }
+
+        const roomData = snapshot.val() || {};
+        const meta = roomData.meta || roomData;
+
+        currentRoomMeta = {
+          ...meta,
+          status: (currentRoomToken === 'SKASA') ? 'live' : (meta.status || 'standby'),
+          programName: meta.programName || `Studio ${currentRoomToken}`
+        };
+
+        if (roomData.live_state) {
+          liveState.programSource = roomData.live_state.programSource || liveState.programSource;
+          liveState.previewSource = roomData.live_state.previewSource || liveState.previewSource;
+        }
+        if (roomData.vt_state) {
+          latestVtState = { ...latestVtState, ...roomData.vt_state };
+        }
+        if (roomData.cg_state) {
+          applyCgGraphics(roomData.cg_state);
+        }
+
+        updateMonitors();
+      });
+
+      if (typeof SkawanStreamer !== 'undefined') {
+        try {
+          streamerInstance = new SkawanStreamer({
+            roomToken: currentRoomToken,
+            roleKey: `live_pgm_${Math.random().toString(36).substring(2, 7)}`,
+            onRemoteStream: (camKey, stream) => {
+              if (camKey === 'audio_master' || camKey === 'audio_pgm') {
+                const masterAudioEl = document.getElementById('masterStudioAudio');
+                if (masterAudioEl && masterAudioEl.srcObject !== stream) {
+                  masterAudioEl.srcObject = stream;
+                  masterAudioEl.play().catch(() => {});
+                  applyAudioState();
+                }
+                return;
+              }
+
+              const normKey = camKey.includes('_') ? camKey : (camKey === 'sharescreen' ? 'sharescreen' : camKey.replace('cam', 'cam_'));
+              remoteCamStreams.set(normKey, stream);
+              remoteCamStreams.set(camKey, stream);
+              updateMonitors();
+            }
+          });
+        } catch (e) {
+          console.warn("WebRTC Streamer notice:", e);
+        }
+      }
     }
 
-    window.addEventListener('beforeunload', () => {
-      keluarKeLogin();
-      if (streamerInstance) streamerInstance.destroy();
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetRoom = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
+
+      startWibLiveClock();
+      connectLiveRoom(targetRoom);
     });
   </script>
 </body>
