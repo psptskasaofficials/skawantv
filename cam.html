@@ -110,7 +110,7 @@
       <span class="text-6xl animate-bounce">📹</span>
       <h2 class="font-brand font-black text-xl text-white">Kamera Belum Aktif</h2>
       <p class="text-xs font-mono text-slate-400 max-w-xs">
-        Izinkan akses kamera pada peramban Anda untuk mulai menyiarkan visual ke switcher.
+        Izinkan akses kamera pada peramban Anda untuk mulai menyiarkan visual ke switcher studio.
       </p>
       <button onclick="mulaiKamera()" class="touch-btn px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-orange-600 font-brand font-black text-sm text-white shadow-xl shadow-red-600/30">
         Buka Akses Kamera
@@ -250,6 +250,8 @@
 
         const videoEl = document.getElementById('camVideoPreview');
         videoEl.srcObject = localStream;
+        videoEl.muted = true;
+        videoEl.play().catch(() => {});
         document.getElementById('camFallbackBox').classList.add('hidden');
 
         const vTrack = localStream.getVideoTracks()[0];
@@ -276,7 +278,9 @@
         const studentName = localStorage.getItem('skawan_user') || `Juru Kamera ${currentCamId}`;
         const activeDb = getDatabase();
         if (activeDb) {
-          activeDb.ref(`rooms/${currentRoomToken}/roles/${camRoleKey}`).set(studentName);
+          const roleRef = activeDb.ref(`rooms/${currentRoomToken}/roles/${camRoleKey}`);
+          roleRef.set(studentName);
+          roleRef.onDisconnect().set("");
         }
 
       } catch (err) {
@@ -345,10 +349,9 @@
       const activeDb = getDatabase();
       if (!activeDb) return;
 
-      activeDb.ref(`rooms/${token}/pd_state`).on('value', snap => {
-        const pd = snap.val() || {};
-        if (pd.directorCue) {
-          tampilkanDirectorCue(pd.directorCue);
+      activeDb.ref(`rooms/${token}/pd_state/directorCue`).on('value', snap => {
+        if (snap.exists() && snap.val()) {
+          tampilkanDirectorCue(snap.val());
         }
       });
     }
