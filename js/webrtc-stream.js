@@ -1,6 +1,6 @@
 /**
- * SKAWAN TV - WebRTC Streamer Engine (v2.1 Robust Mesh Signaling)
- * Mendukung Multi-Cam HP, Screen Share, & Multi-Viewer Switcher/PD/PGM
+ * SKAWAN TV - WebRTC Streamer Engine (v2.2 Robust Mesh Signaling)
+ * Multi-Cam HP, Screen Share, & Multi-Viewer Switcher/PD/PGM
  */
 class SkawanStreamer {
   constructor(options = {}) {
@@ -15,31 +15,24 @@ class SkawanStreamer {
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' }
+        { urls: 'stun:stun3.l.google.com:19302' }
       ],
       iceCandidatePoolSize: 10
     };
 
-    this.localStreams = new Map(); // key -> MediaStream
-    this.peers = new Map();        // peerId -> RTCPeerConnection
-    this.iceQueues = new Map();    // peerId -> Array of RTCIceCandidate
+    this.localStreams = new Map();
+    this.peers = new Map();
+    this.iceQueues = new Map();
     this.activeListeners = [];
-    this.isBroadcaster = this.checkIsBroadcaster();
 
     this.initSignaling();
-  }
-
-  checkIsBroadcaster() {
-    return this.roleKey.startsWith('cam_') || 
-           this.roleKey.startsWith('cam') || 
-           this.roleKey === 'sharescreen';
   }
 
   getBroadcasterKey() {
     if (this.roleKey.startsWith('cam_')) return this.roleKey;
     if (this.roleKey.startsWith('cam')) return 'cam_' + this.roleKey.replace('cam', '');
     if (this.roleKey === 'sharescreen') return 'sharescreen';
+    if (this.roleKey === 'audio_master') return 'audio_master';
     return null;
   }
 
@@ -54,14 +47,12 @@ class SkawanStreamer {
 
     const bKey = this.getBroadcasterKey();
     if (bKey) {
-      // PENYIAR (cam_1, cam_2, cam_3, sharescreen)
-      // Dengarkan permintaan koneksi baru dari viewer (switcher, pd, pgm)
+      // PENYIAR (cam_1, cam_2, cam_3, sharescreen, audio_master)
       const requestsRef = this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`);
       requestsRef.on('child_added', snap => {
         const viewerId = snap.key;
         if (!viewerId) return;
 
-        // Cek jika ada request masuk dari viewer
         snap.ref.child('request').on('value', rSnap => {
           if (rSnap.exists() && this.localStreams.has(bKey)) {
             this.handleViewerHandshake(viewerId, bKey);
@@ -76,7 +67,6 @@ class SkawanStreamer {
     }
   }
 
-  // DIJALANKAN VIEWER: Pantau penyiar yang aktif di ruangan
   discoverBroadcasters() {
     const presenceRef = this.db.ref(`webrtc_presence/${this.roomToken}`);
     presenceRef.on('value', snap => {
@@ -90,21 +80,22 @@ class SkawanStreamer {
     this.activeListeners.push(presenceRef);
   }
 
-  // VIEWER MEMINTA STREAM DARI PENYIAR
   connectToBroadcaster(bKey) {
     if (this.peers.has(bKey)) return;
 
     const connPath = `webrtc_signals/${this.roomToken}/${bKey}/${this.roleKey}`;
     const connRef = this.db.ref(connPath);
 
-    // Tandai viewer sedang meminta stream
     connRef.child('request').set({
       viewerId: this.roleKey,
       timestamp: Date.now()
     });
     connRef.onDisconnect().remove();
 
-    // Dengarkan SDP Offer dari Broadcaster
+    if (!this.iceQueues.has(bKey)) {
+      this.iceQueues.set(bKey, []);
+    }
+
     const offerRef = connRef.child('offer');
     offerRef.on('value', async snap => {
       const offerData = snap.val();
@@ -114,12 +105,13 @@ class SkawanStreamer {
       if (!pc) {
         pc = new RTCPeerConnection(this.rtcConfig);
         this.peers.set(bKey, pc);
-        this.iceQueues.set(bKey, []);
 
         pc.ontrack = (event) => {
-          if (event.streams && event.streams[0]) {
-            this.onRemoteStream(bKey, event.streams[0]);
+          let stream = (event.streams && event.streams[0]) ? event.streams[0] : null;
+          if (!stream) {
+            stream = new MediaStream([event.track]);
           }
+          this.onRemoteStream(bKey, stream);
         };
 
         pc.onicecandidate = (event) => {
@@ -140,7 +132,6 @@ class SkawanStreamer {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(offerData));
 
-        // Flush semua antrean ICE kandidat yang sempat tertunda
         const queue = this.iceQueues.get(bKey) || [];
         while (queue.length > 0) {
           const cand = queue.shift();
@@ -155,12 +146,11 @@ class SkawanStreamer {
           type: answer.type
         });
       } catch (err) {
-        console.warn(`[WebRTC] Error handshake offer on ${bKey}:`, err);
+        console.warn(`[WebRTC] Handshake error offer on ${bKey}:`, err);
       }
     });
     this.activeListeners.push(offerRef);
 
-    // Dengarkan ICE kandidat dari Broadcaster
     const iceFromBRef = connRef.child('ice_from_b');
     iceFromBRef.on('child_added', snap => {
       const cand = snap.val();
@@ -177,7 +167,6 @@ class SkawanStreamer {
     this.activeListeners.push(iceFromBRef);
   }
 
-  // DIJALANKAN PENYIAR: Kirim Offer ke Viewer yang meminta
   async handleViewerHandshake(viewerId, bKey) {
     let pc = this.peers.get(viewerId);
     if (pc) {
@@ -193,7 +182,6 @@ class SkawanStreamer {
     const connPath = `webrtc_signals/${this.roomToken}/${bKey}/${viewerId}`;
     const connRef = this.db.ref(connPath);
 
-    // Tambahkan track video/audio lokal ke sambungan
     const localStream = this.localStreams.get(bKey);
     if (localStream) {
       localStream.getTracks().forEach(track => {
@@ -215,7 +203,6 @@ class SkawanStreamer {
       }
     };
 
-    // Dengarkan Answer dari Viewer
     const answerRef = connRef.child('answer');
     answerRef.on('value', async snap => {
       const answerData = snap.val();
@@ -225,7 +212,6 @@ class SkawanStreamer {
         if (pc.signalingState !== 'stable') {
           await pc.setRemoteDescription(new RTCSessionDescription(answerData));
 
-          // Flush antrean ICE kandidat di Broadcaster
           const queue = this.iceQueues.get(viewerId) || [];
           while (queue.length > 0) {
             const cand = queue.shift();
@@ -233,12 +219,11 @@ class SkawanStreamer {
           }
         }
       } catch (err) {
-        console.warn(`[WebRTC] Error setting answer for ${viewerId}:`, err);
+        console.warn(`[WebRTC] Answer error for ${viewerId}:`, err);
       }
     });
     this.activeListeners.push(answerRef);
 
-    // Dengarkan ICE kandidat dari Viewer
     const iceFromVRef = connRef.child('ice_from_v');
     iceFromVRef.on('child_added', snap => {
       const cand = snap.val();
@@ -262,16 +247,14 @@ class SkawanStreamer {
         type: offer.type
       });
     } catch (err) {
-      console.warn(`[WebRTC] Failed to create offer for ${viewerId}:`, err);
+      console.warn(`[WebRTC] Offer error for ${viewerId}:`, err);
     }
   }
 
-  // PUBLIKASI ATAU PEMBARUAN STREAM (DIPANGGIL OLEH CAM & SCREEN)
   publishStream(streamKey, mediaStream) {
     this.localStreams.set(streamKey, mediaStream);
     const bKey = this.getBroadcasterKey() || streamKey;
 
-    // Jika sudah ada sambungan aktif, lakukan replaceTrack dinamis
     this.peers.forEach(pc => {
       const senders = pc.getSenders();
       const videoSender = senders.find(s => s.track && s.track.kind === 'video');
@@ -293,7 +276,6 @@ class SkawanStreamer {
       }
     });
 
-    // Nyalakan tanda kehadiran aktif di Firebase
     if (this.db) {
       this.presenceRef = this.db.ref(`webrtc_presence/${this.roomToken}/${bKey}`);
       this.presenceRef.set({
@@ -301,10 +283,19 @@ class SkawanStreamer {
         updatedAt: firebase.database.ServerValue.TIMESTAMP
       });
       this.presenceRef.onDisconnect().remove();
+
+      // Trigger re-handshake untuk viewer yang sudah meminta sebelum stream siap
+      this.db.ref(`webrtc_signals/${this.roomToken}/${bKey}`).once('value', snap => {
+        const viewers = snap.val() || {};
+        Object.keys(viewers).forEach(viewerId => {
+          if (viewers[viewerId] && viewers[viewerId].request) {
+            this.handleViewerHandshake(viewerId, bKey);
+          }
+        });
+      });
     }
   }
 
-  // HENTIKAN STREAM
   unpublishStream(streamKey) {
     this.localStreams.delete(streamKey);
     const bKey = this.getBroadcasterKey() || streamKey;
