@@ -128,7 +128,7 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Tombol Khusus Buka Live PGM Tab -->
+        <!-- Tombol Buka Tab Live PGM -->
         <button onclick="bukaTabLivePgm()" class="deck-btn px-3 py-1.5 rounded-xl border border-red-700 bg-red-950/80 hover:bg-red-900 text-red-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm" title="Buka Tab Live PGM Fullscreen Siap Rekam">
           <span>🔴</span>
           <span>Buka Live PGM</span>
@@ -161,7 +161,7 @@
           Pusat Kontrol & Manajemen Ruangan
         </h1>
         <p class="text-xs sm:text-sm text-slate-400" id="lblRoleInstructionText">
-          Kelola sesi siaran kelas, atur status gladi bersih &amp; on-air, serta pantau seluruh kru studio secara simultan.
+          Kelola sesi siaran kelas, atur status gladi bersih &amp; on-air, serta pantau seluruh kru studio secara simultan[cite: 2].
         </p>
       </div>
 
@@ -173,17 +173,17 @@
       </div>
     </div>
 
-    <!-- MODUL PEREKAM SIARAN STUDIO (REKAM KHUSUS TAB PGM VIA BROWSER DISPLAYMEDIA) -->
+    <!-- MODUL PEREKAM SIARAN STUDIO (RECORD FUNCTION) -->
     <div class="bg-slate-900 border-2 border-indigo-900/60 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
         <div class="flex items-center gap-2.5">
           <span id="recPulseIcon" class="w-3 h-3 rounded-full bg-slate-500"></span>
           <div>
             <h2 class="font-brand font-black text-sm uppercase tracking-wider text-white">
-              Studio Broadcast Tab Recorder (Guru &amp; Supervisor)
+              Studio Broadcast Recorder (Guru &amp; Supervisor)
             </h2>
             <span class="text-[11px] font-mono text-slate-400 block -mt-0.5">
-              Perekaman aman langsung dari tab Live PGM ke berkas lokal dengan ekspor manual ke Google Drive
+              Klik Record untuk membuka Live PGM layar penuh dan merekam langsung ke berkas lokal
             </span>
           </div>
         </div>
@@ -203,18 +203,19 @@
       <!-- Barisan Kontrol Perekaman -->
       <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
         <div class="md:col-span-7 text-xs text-slate-400 font-mono space-y-1">
-          <p>1. Klik tombol merah di atas <strong class="text-red-400">"Buka Live PGM"</strong> untuk membuka layar bersih siaran di tab sebelah.</p>
-          <p>2. Klik <strong class="text-white">"Mulai Rekam Tab PGM"</strong> di bawah, lalu pilih tab <strong class="text-white">"SKAWAN TV | PGM MASTER FEED"</strong>.</p>
-          <p>3. Rekaman tersimpan otomatis di folder Downloads lokal komputer Anda.</p>
+          <p>• Tombol <strong class="text-red-400">"Record"</strong> akan membuka tab siaran <strong class="text-white">Live PGM</strong> ruangan aktif sekaligus memulai rekaman.</p>
+          <p>• Pada dialog peramban, pilih tab <strong class="text-white">"SKAWAN TV | PGM MASTER FEED"</strong>.</p>
+          <p>• Hasil rekaman video (<strong class="text-white">.webm</strong>) otomatis tersimpan di folder Downloads lokal komputer Anda.</p>
         </div>
 
         <div class="md:col-span-5 flex flex-wrap items-center justify-end gap-2">
-          <button id="btnStartRecord" onclick="mulaiRekamSiaran()" class="deck-btn px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-brand font-black text-xs flex items-center gap-2 shadow-lg shadow-red-600/30">
-            <span>🔴</span>
-            <span>Mulai Rekam Tab PGM</span>
+          <!-- Tombol Record -->
+          <button id="btnStartRecord" onclick="mulaiRekamSiaran()" class="deck-btn px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-brand font-black text-sm flex items-center gap-2 shadow-xl shadow-red-600/40">
+            <span class="w-3 h-3 rounded-full bg-white animate-pulse"></span>
+            <span>Record</span>
           </button>
 
-          <button id="btnStopRecord" onclick="hentikanRekamSiaran()" class="hidden deck-btn px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 font-brand font-black text-xs flex items-center gap-2 shadow">
+          <button id="btnStopRecord" onclick="hentikanRekamSiaran()" class="hidden deck-btn px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 font-brand font-black text-sm flex items-center gap-2 shadow">
             <span>⏹</span>
             <span>Hentikan &amp; Simpan</span>
           </button>
@@ -227,7 +228,7 @@
           <div class="flex items-center gap-2 overflow-hidden">
             <span class="text-emerald-400 text-base">✓</span>
             <div class="truncate">
-              <span class="font-mono font-bold text-white block truncate" id="lblRecordedFileName">SKAWAN_TV_SKASA_Rekaman.webm</span>
+              <span class="font-mono font-bold text-white block truncate" id="lblRecordedFileName">SKAWAN_TV_SKASA_PGM_Rekaman.webm</span>
               <span class="text-[10px] font-mono text-slate-400 block" id="lblRecordedFileSize">Ukuran: 0 MB &bull; Tersimpan otomatis di folder Downloads</span>
             </div>
           </div>
@@ -259,7 +260,6 @@
         <span class="text-xs font-mono text-slate-400" id="lblTotalRoomsCount">Memuat ruangan...</span>
       </div>
 
-      <!-- Grid Kartu Ruangan -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="roomsListGrid"></div>
     </div>
 
@@ -298,7 +298,7 @@
         </div>
       </div>
 
-      <!-- PINTAS MASUK LANGSUNG WORKSTATION KRU LENGKAP -->
+      <!-- PINTAS WORKSTATION KRU -->
       <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-2.5">
         <div class="flex items-center justify-between text-xs">
           <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">Pintas Masuk Workstation Kru (Akses Supervisor Bebas Slot):</span>
@@ -308,10 +308,9 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 text-xs font-brand font-bold" id="crewQuickLinksGrid"></div>
       </div>
 
-      <!-- KENDALI SIARAN & MASTER PANIC KILL-SWITCH -->
+      <!-- KENDALI SIARAN & PANIC KILL-SWITCH -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
-        <!-- Kolom Kiri: Mode Studio (5 Kolom) -->
         <div class="lg:col-span-5 bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col justify-between">
           <div class="space-y-2">
             <span class="font-brand font-bold text-xs uppercase tracking-wider text-slate-300 block">Kendali Mode Siaran Studio:</span>
@@ -330,18 +329,16 @@
           </div>
 
           <div class="text-[11px] font-mono text-slate-400 p-2.5 bg-slate-900 rounded-xl border border-slate-800">
-            ℹ️ Mode <strong>Standby</strong> memutar identitas Bumper Station secara otomatis. Mode <strong>ON-AIR</strong> membuka saluran switcher publik ke penonton.
+            ℹ️ Mode <strong>Standby</strong> memutar identitas Bumper Station secara otomatis[cite: 2]. Mode <strong>ON-AIR</strong> membuka saluran switcher publik ke penonton[cite: 2].
           </div>
         </div>
 
-        <!-- Kolom Kanan: Panic Emergency Kill-Switch & Simulator Krisis (7 Kolom) -->
         <div class="lg:col-span-7 bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800 text-xs">
             <span class="font-brand font-bold text-red-400 uppercase tracking-wider">⚡ Master Panic Controls &amp; Simulator Krisis:</span>
             <span id="badgeActiveCrisis" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Normal</span>
           </div>
 
-          <!-- Tombol Darurat Nyata -->
           <div class="grid grid-cols-3 gap-2 text-xs font-brand font-bold">
             <button onclick="emergencyForceBumper()" class="deck-btn p-2 rounded-xl bg-orange-950/60 hover:bg-orange-900 border border-orange-700 text-orange-300 flex flex-col items-center justify-center gap-0.5 text-center">
               <span>🎬 Force Bumper</span>
@@ -359,7 +356,6 @@
             </button>
           </div>
 
-          <!-- Simulator Krisis Latihan Kru -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-brand font-bold pt-1">
             <button onclick="triggerCrisis('CAM_FAIL', 'Kamera 1 Mati Mendadak! PD segera instruksikan CUT ke Cam 2!')" class="deck-btn p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-rose-300 text-center">
               📹 Cam 1 Loss
@@ -383,12 +379,12 @@
 
       </div>
 
-      <!-- Status Okupansi Kru Studio Termasuk Screen Share -->
+      <!-- Status Okupansi Kru Studio -->
       <div class="space-y-2 pt-2 border-t border-slate-800">
         <div class="flex items-center justify-between text-xs">
           <div class="flex items-center gap-2">
             <span class="font-brand font-bold text-slate-300 uppercase tracking-wider">Status Okupansi Kru Siaran:</span>
-            <span class="text-[10px] font-mono text-slate-500 hidden sm:inline">(Klik tombol ✕ untuk melepas slot siswa)</span>
+            <span class="text-[10px] font-mono text-slate-500 hidden sm:inline">(Klik tombol ✕ untuk melepas slot siswa)[cite: 2]</span>
           </div>
           <span id="lblOccupancyRatio" class="font-mono text-[11px] text-slate-400">0/10 Terisi</span>
         </div>
@@ -473,7 +469,7 @@
       <div>
         <h4 class="text-base font-brand font-black text-white">Lepaskan Slot Kru?</h4>
         <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Keluarkan siswa <strong id="lblKickStudentName" class="text-amber-400">Dimas</strong> dari peran <strong id="lblKickRoleTitle" class="text-white">Video Switcher</strong>? Slot akan langsung kembali kosong.
+          Keluarkan siswa <strong id="lblKickStudentName" class="text-amber-400">Dimas</strong> dari peran <strong id="lblKickRoleTitle" class="text-white">Video Switcher</strong>? Slot akan langsung kembali kosong[cite: 2].
         </p>
       </div>
 
@@ -497,7 +493,7 @@
       <div>
         <h4 class="text-base font-brand font-black text-white">Akhiri Sesi Siaran?</h4>
         <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Sesi ruangan <strong id="lblEndSessionTargetToken" class="text-red-400 font-mono">STUDIO-1</strong> akan ditutup. Seluruh layar kru akan otomatis dialihkan ke pemilihan peran[cite: 1].
+          Sesi ruangan <strong id="lblEndSessionTargetToken" class="text-red-400 font-mono">STUDIO-1</strong> akan ditutup. Seluruh layar kru akan otomatis dialihkan ke pemilihan peran[cite: 2].
         </p>
       </div>
 
@@ -527,7 +523,7 @@
       <div>
         <h4 class="text-base font-brand font-black text-white">Hapus Ruangan Permanen?</h4>
         <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-          Ruangan <strong id="lblDeleteTargetToken" class="text-red-400 font-mono">STUDIO-1</strong> akan dihapus permanen dari sistem[cite: 1].
+          Ruangan <strong id="lblDeleteTargetToken" class="text-red-400 font-mono">STUDIO-1</strong> akan dihapus permanen dari sistem[cite: 2].
         </p>
       </div>
 
@@ -558,7 +554,7 @@
     </div>
   </div>
 
-  <!-- LOGIKA JAVASCRIPT MASTER CONTROL & TAB RECORDER -->
+  <!-- LOGIKA JAVASCRIPT MASTER CONTROL & DUAL RECORD ENGINE -->
   <script>
     let userRole = 'guru';
     let currentControlledRoom = '';
@@ -568,7 +564,6 @@
     let maskedPinsState = {};
     let pendingKickData = { roleKey: '', studentName: '', roleLabel: '' };
 
-    // Variable Perekaman MediaRecorder Khusus Tab
     let mediaRecorderInstance = null;
     let recordedChunks = [];
     let recordStartTime = 0;
@@ -660,13 +655,13 @@
         badgeRole.firstElementChild.className = "w-2 h-2 rounded-full bg-purple-500 animate-pulse";
         lblTitle.innerText = "Super Admin";
         headerRoleBadge.innerText = "SUPER ADMIN";
-        roleDesc.innerText = "Hak kontrol penuh: mengelola seluruh studio, mengontrol siaran, melepas slot kru SKASA, dan menghapus ruangan tanpa verifikasi PIN[cite: 1].";
+        roleDesc.innerText = "Hak kontrol penuh: mengelola seluruh studio, mengontrol siaran, melepas slot kru SKASA, dan menghapus ruangan tanpa verifikasi PIN[cite: 2].";
       } else {
         badgeRole.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-950/80 text-blue-400 border border-blue-800";
         badgeRole.firstElementChild.className = "w-2 h-2 rounded-full bg-blue-500 animate-pulse";
         lblTitle.innerText = "Guru Pengampu";
         headerRoleBadge.innerText = "GURU PENGAMPU";
-        roleDesc.innerText = "Kelola sesi siaran kelas, kontrol gladi bersih & on-air, serta pantau seluruh kru studio secara simultan[cite: 1].";
+        roleDesc.innerText = "Kelola sesi siaran kelas, kontrol gladi bersih & on-air, serta pantau seluruh kru studio secara simultan[cite: 2].";
       }
     }
 
@@ -676,20 +671,22 @@
       if (input) input.value = pin;
     }
 
-    // ========================================================
-    // BUKA TAB LIVE PGM SESUAI ROOM AKTIF
-    // ========================================================
     function bukaTabLivePgm() {
       const room = currentControlledRoom || 'SKASA';
       window.open(`live.html?room=${room}`, '_blank');
     }
 
     // ========================================================
-    // ENGINE PEREKAMAN SIARAN KHUSUS TAB PGM (OPSI B)
+    // ENGINE RECORD: BUKA LIVE.HTML & PICU REKAM TAB
     // ========================================================
     async function mulaiRekamSiaran() {
+      const room = currentControlledRoom || 'SKASA';
+      
+      // 1. Buka live.html ruangan aktif secara otomatis di tab baru
+      window.open(`live.html?room=${room}`, '_blank');
+
       try {
-        // Mengunci agar dialog browser memprioritaskan tangkapan tab peramban murni
+        // 2. Buka dialog pemilih tab displayMedia
         activeRecordingStream = await navigator.mediaDevices.getDisplayMedia({
           video: {
             displaySurface: "browser",
@@ -809,7 +806,7 @@
     }
 
     // ========================================================
-    // MEMASTIKAN ROOM SKASA SELALU SEHAT DENGAN SKEMA LENGKAP
+    // SINKRONISASI ROOM DEFAULTS
     // ========================================================
     function ensureDefaultSkasaRoom() {
       const activeDb = getDatabase();
@@ -1465,7 +1462,7 @@
     function eksekusiAkhiriSesi() {
       if (!targetEndRoom) return;
       if (targetEndRoom === 'SKASA' && userRole !== 'admin') {
-        showNotice("Proteksi Utama", "Hanya Super Admin yang berwenang mengakhiri siaran SKASA.", false);
+        showNotice("Proteksi Utama", "Hanya Super Admin yang berwenang mengakhiri siaran SKASA.");
         return;
       }
 
