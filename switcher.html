@@ -225,7 +225,7 @@
         </div>
       </div>
 
-      <!-- 2. MONITOR PROGRAM (PGM) - TALLY MERAH (SINKRON BERSIH TANPA BUMPER) -->
+      <!-- 2. MONITOR PROGRAM (PGM) - TALLY MERAH (SINKRON BERSIH TANPA BUMPER IFRAME) -->
       <div class="bg-slate-900 border-2 border-red-600 rounded-2xl p-3 shadow-xl space-y-2 flex flex-col justify-between">
         <div class="space-y-2">
           <div class="flex items-center justify-between pb-1 border-b border-slate-800">
@@ -240,7 +240,7 @@
 
           <!-- Viewport PGM -->
           <div class="aspect-video bg-black rounded-xl overflow-hidden relative border-2 border-red-600 shadow-2xl flex items-center justify-center select-none">
-            <!-- Fallback Bersih PGM saat kamera menunggu sinyal (Menggantikan Bumper Iframe) -->
+            <!-- Fallback Bersih PGM saat kamera menunggu sinyal -->
             <div id="pgmFallbackBox" class="text-center space-y-1 p-3 relative z-0">
               <span class="text-3xl block">🔴</span>
               <span id="pgmScreenLabel" class="font-brand font-black text-lg text-red-500 tracking-wider block">CAM 1</span>
@@ -532,7 +532,7 @@
       return dur > 0 ? Math.min(linearTime, dur) : linearTime;
     }
 
-    // YOUTUBE PLAYERS INITIALIZATION
+    // INISIALISASI PEMUTAR YOUTUBE RESMI UNTUK PGM & PVW
     window.onYouTubeIframeAPIReady = () => {
       const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url) || DEFAULT_BUMPER_YT_ID;
       const targetTime = calculateAbsoluteServerTime(latestVtState);
@@ -634,7 +634,7 @@
         return;
       }
 
-      // Kunci slot peran dan daftarkan auto-release saat disconnect
+      // Kunci slot peran dan daftarkan auto-release saat tab ditutup
       const studentName = localStorage.getItem('skawan_user') || 'Video Switcher (TD)';
       const roleRef = activeDb.ref(`rooms/${token}/roles/switcher`);
       roleRef.set(studentName);
@@ -644,7 +644,7 @@
         serverClockOffset = snap.val() || 0;
       });
 
-      // DENGARKAN STATUS RUANGAN REAL-TIME
+      // DENGARKAN STATUS RUANGAN SECARA REAL-TIME DARI FIREBASE
       activeDb.ref(`rooms/${token}`).on('value', snapshot => {
         if (!snapshot.exists()) return;
         const data = snapshot.val();
@@ -690,6 +690,7 @@
       return null;
     }
 
+    // PEMERIKSAAN SINKRONISASI DRIFT DAN TIMELINE VT
     function startVtAuditor() {
       setInterval(() => {
         const targetServerTime = calculateAbsoluteServerTime(latestVtState);
@@ -707,18 +708,27 @@
           progressBar.style.width = `${pct}%`;
         }
 
-        // Sinkronisasi periodik pemutar YouTube PGM saat VT aktif
+        // Sinkronisasi detik YouTube PGM saat VT aktif mengudara
         if (liveState.programSource === 'vt' && isMasterPgmYtReady && masterPgmYtPlayer && typeof masterPgmYtPlayer.getCurrentTime === 'function') {
           const actualPgmTime = masterPgmYtPlayer.getCurrentTime() || 0;
-          if (Math.abs(actualPgmTime - targetServerTime) > 3.0) {
+          if (Math.abs(actualPgmTime - targetServerTime) > 1.8) {
             masterPgmYtPlayer.seekTo(targetServerTime, true);
             if (latestVtState.status === 'playing') masterPgmYtPlayer.playVideo();
+          }
+        }
+
+        // Sinkronisasi detik YouTube PVW saat VT standby di Preview
+        if (liveState.previewSource === 'vt' && isMasterPvwYtReady && masterPvwYtPlayer && typeof masterPvwYtPlayer.getCurrentTime === 'function') {
+          const actualPvwTime = masterPvwYtPlayer.getCurrentTime() || 0;
+          if (Math.abs(actualPvwTime - targetServerTime) > 1.8) {
+            masterPvwYtPlayer.seekTo(targetServerTime, true);
+            if (latestVtState.status === 'playing') masterPvwYtPlayer.playVideo();
           }
         }
       }, 1000);
     }
 
-    // WATCHDOG UNTUK MEMASTIKAN FEED MULTIVIEW & PROGRAM TERKONEKSI
+    // WATCHDOG UNTUK MEMASTIKAN ALIRAN WEBRTC TERSAMBUNG KE KOTAK MULTIVIEW
     function startMultiviewWatchdog() {
       setInterval(() => {
         updateMultiviewVideos();
@@ -822,6 +832,7 @@
       document.getElementById('lblPvwTarget').innerText = pvwSrc.toUpperCase().replace('_', ' ');
     }
 
+    // MONITOR PVW (PREVIEW CUE)
     function updatePvwMonitor() {
       const pvwSrc = liveState.previewSource || 'cam_2';
       const pvwVideo = document.getElementById('pvwCamVideo');
@@ -858,7 +869,7 @@
       }
     }
 
-    // MONITOR PGM BERSIH (TANPA BUMPER IFRAME DI AWAL)
+    // MONITOR PGM BERSIH (TANPA BUMPER DI AWAL, SINKRON TOTAL DENGAN INDEX.HTML)
     function updatePgmMonitor() {
       const pgmSrc = liveState.programSource || 'cam_1';
       const pgmVideo = document.getElementById('pgmCamVideo');
@@ -895,6 +906,7 @@
       }
     }
 
+    // SINKRONISASI PLAYOUT VT DI PGM
     function syncPgmVtPlayout() {
       const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
       if (!vidId) return;
@@ -917,7 +929,13 @@
         return;
       }
 
-      const pState = masterPgmYtPlayer.getPlayerState();
+      // Langsung sesuaikan ke detik berjalan saat beralih kembali ke PGM
+      const actualSec = (typeof masterPgmYtPlayer.getCurrentTime === 'function') ? masterPgmYtPlayer.getCurrentTime() : 0;
+      if (Math.abs(actualSec - targetTime) > 0.8) {
+        masterPgmYtPlayer.seekTo(targetTime, true);
+      }
+
+      const pState = (typeof masterPgmYtPlayer.getPlayerState === 'function') ? masterPgmYtPlayer.getPlayerState() : -1;
       if (isPlaying && pState !== YT.PlayerState.PLAYING) {
         masterPgmYtPlayer.playVideo();
       } else if (!isPlaying && pState !== YT.PlayerState.PAUSED) {
@@ -925,6 +943,7 @@
       }
     }
 
+    // SINKRONISASI PLAYOUT VT DI PVW (SESUAI DETIK DURASI BERJALAN)
     function syncPvwVtPlayout() {
       const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url);
       if (!vidId) return;
@@ -945,7 +964,13 @@
         return;
       }
 
-      const pState = masterPvwYtPlayer.getPlayerState();
+      // Langsung sesuaikan ke detik berjalan saat VT berpindah ke PVW
+      const actualSec = (typeof masterPvwYtPlayer.getCurrentTime === 'function') ? masterPvwYtPlayer.getCurrentTime() : 0;
+      if (Math.abs(actualSec - targetTime) > 0.8) {
+        masterPvwYtPlayer.seekTo(targetTime, true);
+      }
+
+      const pState = (typeof masterPvwYtPlayer.getPlayerState === 'function') ? masterPvwYtPlayer.getPlayerState() : -1;
       if (isPlaying && pState !== YT.PlayerState.PLAYING) {
         masterPvwYtPlayer.playVideo();
       } else if (!isPlaying && pState !== YT.PlayerState.PAUSED) {
