@@ -168,7 +168,7 @@
           <span id="navRoomToken" class="font-mono font-bold text-xs text-orange-400">SKASA</span>
         </div>
 
-        <a href="login.html" class="director-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+        <a href="login.html" onclick="keluarKeLogin(event)" class="director-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
           <span>🚪</span>
           <span class="hidden sm:inline">Keluar</span>
         </a>
@@ -712,9 +712,6 @@
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
-    // ========================================================
-    // KALKULASI WAKTU LINIER MURNI (SINKRON DENGAN INDEX.HTML)
-    // ========================================================
     function getLinearServerTime(vt) {
       if (!vt) return 0;
       const offset = (vt.startOffset !== undefined) ? vt.startOffset : (vt.currentTime || 0);
@@ -738,7 +735,6 @@
       return dur > 0 ? Math.min(linearTime, dur) : linearTime;
     }
 
-    // YOUTUBE API RESMI INITIALIZATION
     window.onYouTubeIframeAPIReady = () => {
       const vidId = extractCleanYtId(latestVtState.youtubeId || latestVtState.url) || DEFAULT_BUMPER_YT_ID;
       const targetTime = calculateAbsoluteServerTime(latestVtState);
@@ -761,7 +757,7 @@
           controls: 0,
           rel: 0,
           autoplay: 1,
-          mute: 1, // Di meja PD audio selalu dibisukan agar tidak acoustic feedback
+          mute: 1,
           modestbranding: 1,
           iv_load_policy: 3,
           disablekb: 1,
@@ -840,11 +836,17 @@
         return;
       }
 
+      // Kunci slot peran PD dan pasang auto-release onDisconnect
+      const studentName = localStorage.getItem('skawan_user') || 'Program Director (PD)';
+      const roleRef = activeDb.ref(`rooms/${token}/roles/pd`);
+      roleRef.set(studentName);
+      roleRef.onDisconnect().set("");
+
       activeDb.ref('.info/serverTimeOffset').on('value', snap => {
         serverClockOffset = snap.val() || 0;
       });
 
-      // DENGARKAN STATUS RUANGAN REAL-TIME
+      // Dengarkan status ruangan real-time
       activeDb.ref(`rooms/${token}`).on('value', snapshot => {
         if (!snapshot.exists()) {
           if (token === 'SKASA') {
@@ -887,6 +889,18 @@
           applyCgGraphics(cachedCgState);
         }
 
+        if (roomData.pd_state && roomData.pd_state.currentSegmentIndex !== undefined) {
+          const remoteIdx = parseInt(roomData.pd_state.currentSegmentIndex);
+          if (!isNaN(remoteIdx) && remoteIdx !== activeRundownIndex && remoteIdx < rundownItems.length) {
+            activeRundownIndex = remoteIdx;
+            const currentSeg = rundownItems[activeRundownIndex];
+            if (currentSeg) {
+              segmentRemainingSec = currentSeg.durationSec || 180;
+              document.getElementById('lblActiveSegmenTitle').innerText = `${activeRundownIndex + 1}. ${currentSeg.title}`;
+            }
+          }
+        }
+
         if (roomData.rundown) {
           const list = Array.isArray(roomData.rundown) ? roomData.rundown : Object.values(roomData.rundown);
           if (list.length > 0) {
@@ -898,7 +912,7 @@
         updateAllMonitors();
       });
 
-      // WEBRTC STREAMER RECEIVER
+      // WebRTC Streamer Receiver
       if (typeof SkawanStreamer !== 'undefined') {
         streamerInstance = new SkawanStreamer({
           roomToken: token,
@@ -930,14 +944,12 @@
       return null;
     }
 
-    // AUDIT SINKRONISASI DRIFT AKTIF (HEARTBEAT LOOP)
     function startTimelineAndDriftAuditor() {
       setInterval(() => {
         const targetServerTime = calculateAbsoluteServerTime(latestVtState);
         const totalDur = latestVtState.totalDuration || 120;
         const remainingSec = Math.max(0, totalDur - targetServerTime);
 
-        // Update Multiview VT Timecode & Bar
         const lblElapsed = document.getElementById('lblMvVtElapsed');
         const lblTotal = document.getElementById('lblMvVtTotal');
         const progressBar = document.getElementById('mvVtTimelineBar');
@@ -957,7 +969,6 @@
           }
         }
 
-        // Sinkronisasi Pemutar VT PGM jika terdeteksi selisih > 2.0s
         if (isMasterPgmYtReady && masterPgmYtPlayer && typeof masterPgmYtPlayer.getCurrentTime === 'function') {
           const actualPgmTime = masterPgmYtPlayer.getCurrentTime() || 0;
           if (Math.abs(actualPgmTime - targetServerTime) > 2.0) {
@@ -966,7 +977,6 @@
           }
         }
 
-        // Hitung Mundur Waktu Segmen & Show
         if (segmentRemainingSec > 0) segmentRemainingSec--;
         if (totalShowRemainingSec > 0) totalShowRemainingSec--;
         document.getElementById('lblSegmentRemainingTime').innerText = formatTimecode(segmentRemainingSec);
@@ -1082,6 +1092,7 @@
       const stream = getCameraStream(pvwSrc);
       if (stream && pvwVideo) {
         if (pvwVideo.srcObject !== stream) pvwVideo.srcObject = stream;
+        pvwVideo.style.objectFit = (pvwSrc === 'sharescreen') ? 'contain' : 'cover';
         pvwVideo.style.display = 'block';
         pvwVideo.style.opacity = '1';
         pvwVideo.play().catch(() => {});
@@ -1106,7 +1117,6 @@
 
       if (bannerProg) bannerProg.innerText = currentRoomMeta.programName || "SKASA TV Live Broadcast";
 
-      // 1. STANDBY GLADI
       if (effectiveStatus !== 'live') {
         pgmViewport.style.borderColor = '#d97706';
         if (bannerStatus) {
@@ -1132,7 +1142,6 @@
         return;
       }
 
-      // 2. LIVE ON-AIR
       pgmViewport.style.borderColor = '#dc2626';
       if (bannerStatus) {
         bannerStatus.innerText = "LIVE ON-AIR";
@@ -1141,7 +1150,6 @@
 
       standbyOverlay.style.display = 'none';
 
-      // Penanganan Blackout mode off
       if (latestVtState.status === 'ended' && liveState.programSource === 'vt') {
         if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
         if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
@@ -1166,6 +1174,7 @@
       if (stream && pgmVideo) {
         if (bumperWrap) { bumperWrap.style.display = 'none'; bumperWrap.style.opacity = '0'; }
         if (pgmVideo.srcObject !== stream) pgmVideo.srcObject = stream;
+        pgmVideo.style.objectFit = (activeSrc === 'sharescreen') ? 'contain' : 'cover';
         pgmVideo.style.display = 'block';
         pgmVideo.style.opacity = '1';
         pgmVideo.play().catch(() => {});
@@ -1183,11 +1192,9 @@
       }
     }
 
-    // APLIKASIKAN GRAFIS CG KE MONITOR & INSPECTOR
     function applyCgGraphics(cg) {
       if (!cg) return;
 
-      // 1. Tampilan CUE di Monitor PVW (Cyan / Biru)
       const cueBox = document.getElementById('cgCueLowerThirdBox');
       const cueTitle = document.getElementById('cgCueLtTitle');
       const cueSub = document.getElementById('cgCueLtSubtitleText');
@@ -1201,13 +1208,11 @@
         cueBox.classList.remove('hidden');
       }
 
-      // Update Teks di Panel Inspector
       const insCueT = document.getElementById('txtInspectorCueTitle');
       const insCueS = document.getElementById('txtInspectorCueSubtitle');
       if (insCueT) insCueT.innerText = cueT;
       if (insCueS) insCueS.innerText = cueS;
 
-      // 2. Tampilan LIVE di Monitor PGM (Merah / On-Air)
       const liveBox = document.getElementById('cgLowerThirdBox');
       const liveTitle = document.getElementById('cgLtTitle');
       const liveSub = document.getElementById('cgLtSubtitleText');
@@ -1229,7 +1234,6 @@
         if (insLiveS) insLiveS.innerText = "-";
       }
 
-      // 3. Ticker Bar
       const tickerBox = document.getElementById('cgTickerBar');
       const tickerText = document.getElementById('cgTickerText');
       if (cg.tickerActive && cg.tickerText) {
@@ -1237,7 +1241,6 @@
         if (tickerText) tickerText.innerText = cg.tickerText;
       } else if (tickerBox) tickerBox.classList.add('hidden');
 
-      // 4. Logo Bug
       const logoBox = document.getElementById('cgBugLogo');
       const logoCustom = document.getElementById('cgBugLogoCustomImg');
       const logoDefault = document.getElementById('cgBugLogoDefaultBadge');
@@ -1255,9 +1258,7 @@
       }
     }
 
-    // ========================================================
-    // PERINTAH KONTROL PD (TAKE CG, CLEAR, EMERGENCY SWITCHER)
-    // ========================================================
+    // KONTROL PD & EMERGENCY COMMANDS
     function eksekusiTakeCg() {
       const activeDb = getDatabase();
       if (!activeDb) return;
@@ -1334,6 +1335,7 @@
       });
     }
 
+    // TRANSMISI DIRECTOR CUE INTERCOM KE SELURUH MODUL KRU
     function kirimDirectorCue() {
       const input = document.getElementById('inputDirectorCueMsg');
       const msg = input.value.trim();
@@ -1362,9 +1364,7 @@
       }
     }
 
-    // ========================================================
-    // RUNDOWN ACARA LOGIKA
-    // ========================================================
+    // RUNDOWN ACARA DUA ARAH
     function renderRundownUI() {
       const container = document.getElementById('rundownListContainer');
       if (!container) return;
@@ -1387,7 +1387,7 @@
             </span>
             <div class="truncate">
               <span class="font-brand font-bold text-xs text-white block truncate">${seg.title}</span>
-              <span class="text-[9px] font-mono text-slate-400 block">Sumber: <strong class="text-indigo-300 uppercase">${seg.targetSource.replace('_', ' ')}</strong> &bull; ${formatTimecode(seg.durationSec)}</span>
+              <span class="text-[9px] font-mono text-slate-400 block">Sumber: <strong class="text-indigo-300 uppercase">${(seg.targetSource || '').replace('_', ' ')}</strong> &bull; ${formatTimecode(seg.durationSec)}</span>
             </div>
           </div>
           <div class="shrink-0">
@@ -1411,8 +1411,21 @@
       const seg = rundownItems[idx];
       segmentRemainingSec = seg.durationSec || 180;
 
-      // Otomatis arahkan Preview Bus Switcher ke sumber segmen yang dipilih
+      // Otomatis arahkan Preview Bus Switcher ke sumber segmen
       pilihSumberPreview(seg.targetSource);
+
+      // SINKRONISASI KE DATABASE AGAR FD DAN STUDIO LAINNYA TAHU SEGMEN AKTIF
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/pd_state`).update({
+          currentSegmentIndex: idx,
+          activeSegmentTitle: seg.title,
+          activeSegmentSource: seg.targetSource || 'cam_1',
+          segmentDuration: seg.durationSec || 180,
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      }
+
       renderRundownUI();
     }
 
@@ -1468,7 +1481,24 @@
       setInterval(updateClock, 1000);
     }
 
+    function keluarKeLogin(event) {
+      if (event) event.preventDefault();
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/pd`).set("");
+      }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+        streamerInstance = null;
+      }
+      window.location.href = `login.html?room=${currentRoomToken}`;
+    }
+
     window.addEventListener('beforeunload', () => {
+      const activeDb = getDatabase();
+      if (activeDb) {
+        activeDb.ref(`rooms/${currentRoomToken}/roles/pd`).set("");
+      }
       if (streamerInstance) {
         streamerInstance.destroy();
         streamerInstance = null;
