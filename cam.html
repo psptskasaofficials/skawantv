@@ -78,7 +78,7 @@
     </div>
   </div>
 
-  <!-- HUD ATAS: IDENTITAS, STATUS TRANSMISI, RESOLUSI, FULLSCREEN & KELUAR -->
+  <!-- HUD ATAS: IDENTITAS, STATUS TRANSMISI, FULLSCREEN & KELUAR -->
   <header class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/85 via-black/40 to-transparent">
     <div class="flex items-center gap-2">
       <div id="badgeCamId" class="px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-white font-mono font-black text-xs sm:text-sm tracking-wider shadow">
@@ -193,9 +193,6 @@
       setupFullscreenListener();
     });
 
-    // ========================================================
-    // ENGINE FULLSCREEN LAYAR PENUH
-    // ========================================================
     function toggleFullscreen() {
       const doc = document.documentElement;
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
@@ -235,7 +232,6 @@
       }
     }
 
-    // UPDATE STATUS TRANSMISI KE SWITCHER
     function updateStreamStatusUI(state) {
       const dot = document.getElementById('dotStreamStatus');
       const lbl = document.getElementById('lblStreamStatus');
@@ -280,7 +276,6 @@
         try {
           localStream = await navigator.mediaDevices.getUserMedia(constraints);
         } catch (strictErr) {
-          // Fallback jika constraint resolusi ideal ditolak hardware HP
           localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: isAudioEnabled
