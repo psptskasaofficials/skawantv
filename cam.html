@@ -30,8 +30,6 @@
               red: '#E50914',
               orange: '#EA580C',
               darkBg: '#080C14',
-              cardDark: '#0F172A',
-              borderDark: '#1E293B'
             }
           }
         }
@@ -112,7 +110,7 @@
       <span class="text-6xl animate-bounce">📹</span>
       <h2 class="font-brand font-black text-xl text-white">Kamera Belum Aktif</h2>
       <p class="text-xs font-mono text-slate-400 max-w-xs">
-        Izinkan akses kamera pada peramban Anda untuk mulai menyiarkan visual ke ruang kontrol.
+        Izinkan akses kamera pada peramban Anda untuk mulai menyiarkan visual ke switcher.
       </p>
       <button onclick="mulaiKamera()" class="touch-btn px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-orange-600 font-brand font-black text-sm text-white shadow-xl shadow-red-600/30">
         Buka Akses Kamera
@@ -120,7 +118,7 @@
     </div>
   </div>
 
-  <!-- HUD ATAS: IDENTITAS KAMERA, RESOLUSI AKTIF, & TALLY STATUS -->
+  <!-- HUD ATAS: IDENTITAS KAMERA, PILIHAN RESOLUSI, & TALLY STATUS -->
   <header class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent">
     <div class="flex items-center gap-2">
       <div id="badgeCamId" class="px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-white font-mono font-black text-xs sm:text-sm tracking-wider shadow">
@@ -133,7 +131,6 @@
 
     <!-- Pilihan Resolusi, Info Ruangan, & Keluar -->
     <div class="flex items-center gap-2">
-      <!-- Selector Custom Resolusi -->
       <div class="bg-black/70 backdrop-blur-md rounded-xl border border-white/20 px-2 py-0.5 flex items-center gap-1 shadow">
         <span class="text-[10px] font-mono text-slate-400">RES:</span>
         <select id="selectResolution" onchange="ubahResolusiKamera(this.value)" class="bg-transparent text-amber-400 font-mono font-bold text-xs outline-none cursor-pointer">
@@ -152,7 +149,7 @@
     </div>
   </header>
 
-  <!-- BANNER CUE ABA-ABA DARI SUTRADARA (PD) -->
+  <!-- BANNER CUE DARI PD -->
   <div id="boxDirectorCueAlert" class="hidden relative z-20 mx-3 sm:mx-6 p-3 rounded-2xl bg-amber-500/95 text-slate-950 shadow-2xl backdrop-blur-md director-cue-alert">
     <div class="flex items-center justify-between">
       <span class="text-[9px] font-mono font-black uppercase tracking-wider">ABA-ABA SUTRADARA (PD):</span>
@@ -163,7 +160,7 @@
     </p>
   </div>
 
-  <!-- HUD BAWAH: STATUS FRAME/FPS, WAKE LOCK, & KONTROL KAMERA -->
+  <!-- HUD BAWAH: STATUS ANTI-SLEEP, RESOLUSI RIIL, & KONTROL KAMERA -->
   <footer class="relative z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-t from-black/90 via-black/50 to-transparent">
     <div class="flex items-center gap-2">
       <div class="text-[10px] font-mono text-slate-300 bg-black/60 px-2.5 py-1 rounded-lg border border-white/10">
@@ -175,13 +172,10 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <!-- Tombol Balik Kamera Depan / Belakang -->
       <button id="btnSwitchCamera" onclick="gantiArahKamera()" class="touch-btn bg-black/70 backdrop-blur-md hover:bg-black text-white px-3.5 py-2 rounded-xl border border-white/20 text-xs font-bold font-mono flex items-center gap-1.5 shadow-lg">
         <span>🔄</span>
         <span class="hidden sm:inline">Pindah Kamera</span>
       </button>
-
-      <!-- Tombol Mute / Suara Kamera -->
       <button id="btnToggleAudio" onclick="toggleAudio()" class="touch-btn bg-black/70 backdrop-blur-md hover:bg-black text-white px-3 py-2 rounded-xl border border-white/20 text-xs font-mono">
         <span id="iconAudio">🔇 Mic Off</span>
       </button>
@@ -228,11 +222,8 @@
         try {
           wakeLockSentinel = await navigator.wakeLock.request('screen');
           document.getElementById('lblWakeLockStatus').innerText = "🔒 Anti-Sleep Aktif";
-          wakeLockSentinel.addEventListener('release', () => {
-            document.getElementById('lblWakeLockStatus').innerText = "🔓 Sleep Biasa";
-          });
         } catch (err) {
-          document.getElementById('lblWakeLockStatus').innerText = "⚠️ Anti-Sleep Nonaktif";
+          document.getElementById('lblWakeLockStatus').innerText = "⚠️ Anti-Sleep Off";
         }
       }
     }
@@ -261,7 +252,6 @@
         videoEl.srcObject = localStream;
         document.getElementById('camFallbackBox').classList.add('hidden');
 
-        // Baca resolusi riil yang didukung sensor perangkat
         const vTrack = localStream.getVideoTracks()[0];
         if (vTrack) {
           const settings = vTrack.getSettings();
@@ -271,7 +261,6 @@
           }
         }
 
-        // WebRTC Streamer
         const camRoleKey = `cam_${currentCamId}`;
         if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
           streamerInstance = new SkawanStreamer({
@@ -296,7 +285,6 @@
       }
     }
 
-    // Ubah Resolusi Dinamis
     async function ubahResolusiKamera(val) {
       if (!RESOLUTION_PRESETS[val]) return;
       currentResolution = val;
@@ -310,8 +298,7 @@
 
     function toggleAudio() {
       isAudioEnabled = !isAudioEnabled;
-      const icon = document.getElementById('iconAudio');
-      icon.innerText = isAudioEnabled ? '🔊 Mic On' : '🔇 Mic Off';
+      document.getElementById('iconAudio').innerText = isAudioEnabled ? '🔊 Mic On' : '🔇 Mic Off';
       mulaiKamera();
     }
 
@@ -342,7 +329,6 @@
         viewport.className = "absolute inset-0 w-full h-full border-8 tally-live transition-all duration-200 flex items-center justify-center overflow-hidden";
         badge.className = "px-3 py-1 rounded-xl bg-red-600 text-white font-mono font-black text-xs uppercase shadow animate-pulse";
         badge.innerText = "● LIVE ON-AIR";
-
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       } else if (isCue) {
         viewport.className = "absolute inset-0 w-full h-full border-8 tally-cue transition-all duration-200 flex items-center justify-center overflow-hidden";
@@ -384,6 +370,9 @@
       if (localStream) {
         localStream.getTracks().forEach(t => t.stop());
       }
+      if (streamerInstance) {
+        streamerInstance.destroy();
+      }
       const activeDb = getDatabase();
       if (activeDb) {
         activeDb.ref(`rooms/${currentRoomToken}/roles/cam_${currentCamId}`).set("");
@@ -393,7 +382,6 @@
 
     window.addEventListener('beforeunload', () => {
       keluarKeLogin();
-      if (streamerInstance) streamerInstance.destroy();
     });
   </script>
 </body>
