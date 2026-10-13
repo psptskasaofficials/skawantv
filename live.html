@@ -122,7 +122,7 @@
   <!-- MASTER VIEWPORT 16:9 CLEAN OUTPUT -->
   <div id="pgmMasterViewport" class="relative w-full aspect-video max-h-screen bg-black overflow-hidden flex items-center justify-center">
 
-    <!-- 1. LAYER BUMPER PLAYOUT -->
+    <!-- 1. LAYER BUMPER PLAYOUT (7 DETIK AWAL) -->
     <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center" style="display: flex; opacity: 1;">
       <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
         <iframe
@@ -175,7 +175,7 @@
       </div>
     </div>
 
-    <!-- 5. CG BUG LOGO -->
+    <!-- 5. CG BUG LOGO (MENDUKUNG 3 OPSI) -->
     <div id="cgBugLogo" class="absolute top-5 right-6 z-30 flex items-center justify-center max-w-[150px] max-h-14 transition-all duration-200 pointer-events-none">
       <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-10 w-auto object-contain drop-shadow-md">
       <div id="cgBugLogoDefaultBadge" class="flex items-center gap-2 bg-white/95 rounded-2xl px-3 py-1.5 shadow-xl backdrop-blur-sm border border-white/20">
@@ -222,7 +222,7 @@
 
   </div>
 
-  <!-- FLOATING HELPER (AUTO-HIDE SETELAH 3 DETIK AGAR REKAMAN BERSIH) -->
+  <!-- FLOATING HELPER (AUTO-HIDE SETELAH 3 DETIK) -->
   <div id="floatingControls" class="control-fade fixed bottom-4 right-4 z-50 flex items-center gap-2 opacity-90">
     <button id="btnFloatingAudioUnmute" onclick="bukaSuaraSiaran()" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 px-3.5 py-2 rounded-2xl shadow-2xl font-mono text-xs font-bold flex items-center gap-2 backdrop-blur-md transition">
       <span id="iconAudioState">🔇</span>
@@ -330,7 +330,6 @@
       applyAudioState();
     }
 
-    // Auto unmute saat klik pertama kali
     window.addEventListener('click', () => {
       if (!isAudioUnmuted) bukaSuaraSiaran();
     }, { once: true });
@@ -343,7 +342,6 @@
       }
     }
 
-    // Auto-hide floating button saat kursor diam agar rekaman bersih
     let hideTimer = null;
     const floatingBox = document.getElementById('floatingControls');
     function resetHideTimer() {
@@ -491,7 +489,7 @@
       const isVtActive = (activeSrc === 'vt' && vtVidId !== '');
       const isCamActive = (stream !== null);
 
-      // KASUS 3A: OPENING IDENT 7 DETIK
+      // KASUS 3A: BUMPER OPENING 7 DETIK
       if (!onAirBumperPlayedForCurrentSession) {
         onAirBumperPlayedForCurrentSession = true;
 
@@ -533,7 +531,7 @@
         return;
       }
 
-      // KASUS 3B: VT ON-AIR
+      // KASUS 3B: UMPAN VT AKTIF
       if (isVtActive) {
         bumperWrap.style.opacity = '0';
         setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
@@ -548,7 +546,7 @@
         return;
       }
 
-      // KASUS 3C: KAMERA / SCREEN SHARE ON-AIR
+      // KASUS 3C: UMPAN KAMERA / SCREEN SHARE AKTIF
       if (isCamActive && pgmVideo) {
         bumperWrap.style.opacity = '0';
         setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
@@ -564,7 +562,7 @@
         return;
       }
 
-      // KASUS 3D: STANDBY BUMPER
+      // KASUS 3D: STANDBY JIKA BELUM ADA SUMBER
       if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
       if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
       
@@ -584,7 +582,7 @@
     function getCameraStream(key) {
       if (!key) return null;
       if (remoteCamStreams.has(key)) return remoteCamStreams.get(key);
-      const altKey = key.includes('_') ? key.replace('_', '') : key.replace('cam', 'cam_');
+      const altKey = key.includes('_') ? key.replace('_', '') : (key === 'sharescreen' ? 'sharescreen' : key.replace('cam', 'cam_'));
       if (remoteCamStreams.has(altKey)) return remoteCamStreams.get(altKey);
       return null;
     }
@@ -617,7 +615,7 @@
         return;
       }
 
-      const curState = masterYtPlayer.getPlayerState();
+      const curState = (typeof masterYtPlayer.getPlayerState === 'function') ? masterYtPlayer.getPlayerState() : -1;
       if (isPlaying && curState !== YT.PlayerState.PLAYING) {
         masterYtPlayer.playVideo();
       } else if (!isPlaying && curState !== YT.PlayerState.PAUSED) {
@@ -625,7 +623,7 @@
       }
 
       const actualSec = (typeof masterYtPlayer.getCurrentTime === 'function') ? masterYtPlayer.getCurrentTime() : 0;
-      if (Math.abs(actualSec - targetTime) > 4.0) {
+      if (Math.abs(actualSec - targetTime) > 3.0) {
         masterYtPlayer.seekTo(targetTime, true);
         if (isPlaying) masterYtPlayer.playVideo();
       }
@@ -637,9 +635,6 @@
       const ltBox = document.getElementById('cgLowerThirdBox');
       const ltTitle = document.getElementById('cgLtTitle');
       const ltSub = document.getElementById('cgLtSubtitleText');
-      const logoBox = document.getElementById('cgBugLogo');
-      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
-      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
       const tickerBox = document.getElementById('cgTickerBar');
       const tickerText = document.getElementById('cgTickerText');
       const badgeLive = document.getElementById('badgeLiveOnAir');
@@ -650,18 +645,7 @@
         if (ltSub) ltSub.innerText = cg.subtitle || 'Keterangan Jabatan';
       } else if (ltBox) ltBox.classList.add('hidden');
 
-      if (cg.logoActive === false) {
-        if (logoBox) logoBox.classList.add('hidden');
-      } else {
-        if (logoBox) logoBox.classList.remove('hidden');
-        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
-          if (logoCustomImg) { logoCustomImg.src = cg.logoUrl; logoCustomImg.classList.remove('hidden'); }
-          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
-        } else {
-          if (logoCustomImg) logoCustomImg.classList.add('hidden');
-          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
-        }
-      }
+      renderLiveBugLogo(cg);
 
       if (cg.tickerActive) {
         if (tickerBox) tickerBox.classList.remove('hidden');
@@ -675,6 +659,56 @@
       }
     }
 
+    function renderLiveBugLogo(cg) {
+      const logoBox = document.getElementById('cgBugLogo');
+      const logoCustomImg = document.getElementById('cgBugLogoCustomImg');
+      const logoDefaultBadge = document.getElementById('cgBugLogoDefaultBadge');
+      const defaultImg = document.getElementById('cgBugLogoDefaultImg');
+      if (!logoBox) return;
+
+      if (cg.logoActive === false) {
+        logoBox.classList.add('hidden');
+        return;
+      }
+
+      logoBox.classList.remove('hidden');
+      const mode = parseInt(cg.logoMode) || 2;
+
+      if (mode === 1) {
+        // Mode 1: Logo Full Horizontal
+        if (logoCustomImg) {
+          logoCustomImg.src = 'assets/img/logo-skawan-full.webp';
+          logoCustomImg.className = 'h-8 sm:h-10 w-auto max-w-[150px] object-contain drop-shadow-md bg-white/95 rounded-xl px-2.5 py-1 border border-white/20';
+          logoCustomImg.onerror = () => { logoCustomImg.src = 'logo-skawan-full.webp'; };
+          logoCustomImg.classList.remove('hidden');
+        }
+        if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+      } else if (mode === 2) {
+        // Mode 2: Icon Logo Monogram
+        if (logoDefaultBadge) {
+          logoDefaultBadge.classList.remove('hidden');
+          if (defaultImg) {
+            defaultImg.src = 'assets/img/logo-skawan-icon.webp';
+            defaultImg.onerror = () => { defaultImg.src = 'logo-skawan-icon.webp'; };
+          }
+        }
+        if (logoCustomImg) logoCustomImg.classList.add('hidden');
+      } else if (mode === 3) {
+        // Mode 3: Custom File / URL
+        if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
+          if (logoCustomImg) {
+            logoCustomImg.src = cg.logoUrl;
+            logoCustomImg.className = 'h-8 sm:h-10 w-auto max-w-[140px] object-contain drop-shadow-md';
+            logoCustomImg.classList.remove('hidden');
+          }
+          if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
+        } else {
+          if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+          if (logoCustomImg) logoCustomImg.classList.add('hidden');
+        }
+      }
+    }
+
     function startWibLiveClock() {
       const updateClock = () => {
         const now = new Date();
@@ -682,7 +716,6 @@
           timeZone: 'Asia/Jakarta',
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit',
           hour12: false
         });
         const clockEl = document.getElementById('liveTickerWibHeader');
