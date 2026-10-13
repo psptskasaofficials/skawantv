@@ -5,16 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Share Presenter | SKAWAN TV</title>
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-
   <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
-  <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
 
   <script>
     tailwind.config = {
@@ -25,24 +20,15 @@
             sans: ['Plus Jakarta Sans', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace'],
           },
-          colors: {
-            skawan: {
-              orange: '#EA580C',
-              navy: '#1B365D',
-              red: '#E50914',
-              darkBg: '#080C14',
-            }
-          }
+          colors: { skawan: { orange: '#EA580C', red: '#E50914', darkBg: '#080C14' } }
         }
       }
     }
   </script>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
-
   <script>
     (function ensureFirebaseConnection() {
       const config = {
@@ -58,45 +44,26 @@
         if (!firebase.apps || !firebase.apps.length) {
           try { firebase.initializeApp(config); } catch (e) {}
         }
-        if (!window.db && firebase.database) {
-          window.db = firebase.database();
-        }
+        if (!window.db && firebase.database) window.db = firebase.database();
       }
     })();
   </script>
-
-  <!-- WebRTC Streamer Engine -->
   <script src="js/webrtc-stream.js"></script>
 
   <style>
-    .deck-btn {
-      transition: all 0.12s ease;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .deck-btn:active {
-      transform: scale(0.96);
-    }
-    .tally-border-live {
-      box-shadow: 0 0 25px rgba(229, 9, 20, 0.6);
-      border-color: #E50914 !important;
-    }
-    .tally-border-cue {
-      box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
-      border-color: #10B981 !important;
-    }
+    .deck-btn { transition: all 0.12s ease; user-select: none; }
+    .deck-btn:active { transform: scale(0.96); }
+    .tally-border-live { box-shadow: 0 0 25px rgba(229, 9, 20, 0.6); border-color: #E50914 !important; }
+    .tally-border-cue { box-shadow: 0 0 25px rgba(16, 185, 129, 0.5); border-color: #10B981 !important; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-orange-600 selection:text-white pb-6">
 
-  <!-- NAVBAR -->
   <nav class="bg-slate-950/95 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md shadow-md">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="index.html" class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center font-brand font-black text-sm text-white shadow-md">
-            SS
-          </div>
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center font-brand font-black text-sm text-white shadow-md">SS</div>
           <div>
             <div class="flex items-center gap-1">
               <span class="font-brand font-black text-white text-base leading-none">SKAWAN</span>
@@ -117,34 +84,27 @@
           <span class="text-xs text-slate-400 font-medium hidden sm:inline">Ruangan:</span>
           <span id="navRoomToken" class="font-mono font-bold text-xs text-orange-400">SKASA</span>
         </div>
-        <a href="login.html" onclick="keluarKeLogin(event)" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition">
+        <button onclick="keluarKeLogin()" class="deck-btn text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900 border border-rose-800 px-3 py-1.5 rounded-lg transition">
           Keluar
-        </a>
+        </button>
       </div>
     </div>
   </nav>
 
   <main class="max-w-5xl mx-auto px-4 sm:px-6 py-4 w-full flex-1 space-y-4">
-
-    <!-- TALLY LIGHT BANNER -->
     <div id="tallyBannerCard" class="p-4 rounded-2xl border-2 border-slate-800 bg-slate-900 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl transition-all duration-300">
       <div class="flex items-center gap-3">
         <span id="tallyIconPulse" class="w-4 h-4 rounded-full bg-slate-500 shrink-0"></span>
         <div>
           <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">STATUS TALLY KONTROL:</span>
-          <h2 id="tallyStateLabel" class="text-lg sm:text-xl font-brand font-black text-slate-300">
-            OFFLINE (BELUM BERBAGI)
-          </h2>
+          <h2 id="tallyStateLabel" class="text-lg sm:text-xl font-brand font-black text-slate-300">OFFLINE (BELUM BERBAGI)</h2>
         </div>
       </div>
       <div class="text-right">
-        <span id="lblTallyInstruction" class="text-xs font-mono text-slate-400 block">
-          Klik tombol di bawah untuk mulai membagikan presentasi Anda.
-        </span>
+        <span id="lblTallyInstruction" class="text-xs font-mono text-slate-400 block">Klik tombol di bawah untuk mulai membagikan presentasi Anda.</span>
       </div>
     </div>
 
-    <!-- VIEWPORT PRATINJAU SHARESCREEN -->
     <div id="screenViewportCard" class="bg-slate-900 border-2 border-slate-800 rounded-3xl p-3 sm:p-4 shadow-2xl space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800 text-xs font-mono">
         <span class="text-slate-300 font-bold">PRATINJAU LAYAR TERSAMBUNG (16:9 CONTAIN)</span>
@@ -157,9 +117,7 @@
         <div id="screenFallbackOverlay" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-2 bg-slate-950/80">
           <span class="text-5xl">🖥️</span>
           <h3 class="font-brand font-black text-base text-white">Layar Belum Dibagikan</h3>
-          <p class="text-xs font-mono text-slate-400 max-w-sm">
-            Pastikan memilih opsi <strong>"Seluruh Layar"</strong> atau <strong>"Jendela Aplikasi"</strong> (PowerPoint / PDF / Browser) saat dialog peramban muncul.
-          </p>
+          <p class="text-xs font-mono text-slate-400 max-w-sm">Pastikan memilih opsi "Seluruh Layar" atau "Jendela Aplikasi" saat dialog peramban muncul.</p>
         </div>
 
         <div id="badgeOnAirFloat" class="hidden absolute top-3 left-3 bg-red-600 text-white font-mono font-bold text-[10px] px-2.5 py-1 rounded-lg shadow-lg flex items-center gap-1.5 animate-pulse">
@@ -168,7 +126,6 @@
         </div>
       </div>
 
-      <!-- KONTROL SHARE / STOP -->
       <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="text-xs font-mono text-slate-400">
           Umpan otomatis dialirkan ke <strong class="text-white">Multiview Switcher TD</strong> &bull; <strong class="text-white">PD</strong> &bull; <strong class="text-white">PGM</strong>
@@ -187,7 +144,6 @@
         </div>
       </div>
     </div>
-
   </main>
 
   <script>
@@ -209,27 +165,22 @@
 
     async function mulaiBerbagiLayar() {
       try {
-        localScreenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            cursor: "always",
-            frameRate: { ideal: 30, max: 60 },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: true
-        });
+        try {
+          localScreenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { cursor: "always", frameRate: { ideal: 30, max: 60 } },
+            audio: true
+          });
+        } catch (e) {
+          localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        }
 
         const videoPreview = document.getElementById('localScreenPreview');
-        const fallback = document.getElementById('screenFallbackOverlay');
-        const btnStart = document.getElementById('btnStartScreen');
-        const btnStop = document.getElementById('btnStopScreen');
-
         videoPreview.srcObject = localScreenStream;
         videoPreview.muted = true;
         videoPreview.play().catch(() => {});
-        fallback.classList.add('hidden');
-        btnStart.classList.add('hidden');
-        btnStop.classList.remove('hidden');
+        document.getElementById('screenFallbackOverlay').classList.add('hidden');
+        document.getElementById('btnStartScreen').classList.add('hidden');
+        document.getElementById('btnStopScreen').classList.remove('hidden');
 
         if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
           streamerInstance = new SkawanStreamer({
@@ -252,11 +203,8 @@
         const track = localScreenStream.getVideoTracks()[0];
         if (track) {
           const settings = track.getSettings();
-          document.getElementById('lblResolutionTag').innerText = `Resolusi: ${settings.width || 1920}x${settings.height || 1080} @${Math.round(settings.frameRate || 30)}fps`;
-
-          track.onended = () => {
-            hentikanBerbagiLayar();
-          };
+          document.getElementById('lblResolutionTag').innerText = `Resolusi: ${settings.width || 1920}x${settings.height || 1080}`;
+          track.onended = hentikanBerbagiLayar;
         }
       } catch (err) {
         console.warn("Izin tangkap layar dibatalkan:", err);
@@ -268,10 +216,7 @@
         localScreenStream.getTracks().forEach(t => t.stop());
         localScreenStream = null;
       }
-
-      if (streamerInstance) {
-        streamerInstance.unpublishStream('sharescreen');
-      }
+      if (streamerInstance) streamerInstance.unpublishStream('sharescreen');
 
       document.getElementById('localScreenPreview').srcObject = null;
       document.getElementById('screenFallbackOverlay').classList.remove('hidden');
@@ -280,10 +225,7 @@
       document.getElementById('lblResolutionTag').innerText = "Resolusi: Menunggu Sinyal...";
 
       const activeDb = getDatabase();
-      if (activeDb) {
-        activeDb.ref(`rooms/${currentRoomToken}/roles/sharescreen`).set("");
-      }
-
+      if (activeDb) activeDb.ref(`rooms/${currentRoomToken}/roles/sharescreen`).set("");
       resetTallyUI();
     }
 
@@ -293,13 +235,7 @@
 
       activeDb.ref(`rooms/${token}/live_state`).on('value', snap => {
         const state = snap.val() || {};
-        const pgmSrc = state.programSource || 'cam_1';
-        const pvwSrc = state.previewSource || 'cam_2';
-
-        const isLive = (pgmSrc === 'sharescreen');
-        const isCue = (pvwSrc === 'sharescreen');
-
-        updateTallyUI(isLive, isCue);
+        updateTallyUI(state.programSource === 'sharescreen', state.previewSource === 'sharescreen');
       });
     }
 
@@ -370,22 +306,13 @@
       viewportCard.style.borderColor = "#1E293B";
     }
 
-    function keluarKeLogin(event) {
-      if (event) event.preventDefault();
+    function keluarKeLogin() {
       hentikanBerbagiLayar();
-      if (streamerInstance) {
-        streamerInstance.destroy();
-        streamerInstance = null;
-      }
+      if (streamerInstance) streamerInstance.destroy();
       window.location.href = `login.html?room=${currentRoomToken}`;
     }
 
-    window.addEventListener('beforeunload', () => {
-      hentikanBerbagiLayar();
-      if (streamerInstance) {
-        streamerInstance.destroy();
-      }
-    });
+    window.addEventListener('beforeunload', keluarKeLogin);
   </script>
 </body>
 </html>
