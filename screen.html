@@ -31,8 +31,6 @@
               navy: '#1B365D',
               red: '#E50914',
               darkBg: '#080C14',
-              cardDark: '#0F172A',
-              borderDark: '#1E293B'
             }
           }
         }
@@ -40,7 +38,7 @@
     }
   </script>
 
-  <!-- Firebase SDK (Compat Version) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
@@ -67,7 +65,7 @@
     })();
   </script>
 
-  <!-- Native WebRTC Streamer -->
+  <!-- WebRTC Streamer Engine -->
   <script src="js/webrtc-stream.js"></script>
 
   <style>
@@ -190,19 +188,7 @@
       </div>
     </div>
 
-    <!-- PETUNJUK PRESENTASI -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-400 space-y-1.5 font-mono">
-      <span class="font-brand font-bold text-slate-300 block uppercase">💡 Tips Presenter Siaran Studio:</span>
-      <p>1. Jika membagikan materi slide dengan audio/video, centang opsi <strong>"Share audio" / "Bagikan audio sistem"</strong> saat dialog peramban muncul.</p>
-      <p>2. Saat Tally berwarna <strong class="text-emerald-400">HIJAU (CUE)</strong>, sutradara sedang bersiap mengambil layar Anda.</p>
-      <p>3. Saat Tally berwarna <strong class="text-red-500">MERAH (LIVE)</strong>, layar Anda sedang ditonton langsung oleh seluruh pemirsa.</p>
-    </div>
-
   </main>
-
-  <footer class="py-4 text-center text-xs text-slate-500 font-medium border-t border-slate-900">
-    SKAWAN TV &bull; Screen Share Presenter Module &copy; 2026 SMK Negeri 1 Pacitan
-  </footer>
 
   <script>
     let currentRoomToken = 'SKASA';
@@ -218,23 +204,8 @@
       currentRoomToken = (urlParams.get('room') || localStorage.getItem('skawan_room') || 'SKASA').toUpperCase();
       document.getElementById('navRoomToken').innerText = currentRoomToken;
 
-      initScreenStreamer(currentRoomToken);
       listenTallyState(currentRoomToken);
     });
-
-    function initScreenStreamer(token) {
-      if (typeof SkawanStreamer !== 'undefined') {
-        try {
-          streamerInstance = new SkawanStreamer({
-            roomToken: token,
-            roleKey: 'sharescreen',
-            onRemoteStream: () => {}
-          });
-        } catch (e) {
-          console.warn("Streamer init error:", e);
-        }
-      }
-    }
 
     async function mulaiBerbagiLayar() {
       try {
@@ -258,24 +229,28 @@
         btnStart.classList.add('hidden');
         btnStop.classList.remove('hidden');
 
-        // Publikasikan ke WebRTC Mesh
-        if (streamerInstance && typeof streamerInstance.publishStream === 'function') {
+        // Inisialisasi WebRTC HANYA ketika stream layar sudah siap
+        if (!streamerInstance && typeof SkawanStreamer !== 'undefined') {
+          streamerInstance = new SkawanStreamer({
+            roomToken: currentRoomToken,
+            roleKey: 'sharescreen'
+          });
+        }
+
+        if (streamerInstance) {
           streamerInstance.publishStream('sharescreen', localScreenStream);
         }
 
-        // Daftarkan okupansi di Firebase
         const activeDb = getDatabase();
         if (activeDb) {
           activeDb.ref(`rooms/${currentRoomToken}/roles/sharescreen`).set("Presenter Aktif");
         }
 
-        // Tangkap resolusi
         const track = localScreenStream.getVideoTracks()[0];
         if (track) {
           const settings = track.getSettings();
           document.getElementById('lblResolutionTag').innerText = `Resolusi: ${settings.width || 1920}x${settings.height || 1080} @${Math.round(settings.frameRate || 30)}fps`;
 
-          // Event saat pengguna menekan tombol bawaan peramban "Stop Sharing"
           track.onended = () => {
             hentikanBerbagiLayar();
           };
@@ -289,6 +264,10 @@
       if (localScreenStream) {
         localScreenStream.getTracks().forEach(t => t.stop());
         localScreenStream = null;
+      }
+
+      if (streamerInstance) {
+        streamerInstance.unpublishStream('sharescreen');
       }
 
       document.getElementById('localScreenPreview').srcObject = null;
@@ -392,7 +371,6 @@
       hentikanBerbagiLayar();
       if (streamerInstance) {
         streamerInstance.destroy();
-        streamerInstance = null;
       }
     });
   </script>
