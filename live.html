@@ -753,77 +753,101 @@
       setInterval(updateClock, 1000);
     }
 
-  let connectedBridgePeerId = '';
+ let bridgePc = null;
+    let currentBridgeSessionId = '';
+    let bridgeViewerId = '';
 
-    function initStudioBridgeReceiver(token) {
-      if (studioBridgePeer) {
-        try { studioBridgePeer.destroy(); } catch (e) {}
-        studioBridgePeer = null;
+    function cleanupStudioBridge() {
+      if (bridgePc) {
+        try { bridgePc.close(); } catch (e) {}
+        bridgePc = null;
       }
       isStudioBridgeConnected = false;
-      connectedBridgePeerId = '';
+      currentBridgeSessionId = '';
+      remoteCamStreams.delete('studio_bridge');
+    }
 
+    function initStudioBridgeReceiver(token) {
+      cleanupStudioBridge();
       const activeDb = getDatabase();
-      if (!activeDb || typeof Peer === 'undefined') return;
+      if (!activeDb) return;
 
-      activeDb.ref(`rooms/${token.toUpperCase()}/studio_bridge`).on('value', (snap) => {
+      const upperToken = token.toUpperCase();
+      bridgeViewerId = `v_${Math.random().toString(36).substring(2, 9)}`;
+
+      activeDb.ref(`rooms/${upperToken}/studio_bridge`).on('value', async (snap) => {
         const bridgeData = snap.val();
 
-        if (!bridgeData || !bridgeData.active || !bridgeData.peerId) {
-          isStudioBridgeConnected = false;
-          connectedBridgePeerId = '';
-          remoteCamStreams.delete('studio_bridge');
+        if (!bridgeData || !bridgeData.active || !bridgeData.sessionId) {
+          cleanupStudioBridge();
           updateMonitors();
           return;
         }
 
-        if (connectedBridgePeerId === bridgeData.peerId && isStudioBridgeConnected) return;
-        connectedBridgePeerId = bridgeData.peerId;
+        if (currentBridgeSessionId === bridgeData.sessionId) return;
+        cleanupStudioBridge();
+        currentBridgeSessionId = bridgeData.sessionId;
 
-        if (studioBridgePeer) {
-          try { studioBridgePeer.destroy(); } catch (e) {}
-        }
-
-        const viewerPeer = new Peer({
-          config: {
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' },
-            ],
-          },
+        const pc = new RTCPeerConnection({
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+          ],
         });
-        studioBridgePeer = viewerPeer;
+        bridgePc = pc;
 
-        viewerPeer.on('open', () => {
-          const conn = viewerPeer.connect(bridgeData.peerId, { reliable: true });
-          conn.on('open', () => {
-            conn.send({ type: 'REQUEST_PGM_STREAM' });
-          });
-        });
+        // Siapkan transceiver untuk menerima video & audio dari SKAWAN Studio
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        pc.addTransceiver('audio', { direction: 'recvonly' });
 
-        viewerPeer.on('call', (call) => {
-          call.answer();
-          call.on('stream', (incomingStream) => {
-            isStudioBridgeConnected = true;
-            remoteCamStreams.set('studio_bridge', incomingStream);
+        const incomingMediaStream = new MediaStream();
 
-            const audioTracks = incomingStream.getAudioTracks();
-            if (audioTracks.length > 0) {
-              const masterAudioEl = document.getElementById('masterStudioAudio');
-              if (masterAudioEl) {
-                masterAudioEl.srcObject = new MediaStream(audioTracks);
-                masterAudioEl.play().catch(() => {});
-                applyAudioState();
-              }
+        pc.ontrack = (event) => {
+          incomingMediaStream.addTrack(event.track);
+          isStudioBridgeConnected = true;
+          remoteCamStreams.set('studio_bridge', incomingMediaStream);
+
+          if (event.track.kind === 'audio') {
+            const masterAudioEl = document.getElementById('masterStudioAudio');
+            if (masterAudioEl) {
+              masterAudioEl.srcObject = new MediaStream([event.track]);
+              masterAudioEl.play().catch(() => {});
+              applyAudioState();
             }
-            updateMonitors();
-          });
+          }
+          updateMonitors();
+        };
 
-          call.on('close', () => {
-            isStudioBridgeConnected = false;
-            remoteCamStreams.delete('studio_bridge');
-            updateMonitors();
-          });
+        const viewerRef = activeDb.ref(`rooms/${upperToken}/studio_bridge/viewers/${bridgeViewerId}`);
+
+        pc.onicecandidate = (ev) => {
+          if (ev.candidate) {
+            viewerRef.child('ice').push(ev.candidate.toJSON());
+          }
+        };
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await viewerRef.set({
+          offer: { type: offer.type, sdp: offer.sdp },
+        });
+
+        // Dengarkan jawaban SDP (answer) dari SKAWAN Studio Pro
+        viewerRef.child('answer').on('value', async (ansSnap) => {
+          const ans = ansSnap.val();
+          if (ans && !pc.currentRemoteDescription) {
+            await pc.setRemoteDescription(new RTCSessionDescription(ans));
+          }
+        });
+
+        // Dengarkan ICE Candidate dari SKAWAN Studio Pro
+        viewerRef.child('studioIce').on('child_added', async (iceSnap) => {
+          const cand = iceSnap.val();
+          if (cand && pc.remoteDescription) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (e) {}
+          }
         });
       });
     }
