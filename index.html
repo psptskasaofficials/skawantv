@@ -884,39 +884,73 @@
       }
     }
 
+let connectedBridgePeerId = '';
+
     function initStudioBridgeReceiver(token) {
       if (studioBridgePeer) {
         try { studioBridgePeer.destroy(); } catch (e) {}
         studioBridgePeer = null;
       }
       isStudioBridgeConnected = false;
+      connectedBridgePeerId = '';
 
-      if (typeof Peer === 'undefined') return;
-      const bridgeHostId = `skawantv-bridge-${token.toUpperCase()}`;
-      studioBridgePeer = new Peer(bridgeHostId);
+      const activeDb = getDatabase();
+      if (!activeDb || typeof Peer === 'undefined') return;
 
-      studioBridgePeer.on('call', (call) => {
-        call.answer();
-        call.on('stream', (incomingStream) => {
-          isStudioBridgeConnected = true;
-          remoteCamStreams.set('studio_bridge', incomingStream);
+      activeDb.ref(`rooms/${token.toUpperCase()}/studio_bridge`).on('value', (snap) => {
+        const bridgeData = snap.val();
 
-          const audioTracks = incomingStream.getAudioTracks();
-          if (audioTracks.length > 0) {
-            const masterAudioEl = document.getElementById('masterStudioAudio');
-            if (masterAudioEl) {
-              masterAudioEl.srcObject = new MediaStream(audioTracks);
-              masterAudioEl.play().catch(() => {});
-              applyAudioState();
-            }
-          }
-          updateMonitors();
-        });
-
-        call.on('close', () => {
+        // Jika SKAWAN Studio mematikan jembatan siaran
+        if (!bridgeData || !bridgeData.active || !bridgeData.peerId) {
           isStudioBridgeConnected = false;
+          connectedBridgePeerId = '';
           remoteCamStreams.delete('studio_bridge');
           updateMonitors();
+          return;
+        }
+
+        // Hindari koneksi ganda ke sesi yang sama
+        if (connectedBridgePeerId === bridgeData.peerId && isStudioBridgeConnected) return;
+        connectedBridgePeerId = bridgeData.peerId;
+
+        if (studioBridgePeer) {
+          try { studioBridgePeer.destroy(); } catch (e) {}
+        }
+
+        const viewerPeer = new Peer();
+        studioBridgePeer = viewerPeer;
+
+        viewerPeer.on('open', () => {
+          // Minta aliran video langsung dari SKAWAN Studio Pro
+          const conn = viewerPeer.connect(bridgeData.peerId);
+          conn.on('open', () => {
+            conn.send({ type: 'REQUEST_PGM_STREAM' });
+          });
+        });
+
+        viewerPeer.on('call', (call) => {
+          call.answer();
+          call.on('stream', (incomingStream) => {
+            isStudioBridgeConnected = true;
+            remoteCamStreams.set('studio_bridge', incomingStream);
+
+            const audioTracks = incomingStream.getAudioTracks();
+            if (audioTracks.length > 0) {
+              const masterAudioEl = document.getElementById('masterStudioAudio');
+              if (masterAudioEl) {
+                masterAudioEl.srcObject = new MediaStream(audioTracks);
+                masterAudioEl.play().catch(() => {});
+                applyAudioState();
+              }
+            }
+            updateMonitors();
+          });
+
+          call.on('close', () => {
+            isStudioBridgeConnected = false;
+            remoteCamStreams.delete('studio_bridge');
+            updateMonitors();
+          });
         });
       });
     }
