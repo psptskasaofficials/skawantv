@@ -70,9 +70,8 @@
     })();
   </script>
 
-  <!-- Native WebRTC Streamer, PeerJS Bridge & YouTube API Resmi -->
+  <!-- Native WebRTC Streamer & YouTube API Resmi -->
   <script src="js/webrtc-stream.js"></script>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
@@ -320,8 +319,10 @@
     let streamerInstance = null;
     const remoteCamStreams = new Map();
 
-    // Bridge SKAWAN Studio Pro
-    let studioBridgePeer = null;
+    // Native WebRTC Bridge SKAWAN Studio Pro
+    let bridgePc = null;
+    let currentBridgeSessionId = '';
+    let bridgeViewerId = '';
     let isStudioBridgeConnected = false;
 
     let isAudioUnmuted = false;
@@ -643,7 +644,7 @@
       if (isStudioBridgeConnected && bridgeStream && pgmVideo) {
         onAirBumperPlayedForCurrentSession = true;
         bumperWrap.style.opacity = '0';
-        setTimeout(() => { bumperWrap.style.display = 'none'; }, 500);
+        bumperWrap.style.display = 'none';
         if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
 
         if (pgmVideo.srcObject !== bridgeStream) pgmVideo.srcObject = bridgeStream;
@@ -884,10 +885,6 @@
       }
     }
 
-let bridgePc = null;
-    let currentBridgeSessionId = '';
-    let bridgeViewerId = '';
-
     function cleanupStudioBridge() {
       if (bridgePc) {
         try { bridgePc.close(); } catch (e) {}
@@ -923,13 +920,10 @@ let bridgePc = null;
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
           ],
         });
         bridgePc = pc;
-
-        // Siapkan transceiver untuk menerima video & audio dari SKAWAN Studio
-        pc.addTransceiver('video', { direction: 'recvonly' });
-        pc.addTransceiver('audio', { direction: 'recvonly' });
 
         const incomingMediaStream = new MediaStream();
 
@@ -938,7 +932,15 @@ let bridgePc = null;
           isStudioBridgeConnected = true;
           remoteCamStreams.set('studio_bridge', incomingMediaStream);
 
-          if (event.track.kind === 'audio') {
+          if (event.track.kind === 'video') {
+            const pgmVideo = document.getElementById('pgmCamVideo');
+            if (pgmVideo) {
+              pgmVideo.srcObject = null;
+              pgmVideo.srcObject = incomingMediaStream;
+              pgmVideo.muted = true;
+              pgmVideo.play().catch(() => {});
+            }
+          } else if (event.track.kind === 'audio') {
             const masterAudioEl = document.getElementById('masterStudioAudio');
             if (masterAudioEl) {
               masterAudioEl.srcObject = new MediaStream([event.track]);
@@ -957,13 +959,15 @@ let bridgePc = null;
           }
         };
 
-        const offer = await pc.createOffer();
+        const offer = await pc.createOffer({
+          offerToReceiveVideo: true,
+          offerToReceiveAudio: true,
+        });
         await pc.setLocalDescription(offer);
         await viewerRef.set({
           offer: { type: offer.type, sdp: offer.sdp },
         });
 
-        // Dengarkan jawaban SDP (answer) dari SKAWAN Studio Pro
         viewerRef.child('answer').on('value', async (ansSnap) => {
           const ans = ansSnap.val();
           if (ans && !pc.currentRemoteDescription) {
@@ -971,7 +975,6 @@ let bridgePc = null;
           }
         });
 
-        // Dengarkan ICE Candidate dari SKAWAN Studio Pro
         viewerRef.child('studioIce').on('child_added', async (iceSnap) => {
           const cand = iceSnap.val();
           if (cand && pc.remoteDescription) {
@@ -1232,10 +1235,7 @@ let bridgePc = null;
 
       window.addEventListener('beforeunload', () => {
         detachChannelListeners();
-        if (studioBridgePeer) {
-          try { studioBridgePeer.destroy(); } catch (e) {}
-          studioBridgePeer = null;
-        }
+        cleanupStudioBridge();
         if (streamerInstance) {
           try { streamerInstance.destroy(); } catch (e) {}
           streamerInstance = null;
