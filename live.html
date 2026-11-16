@@ -64,8 +64,9 @@
     })();
   </script>
 
-  <!-- Native WebRTC Streamer & YouTube API Resmi -->
+  <!-- Native WebRTC Streamer, PeerJS Bridge & YouTube API Resmi -->
   <script src="js/webrtc-stream.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
@@ -164,7 +165,7 @@
       </div>
     </div>
 
-    <!-- 3. FEED KAMERA / SCREEN SHARE WEBRTC -->
+    <!-- 3. FEED KAMERA / SCREEN SHARE / SKAWAN STUDIO PRO BRIDGE -->
     <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
     <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API NO-COOKIE) -->
@@ -238,6 +239,10 @@
     let streamerInstance = null;
     const remoteCamStreams = new Map();
 
+    // Bridge SKAWAN Studio Pro
+    let studioBridgePeer = null;
+    let isStudioBridgeConnected = false;
+
     let isAudioUnmuted = false;
     let currentActiveYtId = '';
     let serverClockOffset = 0;
@@ -307,7 +312,7 @@
         sendCommandToIframe(bumperIframe, 'setVolume', [100]);
 
         if (masterYtPlayer && typeof masterYtPlayer.unMute === 'function') {
-          if (activeSrc === 'vt') {
+          if (activeSrc === 'vt' && !isStudioBridgeConnected) {
             masterYtPlayer.unMute();
             masterYtPlayer.setVolume(100);
           } else {
@@ -482,6 +487,23 @@
 
       // 3. LIVE ON-AIR
       standbyOverlay.style.display = 'none';
+
+      // PRIORITAS UTAMA: JIKA ADA SIARAN MASUK DARI SKAWAN STUDIO PRO
+      const bridgeStream = remoteCamStreams.get('studio_bridge');
+      if (isStudioBridgeConnected && bridgeStream && pgmVideo) {
+        onAirBumperPlayedForCurrentSession = true;
+        bumperWrap.style.opacity = '0';
+        setTimeout(() => { bumperWrap.style.display = 'none'; }, 500);
+        if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
+
+        if (pgmVideo.srcObject !== bridgeStream) pgmVideo.srcObject = bridgeStream;
+        pgmVideo.style.objectFit = 'contain';
+        pgmVideo.style.display = 'block';
+        pgmVideo.style.opacity = '1';
+        pgmVideo.play().catch(() => {});
+        applyAudioState();
+        return;
+      }
 
       const activeSrc = liveState.programSource || 'cam_1';
       const stream = getCameraStream(activeSrc);
@@ -675,7 +697,6 @@
       const mode = parseInt(cg.logoMode) || 2;
 
       if (mode === 1) {
-        // Mode 1: Logo Full Horizontal
         if (logoCustomImg) {
           logoCustomImg.src = 'assets/img/logo-skawan-full.webp';
           logoCustomImg.className = 'h-8 sm:h-10 w-auto max-w-[150px] object-contain drop-shadow-md bg-white/95 rounded-xl px-2.5 py-1 border border-white/20';
@@ -684,7 +705,6 @@
         }
         if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
       } else if (mode === 2) {
-        // Mode 2: Icon Logo Monogram
         if (logoDefaultBadge) {
           logoDefaultBadge.classList.remove('hidden');
           if (defaultImg) {
@@ -694,7 +714,6 @@
         }
         if (logoCustomImg) logoCustomImg.classList.add('hidden');
       } else if (mode === 3) {
-        // Mode 3: Custom File / URL
         if (cg.logoUrl && cg.logoUrl.trim().length > 0) {
           if (logoCustomImg) {
             logoCustomImg.src = cg.logoUrl;
@@ -723,6 +742,43 @@
       };
       updateClock();
       setInterval(updateClock, 1000);
+    }
+
+    function initStudioBridgeReceiver(token) {
+      if (studioBridgePeer) {
+        try { studioBridgePeer.destroy(); } catch (e) {}
+        studioBridgePeer = null;
+      }
+      isStudioBridgeConnected = false;
+
+      if (typeof Peer === 'undefined') return;
+      const bridgeHostId = `skawantv-bridge-${token.toUpperCase()}`;
+      studioBridgePeer = new Peer(bridgeHostId);
+
+      studioBridgePeer.on('call', (call) => {
+        call.answer();
+        call.on('stream', (incomingStream) => {
+          isStudioBridgeConnected = true;
+          remoteCamStreams.set('studio_bridge', incomingStream);
+
+          const audioTracks = incomingStream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            const masterAudioEl = document.getElementById('masterStudioAudio');
+            if (masterAudioEl) {
+              masterAudioEl.srcObject = new MediaStream(audioTracks);
+              masterAudioEl.play().catch(() => {});
+              applyAudioState();
+            }
+          }
+          updateMonitors();
+        });
+
+        call.on('close', () => {
+          isStudioBridgeConnected = false;
+          remoteCamStreams.delete('studio_bridge');
+          updateMonitors();
+        });
+      });
     }
 
     function connectLiveRoom(token) {
@@ -795,6 +851,8 @@
           console.warn("WebRTC Streamer notice:", e);
         }
       }
+
+      initStudioBridgeReceiver(currentRoomToken);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
