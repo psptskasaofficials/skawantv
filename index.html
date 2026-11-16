@@ -900,7 +900,6 @@ let connectedBridgePeerId = '';
       activeDb.ref(`rooms/${token.toUpperCase()}/studio_bridge`).on('value', (snap) => {
         const bridgeData = snap.val();
 
-        // Jika SKAWAN Studio mematikan jembatan siaran
         if (!bridgeData || !bridgeData.active || !bridgeData.peerId) {
           isStudioBridgeConnected = false;
           connectedBridgePeerId = '';
@@ -909,7 +908,6 @@ let connectedBridgePeerId = '';
           return;
         }
 
-        // Hindari koneksi ganda ke sesi yang sama
         if (connectedBridgePeerId === bridgeData.peerId && isStudioBridgeConnected) return;
         connectedBridgePeerId = bridgeData.peerId;
 
@@ -917,12 +915,18 @@ let connectedBridgePeerId = '';
           try { studioBridgePeer.destroy(); } catch (e) {}
         }
 
-        const viewerPeer = new Peer();
+        const viewerPeer = new Peer({
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+            ],
+          },
+        });
         studioBridgePeer = viewerPeer;
 
         viewerPeer.on('open', () => {
-          // Minta aliran video langsung dari SKAWAN Studio Pro
-          const conn = viewerPeer.connect(bridgeData.peerId);
+          const conn = viewerPeer.connect(bridgeData.peerId, { reliable: true });
           conn.on('open', () => {
             conn.send({ type: 'REQUEST_PGM_STREAM' });
           });
