@@ -12,7 +12,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
   <link rel="icon" href="assets/img/logo-skawan-icon.webp" type="image/webp">
-  <link rel="shortcut icon" href="logo-skawan-icon.webp" type="image/webp">
 
   <script>
     tailwind.config = {
@@ -100,12 +99,11 @@
 
   <script>
     function handleBugLogoFallback(imgEl) {
-      if (imgEl.src.indexOf('assets/img/') !== -1) {
-        imgEl.src = 'logo-skawan-icon.webp';
-      } else {
-        imgEl.style.display = 'none';
-        const textFallback = document.getElementById('cgBugLogoTextFallback');
-        if (textFallback) textFallback.classList.remove('hidden');
+      imgEl.style.display = 'none';
+      const textFallback = document.getElementById('cgBugLogoTextFallback');
+      if (textFallback) {
+        textFallback.classList.remove('hidden');
+        textFallback.classList.add('flex');
       }
     }
   </script>
@@ -116,6 +114,7 @@
 
   <div id="pgmMasterViewport" class="relative w-full aspect-video max-h-screen bg-black overflow-hidden flex items-center justify-center">
 
+    <!-- 1. LAYER BUMPER PLAYOUT -->
     <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center" style="display: flex; opacity: 1;">
       <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
         <iframe
@@ -138,6 +137,7 @@
       </div>
     </div>
 
+    <!-- 2. KARTU GLADI BERSIH OVERLAY -->
     <div id="pgmStandbyCardOverlay" class="absolute inset-0 z-25 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8 transition-opacity duration-300" style="display: none;">
       <div class="bg-slate-900/95 border-2 border-amber-500/50 rounded-3xl p-8 shadow-2xl max-w-lg w-full space-y-4">
         <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold uppercase tracking-wider">
@@ -154,8 +154,10 @@
       </div>
     </div>
 
-    <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
+    <!-- 3. FEED KAMERA / SKAWAN STUDIO PRO BRIDGE -->
+    <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-contain z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
+    <!-- 4. PEMUTAR VT MEDIA -->
     <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
       <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
       <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
@@ -163,6 +165,7 @@
       </div>
     </div>
 
+    <!-- 5. CG BUG LOGO -->
     <div id="cgBugLogo" class="absolute top-5 right-6 z-30 flex items-center justify-center max-w-[150px] max-h-14 transition-all duration-200 pointer-events-none">
       <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-10 w-auto object-contain drop-shadow-md">
       <div id="cgBugLogoDefaultBadge" class="flex items-center gap-2 bg-white/95 rounded-2xl px-3 py-1.5 shadow-xl backdrop-blur-sm border border-white/20">
@@ -173,18 +176,20 @@
           class="h-8 sm:h-9 w-auto object-contain drop-shadow-sm"
           onerror="handleBugLogoFallback(this)"
         >
-        <div id="cgBugLogoTextFallback" class="hidden items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md border border-white/20">
+        <div id="cgBugLogoTextFallback" class="hidden items-center gap-1.5 bg-black/80 backdrop-blur-sm px-2 py-1 rounded-md border border-white/20">
           <div class="w-4 h-4 rounded bg-orange-600 flex items-center justify-center text-[9px] font-black text-white">SK</div>
           <span class="text-[10px] font-brand font-black text-white uppercase tracking-widest">SKAWAN <span class="text-orange-500">TV</span></span>
         </div>
       </div>
     </div>
 
+    <!-- 6. KOTAK MERAH "LIVE" ON-AIR -->
     <div id="badgeLiveOnAir" class="hidden absolute top-5 left-6 z-30 bg-red-600 text-white font-brand font-black text-xs sm:text-sm px-3.5 py-1.5 rounded-xl flex items-center gap-2 shadow-2xl animate-pulse">
       <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
       <span>LIVE</span>
     </div>
 
+    <!-- 7. CG LOWER THIRD -->
     <div id="cgLowerThirdBox" class="hidden absolute bottom-12 left-6 right-6 sm:left-10 sm:right-10 z-30 transition-all duration-300">
       <div id="cgLtTitle" class="bg-gradient-to-r from-orange-600 to-red-600 text-white font-brand font-black text-sm sm:text-lg px-5 py-2 rounded-t-2xl shadow-2xl inline-block tracking-wide">
         NAMA PRESENTER
@@ -195,6 +200,7 @@
       </div>
     </div>
 
+    <!-- 8. CG TICKER BAR -->
     <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-8 sm:h-9 bg-gradient-to-r from-orange-700 to-red-700 text-white z-30 overflow-hidden flex items-center border-t border-orange-500 shadow-2xl">
       <div id="liveTickerWibHeader" class="bg-slate-950 px-3.5 h-full flex items-center font-mono font-black text-xs text-amber-400 shrink-0 border-r border-orange-900 tracking-wider">
         00:00 WIB
@@ -477,6 +483,7 @@
 
       standbyOverlay.style.display = 'none';
 
+      // PRIORITAS UTAMA: JIKA ADA SIARAN MASUK DARI SKAWAN STUDIO PRO
       const bridgeStream = remoteCamStreams.get('studio_bridge');
       if (isStudioBridgeConnected && bridgeStream && pgmVideo) {
         onAirBumperPlayedForCurrentSession = true;
@@ -484,7 +491,9 @@
         bumperWrap.style.display = 'none';
         if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
 
-        if (pgmVideo.srcObject !== bridgeStream) pgmVideo.srcObject = bridgeStream;
+        if (pgmVideo.srcObject !== bridgeStream) {
+          pgmVideo.srcObject = bridgeStream;
+        }
         pgmVideo.style.objectFit = 'contain';
         pgmVideo.style.display = 'block';
         pgmVideo.style.opacity = '1';
@@ -684,7 +693,10 @@
         if (logoCustomImg) {
           logoCustomImg.src = 'assets/img/logo-skawan-full.webp';
           logoCustomImg.className = 'h-8 sm:h-10 w-auto max-w-[150px] object-contain drop-shadow-md bg-white/95 rounded-xl px-2.5 py-1 border border-white/20';
-          logoCustomImg.onerror = () => { logoCustomImg.src = 'logo-skawan-full.webp'; };
+          logoCustomImg.onerror = () => {
+            logoCustomImg.classList.add('hidden');
+            if (logoDefaultBadge) logoDefaultBadge.classList.remove('hidden');
+          };
           logoCustomImg.classList.remove('hidden');
         }
         if (logoDefaultBadge) logoDefaultBadge.classList.add('hidden');
@@ -693,7 +705,6 @@
           logoDefaultBadge.classList.remove('hidden');
           if (defaultImg) {
             defaultImg.src = 'assets/img/logo-skawan-icon.webp';
-            defaultImg.onerror = () => { defaultImg.src = 'logo-skawan-icon.webp'; };
           }
         }
         if (logoCustomImg) logoCustomImg.classList.add('hidden');
@@ -778,22 +789,14 @@
           if (event.track.kind === 'video') {
             const pgmVideo = document.getElementById('pgmCamVideo');
             if (pgmVideo) {
-              pgmVideo.srcObject = null;
-              pgmVideo.srcObject = incomingMediaStream;
+              if (pgmVideo.srcObject !== incomingMediaStream) {
+                pgmVideo.srcObject = incomingMediaStream;
+              }
               pgmVideo.muted = true;
               pgmVideo.playsInline = true;
-              pgmVideo.setAttribute('autoplay', '');
-              pgmVideo.setAttribute('playsinline', '');
-
-              // Optimasi anti-delay: buang buffer jika tertinggal
-              pgmVideo.play().then(() => {
-                if (pgmVideo.buffered.length > 0) {
-                  const latestTime = pgmVideo.buffered.end(pgmVideo.buffered.length - 1);
-                  if (latestTime - pgmVideo.currentTime > 0.4) {
-                    pgmVideo.currentTime = latestTime - 0.1;
-                  }
-                }
-              }).catch(() => {});
+              pgmVideo.style.display = 'block';
+              pgmVideo.style.opacity = '1';
+              pgmVideo.play().catch((err) => console.warn('Video play notice:', err));
             }
           } else if (event.track.kind === 'audio') {
             const masterAudioEl = document.getElementById('masterStudioAudio');
