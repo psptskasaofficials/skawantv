@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SKAWAN Wireless Cam • Studio Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    body { background-color: #09090b; color: #f4f4f5; overscroll-behavior: none; }
+    .tally-off { border-color: #27272a; }
+    .tally-preview { border-color: #10b981; box-shadow: inset 0 0 28px rgba(16, 185, 129, 0.45); }
+    .tally-program { border-color: #ef4444; box-shadow: inset 0 0 36px rgba(239, 68, 68, 0.65); }
+  </style>
+</head>
+<body id="tallyFrame" class="min-h-screen flex flex-col justify-between border-[10px] tally-off transition-all duration-200 select-none">
+
+  <!-- HEADER & STATUS TALLY -->
+  <header class="p-3 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between gap-2">
+    <div>
+      <h1 class="text-xs font-extrabold tracking-wider text-white">SKAWAN WIRELESS CAM</h1>
+      <p id="statusText" class="text-[11px] font-mono text-zinc-400">Menyiapkan kamera...</p>
+    </div>
+
+    <div id="tallyBadge" class="px-3 py-1 rounded-full text-xs font-black tracking-widest bg-zinc-800 text-zinc-400">
+      STANDBY
+    </div>
+  </header>
+
+  <!-- VIEWFINDER KAMERA -->
+  <main class="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
+    <video id="localVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
+
+    <!-- Garis Bantu Rule of Thirds -->
+    <div class="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-25">
+      <div class="border-r border-b border-white/50"></div>
+      <div class="border-r border-b border-white/50"></div>
+      <div class="border-b border-white/50"></div>
+      <div class="border-r border-b border-white/50"></div>
+      <div class="border-r border-b border-white/50"></div>
+      <div class="border-b border-white/50"></div>
+      <div class="border-r border-white/50"></div>
+      <div class="border-r border-white/50"></div>
+      <div></div>
+    </div>
+
+    <!-- Pesan Error Jika Kamera Gagal -->
+    <div id="errorBox" class="hidden absolute inset-4 bg-zinc-950/95 border border-red-500/60 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3">
+      <p id="errorDetail" class="text-xs text-red-300 font-medium leading-relaxed"></p>
+      <button onclick="startCamera()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold text-white">
+        Coba Nyalakan Kamera Lagi
+      </button>
+    </div>
+  </main>
+
+  <!-- PANEL KONTROL BAWAH -->
+  <footer class="p-3 bg-zinc-900 border-t border-zinc-800 space-y-2.5">
+    <div class="grid grid-cols-2 gap-2">
+      <div>
+        <label class="block text-[10px] font-mono text-zinc-400 mb-1">SLOT KAMERA STUDIO</label>
+        <select id="camSlot" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2.5 py-2 text-xs font-bold text-white focus:outline-none focus:border-sky-500">
+          <option value="CAM2">CAM 2 (Utama HP 1)</option>
+          <option value="CAM3">CAM 3 (HP 2)</option>
+          <option value="CAM4">CAM 4 (HP 3)</option>
+          <option value="CAM1">CAM 1 (Pengganti)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-mono text-zinc-400 mb-1">KUALITAS VIDEO</label>
+        <select id="resPreset" onchange="startCamera()" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2.5 py-2 text-xs font-bold text-white focus:outline-none focus:border-sky-500">
+          <option value="1280x720" selected>HD 720p (Stabil)</option>
+          <option value="1920x1080">Full HD 1080p</option>
+          <option value="854x480">SD 480p (Wi-Fi Padat)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex gap-2">
+      <button onclick="switchFacingMode()" class="px-3 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-zinc-200 shrink-0">
+        Putar Kamera
+      </button>
+
+      <button id="connectBtn" onclick="toggleConnect()" class="flex-1 py-3 bg-sky-600 hover:bg-sky-500 active:scale-[0.99] rounded-xl text-xs font-extrabold tracking-wide text-white shadow-lg shadow-sky-600/20 transition">
+        HUBUNGKAN KE STUDIO PRO
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    const MASTER_PEER_ID = 'skawan-studio-main-master';
+    let localStream = null;
+    let peer = null;
+    let activeCall = null;
+    let dataConn = null;
+    let isConnected = false;
+    let facingMode = 'environment'; // Kamera belakang default
+
+    const videoEl = document.getElementById('localVideo');
+    const statusEl = document.getElementById('statusText');
+    const errorBox = document.getElementById('errorBox');
+    const errorDetail = document.getElementById('errorDetail');
+    const connectBtn = document.getElementById('connectBtn');
+    const tallyFrame = document.getElementById('tallyFrame');
+    const tallyBadge = document.getElementById('tallyBadge');
+
+    // Baca parameter URL opsional (?cam=CAM3)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramCam = urlParams.get('cam');
+    if (paramCam && ['CAM1', 'CAM2', 'CAM3', 'CAM4'].includes(paramCam.toUpperCase())) {
+      document.getElementById('camSlot').value = paramCam.toUpperCase();
+    }
+
+    async function startCamera() {
+      errorBox.classList.add('hidden');
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+      }
+
+      const [w, h] = document.getElementById('resPreset').value.split('x').map(Number);
+
+      try {
+        // Gunakan ideal constraint agar tidak ditolak sensor HP
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: w },
+            height: { ideal: h },
+            frameRate: { ideal: 30 }
+          },
+          audio: false
+        });
+        videoEl.srcObject = localStream;
+        statusEl.textContent = `Kamera siap (${w}x${h}) • Siap dihubungkan`;
+        statusEl.className = 'text-[11px] font-mono text-emerald-400';
+
+        // Jika sudah terhubung, perbarui track video secara langsung
+        if (isConnected && activeCall && activeCall.peerConnection) {
+          const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(localStream.getVideoTracks()[0]);
+        }
+      } catch (err) {
+        statusEl.textContent = 'Gagal membuka kamera';
+        statusEl.className = 'text-[11px] font-mono text-red-400';
+        errorBox.classList.remove('hidden');
+
+        if (err.name === 'NotAllowedError') {
+          errorDetail.textContent = 'Izin kamera ditolak. Ketuk ikon gembok di bar alamat browser HP lalu ubah izin Kamera ke "Izinkan".';
+        } else if (err.name === 'NotReadableError') {
+          errorDetail.textContent = 'Kamera sedang dipakai aplikasi lain. Tutup aplikasi kamera lain lalu coba lagi.';
+        } else {
+          errorDetail.textContent = `Error kamera (${err.name}): ${err.message}`;
+        }
+      }
+    }
+
+    function switchFacingMode() {
+      facingMode = facingMode === 'environment' ? 'user' : 'environment';
+      startCamera();
+    }
+
+    function updateTally(state) {
+      tallyFrame.classList.remove('tally-off', 'tally-preview', 'tally-program');
+      if (state === 'PROGRAM') {
+        tallyFrame.classList.add('tally-program');
+        tallyBadge.textContent = 'ON AIR (PGM)';
+        tallyBadge.className = 'px-3 py-1 rounded-full text-xs font-black tracking-widest bg-red-600 text-white animate-pulse';
+      } else if (state === 'PREVIEW') {
+        tallyFrame.classList.add('tally-preview');
+        tallyBadge.textContent = 'PREVIEW';
+        tallyBadge.className = 'px-3 py-1 rounded-full text-xs font-black tracking-widest bg-emerald-600 text-white';
+      } else {
+        tallyFrame.classList.add('tally-off');
+        tallyBadge.textContent = 'CONNECTED';
+        tallyBadge.className = 'px-3 py-1 rounded-full text-xs font-black tracking-widest bg-sky-600/30 text-sky-300';
+      }
+    }
+
+    function toggleConnect() {
+      if (isConnected) {
+        disconnectStudio();
+      } else {
+        connectToStudio();
+      }
+    }
+
+    function connectToStudio() {
+      if (!localStream) {
+        alert('Nyalakan kamera terlebih dahulu.');
+        return;
+      }
+
+      const selectedSlot = document.getElementById('camSlot').value;
+      const resLabel = document.getElementById('resPreset').selectedOptions[0].text.split(' ')[1];
+
+      connectBtn.disabled = true;
+      connectBtn.textContent = 'MENGHUBUNGKAN...';
+      statusEl.textContent = `Menghubungi SKAWAN Studio Pro (${selectedSlot})...`;
+
+      if (peer) peer.destroy();
+      peer = new Peer();
+
+      peer.on('open', () => {
+        // 1. Kirim aliran video ke MasterDashboard.tsx
+        activeCall = peer.call(MASTER_PEER_ID, localStream, {
+          metadata: {
+            cameraId: selectedSlot,
+            resolution: resLabel
+          }
+        });
+
+        // 2. Buka jalur data untuk menerima sinyal Tally Light
+        dataConn = peer.connect(MASTER_PEER_ID);
+        dataConn.on('data', (msg) => {
+          if (msg && msg.type === 'TALLY_UPDATE' && msg.tally) {
+            const currentSlot = document.getElementById('camSlot').value;
+            updateTally(msg.tally[currentSlot] || 'OFF');
+          }
+        });
+
+        dataConn.on('open', () => {
+          isConnected = true;
+          connectBtn.disabled = false;
+          connectBtn.textContent = `TERHUBUNG (${selectedSlot}) • PUTUSKAN`;
+          connectBtn.className = 'flex-1 py-3 bg-red-600 hover:bg-red-500 rounded-xl text-xs font-extrabold tracking-wide text-white transition';
+          statusEl.textContent = `Live terkirim ke ${selectedSlot} • Layar tetap menyala`;
+          updateTally('OFF');
+          requestWakeLock();
+        });
+
+        dataConn.on('close', disconnectStudio);
+      });
+
+      peer.on('error', (err) => {
+        connectBtn.disabled = false;
+        connectBtn.textContent = 'HUBUNGKAN KE STUDIO PRO';
+        statusEl.textContent = `Gagal terhubung: Pastikan SKAWAN Studio Pro terbuka (${err.type})`;
+        statusEl.className = 'text-[11px] font-mono text-red-400';
+      });
+    }
+
+    function disconnectStudio() {
+      isConnected = false;
+      if (activeCall) activeCall.close();
+      if (dataConn) dataConn.close();
+      if (peer) peer.destroy();
+      activeCall = null;
+      dataConn = null;
+      peer = null;
+
+      connectBtn.disabled = false;
+      connectBtn.textContent = 'HUBUNGKAN KE STUDIO PRO';
+      connectBtn.className = 'flex-1 py-3 bg-sky-600 hover:bg-sky-500 rounded-xl text-xs font-extrabold tracking-wide text-white shadow-lg shadow-sky-600/20 transition';
+      statusEl.textContent = 'Koneksi diputus • Kamera siap';
+      statusEl.className = 'text-[11px] font-mono text-zinc-400';
+      tallyFrame.className = 'min-h-screen flex flex-col justify-between border-[10px] tally-off transition-all duration-200 select-none';
+      tallyBadge.textContent = 'STANDBY';
+      tallyBadge.className = 'px-3 py-1 rounded-full text-xs font-black tracking-widest bg-zinc-800 text-zinc-400';
+    }
+
+    // Mencegah layar HP mati otomatis saat merekam
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          await navigator.wakeLock.request('screen');
+        }
+      } catch {}
+    }
+
+    startCamera();
+  </script>
+</body>
+</html>
