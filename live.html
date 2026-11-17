@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SKAWAN TV | PGM MASTER FEED</title>
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Google Fonts: Montserrat, Plus Jakarta Sans, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
@@ -37,7 +35,6 @@
     }
   </script>
 
-  <!-- Firebase SDK (Compat Version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
@@ -64,7 +61,6 @@
     })();
   </script>
 
-  <!-- Native WebRTC Streamer & YouTube API Resmi -->
   <script src="js/webrtc-stream.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -116,13 +112,10 @@
 </head>
 <body class="w-screen h-screen bg-black flex items-center justify-center relative select-none">
 
-  <!-- Audio Element Master Studio -->
   <audio id="masterStudioAudio" autoplay playsinline></audio>
 
-  <!-- MASTER VIEWPORT 16:9 CLEAN OUTPUT -->
   <div id="pgmMasterViewport" class="relative w-full aspect-video max-h-screen bg-black overflow-hidden flex items-center justify-center">
 
-    <!-- 1. LAYER BUMPER PLAYOUT (7 DETIK AWAL) -->
     <div id="pgmBumperWrapper" class="absolute inset-0 w-full h-full bg-black z-20 broadcast-dissolve flex items-center justify-center" style="display: flex; opacity: 1;">
       <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
         <iframe
@@ -134,20 +127,17 @@
         ></iframe>
       </div>
 
-      <!-- Tag Opening Ident -->
       <div id="bumperTagOverlay" class="hidden absolute top-6 left-6 z-30 items-center gap-2.5 bg-black/80 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl shadow-2xl">
         <span class="w-3 h-3 rounded-full bg-orange-500 animate-ping"></span>
         <span class="font-brand font-black text-sm text-orange-400 tracking-wider uppercase">IDENT OPENING</span>
         <span class="text-xs font-mono text-slate-300 ml-1 border-l border-white/20 pl-2.5" id="lblBumperCountdown">7s</span>
       </div>
 
-      <!-- Progress Bar Bumper -->
       <div id="bumperProgressBarContainer" class="hidden absolute bottom-0 left-0 right-0 h-2 bg-slate-900 overflow-hidden z-30">
         <div id="bumperProgressBar" class="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-red-500 transition-all duration-100 ease-linear w-0"></div>
       </div>
     </div>
 
-    <!-- 2. KARTU GLADI BERSIH OVERLAY -->
     <div id="pgmStandbyCardOverlay" class="absolute inset-0 z-25 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-8 transition-opacity duration-300" style="display: none;">
       <div class="bg-slate-900/95 border-2 border-amber-500/50 rounded-3xl p-8 shadow-2xl max-w-lg w-full space-y-4">
         <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono font-bold uppercase tracking-wider">
@@ -164,10 +154,8 @@
       </div>
     </div>
 
-    <!-- 3. FEED KAMERA / SCREEN SHARE / SKAWAN STUDIO PRO BRIDGE -->
     <video id="pgmCamVideo" class="absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;" autoplay playsinline muted></video>
 
-    <!-- 4. PEMUTAR VT MEDIA (YOUTUBE API NO-COOKIE) -->
     <div id="pgmVtWrapper" class="absolute inset-0 w-full h-full bg-black flex items-center justify-center z-10 transition-opacity duration-200 pointer-events-none" style="display: none; opacity: 0;">
       <div id="pgmBlackShield" class="absolute inset-0 bg-black z-15 pointer-events-none transition-opacity duration-300 opacity-0"></div>
       <div id="pgmVtYtWrap" class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
@@ -175,7 +163,6 @@
       </div>
     </div>
 
-    <!-- 5. CG BUG LOGO (MENDUKUNG 3 OPSI) -->
     <div id="cgBugLogo" class="absolute top-5 right-6 z-30 flex items-center justify-center max-w-[150px] max-h-14 transition-all duration-200 pointer-events-none">
       <img id="cgBugLogoCustomImg" src="" alt="Bug Logo" class="hidden h-10 w-auto object-contain drop-shadow-md">
       <div id="cgBugLogoDefaultBadge" class="flex items-center gap-2 bg-white/95 rounded-2xl px-3 py-1.5 shadow-xl backdrop-blur-sm border border-white/20">
@@ -193,13 +180,11 @@
       </div>
     </div>
 
-    <!-- 6. KOTAK MERAH "LIVE" ON-AIR -->
     <div id="badgeLiveOnAir" class="hidden absolute top-5 left-6 z-30 bg-red-600 text-white font-brand font-black text-xs sm:text-sm px-3.5 py-1.5 rounded-xl flex items-center gap-2 shadow-2xl animate-pulse">
       <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
       <span>LIVE</span>
     </div>
 
-    <!-- 7. CG LOWER THIRD -->
     <div id="cgLowerThirdBox" class="hidden absolute bottom-12 left-6 right-6 sm:left-10 sm:right-10 z-30 transition-all duration-300">
       <div id="cgLtTitle" class="bg-gradient-to-r from-orange-600 to-red-600 text-white font-brand font-black text-sm sm:text-lg px-5 py-2 rounded-t-2xl shadow-2xl inline-block tracking-wide">
         NAMA PRESENTER
@@ -210,7 +195,6 @@
       </div>
     </div>
 
-    <!-- 8. CG TICKER BAR -->
     <div id="cgTickerBar" class="hidden absolute bottom-0 left-0 right-0 h-8 sm:h-9 bg-gradient-to-r from-orange-700 to-red-700 text-white z-30 overflow-hidden flex items-center border-t border-orange-500 shadow-2xl">
       <div id="liveTickerWibHeader" class="bg-slate-950 px-3.5 h-full flex items-center font-mono font-black text-xs text-amber-400 shrink-0 border-r border-orange-900 tracking-wider">
         00:00 WIB
@@ -222,7 +206,6 @@
 
   </div>
 
-  <!-- FLOATING HELPER (AUTO-HIDE SETELAH 3 DETIK) -->
   <div id="floatingControls" class="control-fade fixed bottom-4 right-4 z-50 flex items-center gap-2 opacity-90">
     <button id="btnFloatingAudioUnmute" onclick="bukaSuaraSiaran()" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 px-3.5 py-2 rounded-2xl shadow-2xl font-mono text-xs font-bold flex items-center gap-2 backdrop-blur-md transition">
       <span id="iconAudioState">🔇</span>
@@ -238,7 +221,6 @@
     let streamerInstance = null;
     const remoteCamStreams = new Map();
 
-    // Native WebRTC Bridge SKAWAN Studio Pro
     let bridgePc = null;
     let currentBridgeSessionId = '';
     let bridgeViewerId = '';
@@ -455,7 +437,6 @@
 
       const effectiveStatus = (currentRoomToken === 'SKASA') ? 'live' : (currentRoomMeta.status || 'standby');
 
-      // 1. OFF-AIR
       if (effectiveStatus === 'ended') {
         standbyOverlay.style.display = 'flex';
         document.getElementById('standbyOverlayToken').innerText = currentRoomToken;
@@ -470,7 +451,6 @@
         return;
       }
 
-      // 2. STANDBY GLADI BERSIH
       if (effectiveStatus !== 'live') {
         onAirBumperPlayedForCurrentSession = false;
 
@@ -495,10 +475,8 @@
         return;
       }
 
-      // 3. LIVE ON-AIR
       standbyOverlay.style.display = 'none';
 
-      // PRIORITAS UTAMA: JIKA ADA SIARAN MASUK DARI SKAWAN STUDIO PRO
       const bridgeStream = remoteCamStreams.get('studio_bridge');
       if (isStudioBridgeConnected && bridgeStream && pgmVideo) {
         onAirBumperPlayedForCurrentSession = true;
@@ -521,7 +499,6 @@
       const isVtActive = (activeSrc === 'vt' && vtVidId !== '');
       const isCamActive = (stream !== null);
 
-      // KASUS 3A: BUMPER OPENING 7 DETIK
       if (!onAirBumperPlayedForCurrentSession) {
         onAirBumperPlayedForCurrentSession = true;
 
@@ -563,7 +540,6 @@
         return;
       }
 
-      // KASUS 3B: UMPAN VT AKTIF
       if (isVtActive) {
         bumperWrap.style.opacity = '0';
         setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
@@ -578,7 +554,6 @@
         return;
       }
 
-      // KASUS 3C: UMPAN KAMERA / SCREEN SHARE AKTIF
       if (isCamActive && pgmVideo) {
         bumperWrap.style.opacity = '0';
         setTimeout(() => { bumperWrap.style.display = 'none'; }, 800);
@@ -594,7 +569,6 @@
         return;
       }
 
-      // KASUS 3D: STANDBY JIKA BELUM ADA SUMBER
       if (pgmVideo) { pgmVideo.style.display = 'none'; pgmVideo.style.opacity = '0'; }
       if (pgmVtWrap) { pgmVtWrap.style.display = 'none'; pgmVtWrap.style.opacity = '0'; }
       
@@ -807,7 +781,19 @@
               pgmVideo.srcObject = null;
               pgmVideo.srcObject = incomingMediaStream;
               pgmVideo.muted = true;
-              pgmVideo.play().catch(() => {});
+              pgmVideo.playsInline = true;
+              pgmVideo.setAttribute('autoplay', '');
+              pgmVideo.setAttribute('playsinline', '');
+
+              // Optimasi anti-delay: buang buffer jika tertinggal
+              pgmVideo.play().then(() => {
+                if (pgmVideo.buffered.length > 0) {
+                  const latestTime = pgmVideo.buffered.end(pgmVideo.buffered.length - 1);
+                  if (latestTime - pgmVideo.currentTime > 0.4) {
+                    pgmVideo.currentTime = latestTime - 0.1;
+                  }
+                }
+              }).catch(() => {});
             }
           } else if (event.track.kind === 'audio') {
             const masterAudioEl = document.getElementById('masterStudioAudio');
